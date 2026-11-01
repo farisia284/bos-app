@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Aplikasi BOS Digital</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style id="pg">@page{margin:1cm;size:A4 portrait}</style>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:'Segoe UI',system-ui,sans-serif;background:#f0fdf4;color:#1a2e1a}
+.top{position:sticky;top:0;z-index:100}
+.hdr{background:linear-gradient(135deg,#166534,#14532d);color:#fff;padding:11px 16px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 8px #0004}
+.logo{width:34px;height:34px;background:#CA8A04;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.yr{background:#ffffff26;border-radius:8px;padding:4px 10px;display:flex;align-items:center;gap:6px;font-size:10px}
+.yr select{width:auto;background:transparent;border:0;color:#fff;font-weight:800;font-size:14px;padding:0}
+.yr option{background:#166534}
+nav{background:#fff;border-bottom:2px solid #dcfce7;display:flex;overflow-x:auto;box-shadow:0 1px 4px #0001}
+nav button{padding:10px 12px;border:0;background:none;font-weight:500;color:#6b7280;border-bottom:3px solid transparent;white-space:nowrap;font-size:12px;cursor:pointer}
+nav button.on{font-weight:700;color:#166534;border-color:#166534}
+main{padding:12px;max-width:980px;margin:auto}
+.card{background:#fff;border-radius:12px;padding:14px;box-shadow:0 1px 4px #0001;margin-bottom:11px}
+.ct{font-weight:700;font-size:14px;color:#166534;margin-bottom:9px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:11px}
+.sc{border-radius:11px;padding:12px 15px;color:#fff}
+.sc small{display:block;font-size:10px;opacity:.85;margin-bottom:2px}
+.sc b{font-size:15px}
+label{font-size:12px;font-weight:600;color:#374151;margin:8px 0 3px;display:block}
+input,select{width:100%;border:1.5px solid #d1fae5;border-radius:8px;padding:8px 10px;font-size:14px;background:#fff;outline:none}
+input:focus,select:focus{border-color:#16a34a;box-shadow:0 0 0 3px #16a34a1a}
+input:disabled{background:#f3f4f6;color:#6b7280}
+input[type=checkbox]{width:16px;height:16px}
+select.auto,input.auto{width:auto;font-size:12px}
+.btn{padding:9px 15px;border-radius:8px;border:0;font-weight:600;font-size:13px;background:#166534;color:#fff;cursor:pointer}
+.btn:hover{opacity:.87}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.gold{background:#CA8A04}.btn.red{background:#dc2626}.btn.blue{background:#0369a1}.btn.teal{background:#0f766e}.btn.gray{background:#f3f4f6;color:#374151}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:11px}
+@media(max-width:480px){.g2{grid-template-columns:1fr}}
+.tbx{background:#fefce8;border:1px solid #CA8A04;border-radius:8px;padding:7px 11px;font-size:12px;color:#713f12;font-style:italic;margin-top:4px}
+.info{background:#f0fdf4;border:1px solid #dcfce7;border-radius:8px;padding:8px 11px;font-size:12px;margin-bottom:8px}
+.jt{padding:10px;border-radius:10px;font-weight:700;cursor:pointer;font-size:12px;background:#fff}
+.bar{background:#f1f5f9;border-radius:99px;height:10px}
+.bar i{display:block;height:10px;border-radius:99px;transition:width .5s}
+.bd{padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600;white-space:nowrap}
+.wrap{overflow-x:auto}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.ib{background:none;border:0;cursor:pointer;font-size:13px;padding:2px 4px}
+#toast{position:fixed;bottom:16px;right:16px;left:16px;max-width:420px;margin-left:auto;background:#1f2937;color:#fff;padding:10px 16px;border-radius:9px;z-index:99999;font-size:13px;font-weight:500;box-shadow:0 4px 14px #0004;display:none}
+.modal{position:fixed;inset:0;background:#0008;display:flex;align-items:center;justify-content:center;z-index:999;padding:20px}
+.modal>div{background:#fff;border-radius:13px;padding:22px;max-width:300px;width:100%}
+
+/* ===== LEMBAR (BKU, BKU Pajak, Rekap Pajak) ===== */
+.bk{font-family:Cambria,'Times New Roman',serif;color:#000;font-size:12px;background:#fff}
+.bk .tt{text-align:center;font-weight:700;font-size:14px;line-height:1.4}
+.bk table{border-collapse:collapse}
+.bk table.t{width:100%!important;margin-top:6px}
+.bk table.t th,.bk table.t td{border:1px solid #000!important;padding:2px 5px!important;background:none!important;color:#000;font-size:11.5px;text-align:left;vertical-align:top}
+.bk table.t th{text-align:center;font-weight:700}
+.bk table.t td.r{text-align:right;white-space:nowrap}
+.bk table.t tr.j td{border-top:2px solid #000!important;border-bottom:2px solid #000!important;font-weight:700}
+.bk .b{font-weight:700}
+.bk table.inf{width:auto!important}
+.bk table.inf td{border:0!important;padding:1px 14px 1px 0!important;font-size:12px;background:none!important}
+.bk table.inf td.r{text-align:right;padding-right:0!important}
+.bk table.fm{width:auto!important}
+.bk table.fm td{border:1px solid #000!important;padding:1px 16px!important;text-align:center;font-size:12px;background:none!important}
+.bk .sg{display:flex;justify-content:space-between;align-items:flex-end;margin-top:18px;text-align:center;font-size:12px}
+.bk .sg .sp{height:50px}
+
+/* ===== FORMULIR A2 (jarak lebih longgar) ===== */
+.a2{line-height:1.55}
+.a2 td{padding:5px 10px!important}
+.a2>table>tbody>tr>td{padding:12px 16px!important}
+
+/* ===== CETAK ===== */
+#print-layer{display:none;font-family:Arial,sans-serif;font-size:11px;color:#111}
+#print-layer.show{display:block;position:fixed;inset:0;background:#fff;z-index:9999;overflow:auto;padding:20px 28px}
+#print-layer table{border-collapse:collapse;width:100%}
+#print-layer th,#print-layer td{border:1px solid #555;padding:5px 7px}
+#print-layer th{background:#d1fae5;font-weight:700;text-align:center}
+#print-layer .right{text-align:right}
+@media print{
+ body>*:not(#print-layer){display:none!important}
+ #print-layer.show{position:static;overflow:visible;padding:0}
+ .no-print{display:none!important}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="print-layer"></div>
+<div id="toast"></div>
+
+<script>
+/* ─── TERBILANG ─── */
+function terbilang(n){
+ if(!n||n===0)return"Nol Rupiah";n=Math.abs(Math.floor(n));
+ const s=["","Satu","Dua","Tiga","Empat","Lima","Enam","Tujuh","Delapan","Sembilan"];
+ function c(x){
+  if(x===0)return"";if(x<10)return s[x];if(x===10)return"Sepuluh";if(x===11)return"Sebelas";
+  if(x<20)return s[x-10]+" Belas";if(x<100)return s[Math.floor(x/10)]+" Puluh"+(x%10?" "+s[x%10]:"");
+  if(x<200)return"Seratus"+(x%100?" "+c(x%100):"");if(x<1000)return s[Math.floor(x/100)]+" Ratus"+(x%100?" "+c(x%100):"");
+  if(x<2000)return"Seribu"+(x%1000?" "+c(x%1000):"");if(x<1e6)return c(Math.floor(x/1000))+" Ribu"+(x%1000?" "+c(x%1000):"");
+  if(x<1e9)return c(Math.floor(x/1e6))+" Juta"+(x%1e6?" "+c(x%1e6):"");
+  return c(Math.floor(x/1e9))+" Miliar"+(x%1e9?" "+c(x%1e9):"");
+ }return c(n)+" Rupiah";
+}
+
+/* ─── HELPERS ─── */
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const rp=n=>"Rp "+(n||0).toLocaleString("id-ID");
+const num=n=>(n||0).toLocaleString("id-ID");
+const n2=v=>(v||0).toLocaleString('id-ID',{minimumFractionDigits:2,maximumFractionDigits:2});
+const tgl=s=>s?new Date(s+"T00:00:00").toLocaleDateString("id-ID",{day:"2-digit",month:"long",year:"numeric"}):"";
+const tglS=s=>s?new Date(s+"T00:00:00").toLocaleDateString("id-ID",{day:"2-digit",month:"short",year:"numeric"}):"";
+const tglN=s=>new Date(s+"T00:00:00").toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"});
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const today=()=>new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
+const cleanNum=s=>parseFloat(String(s).replace(/\./g,"").replace(",","."))||0;
+const getMonth=s=>s?new Date(s+"T00:00:00").getMonth()+1:0;
+const MO=["","Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+const ROM=["","I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"];
+const TW=["","Satu","Dua","Tiga","Empat"];
+const logoImg=s=>s?`<img src="${s}" style="width:80px;height:80px;object-fit:contain">`:'<div style="width:80px;height:80px"></div>';
+
+const KOMP=[
+ {kode:"1",nama:"Honorarium Non-PNS",full:"Honorarium NON PNS",color:"#7C3AED"},
+ {kode:"2",nama:"Alat Tulis Kantor",full:"Belanja Alat Tulis Kantor",color:"#2563EB"},
+ {kode:"3",nama:"Cetak & Penggandaan",full:"Belanja Cetak dan Penggandaan",color:"#0891B2"},
+ {kode:"4",nama:"Jaskom",full:"Belanja Jasa Komunikasi (Jaskom)",color:"#65A30D"},
+ {kode:"5",nama:"Pemeliharaan",full:"Belanja Pemeliharaan",color:"#D97706"},
+ {kode:"6",nama:"Perjalanan Dinas",full:"Belanja Perjalanan Dinas",color:"#EA580C"},
+ {kode:"7",nama:"Belanja Lainnya",full:"Belanja Lainnya",color:"#DC2626"},
+ {kode:"8",nama:"Belanja Modal",full:"Belanja Modal",color:"#BE185D"},
+];
+const fK=k=>KOMP.find(x=>x.kode===k);
+const PAJAK=[{kode:"pph21",label:"PPh 21",persen:5},{kode:"pph23",label:"PPh 23",persen:4},{kode:"ppn",label:"PPN",persen:12}];
+const fP=k=>PAJAK.find(x=>x.kode===k);
+const JL={pph21:'Pph 21',pph23:'Pph 23',ppn:'PPn'};
+
+const DEF_CFG={namaSekolah:"SDN Kalisari",npsn:"20208284",alamat:"Jl. Kalisari Raya No. 1",
+ kecamatan:"Pasar Rebo",kota:"Jakarta Timur",tempat:"Kalisari",kepsek:"",nipKepsek:"",
+ kopPemda:"PEMERINTAH KABUPATEN BATANG",kopSekolah:"SD NEGERI KALISARI REBAN",email:"sdnkalisarireban@gmail.com",
+ namaLengkap:"SEKOLAH DASAR NEGERI KALISARI",alamatRekap:"Alamat : Desa Kalisari Kecamatan Reban Kabupaten Batang",logoKiri:"",logoKanan:"",
+ bendahara:"Salman Alfarisi, S.Pd.",nipBendahara:"",
+ pagu:100000000,guruList:[{id:"g1",nama:"Salman Alfarisi, S.Pd.",nip:""},{id:"g2",nama:"Siti Rahayu, S.Pd.",nip:""}]};
+
+/* ═════════ PENYIMPANAN ONLINE (Supabase) ═════════
+   Semua data disimpan sebagai pasangan kunci -> nilai di tabel bos_kv (satu baris per kunci per akun).
+   DB = salinan di memori. ld() membaca dari DB, sv() menulis ke DB lalu dikirim ke server (ditunda 0,6 detik). */
+const SB_URL='https://krmaunydkvkmdfrbckgi.supabase.co',SB_KEY='sb_publishable_bjbwDH_CVDkAxOAP0_103w_cC8YzYGf';
+let sb=null,user=null,DB={},pend={},ver=0,sync='ok',sTimer=null;
+const SYN={ok:'☁️ Tersimpan',wait:'⏳ Menyimpan…',err:'⚠️ Gagal simpan, mencoba lagi…'};
+function setSync(s){sync=s;const e=$('sync');if(e)e.textContent=SYN[s]}
+const clone=v=>JSON.parse(JSON.stringify(v));
+const canon=v=>JSON.stringify(v,(k,x)=>x&&typeof x==='object'&&!Array.isArray(x)?Object.keys(x).sort().reduce((o,i)=>(o[i]=x[i],o),{}):x);
+const ld=k=>DB[k]===undefined?null:clone(DB[k]);
+const sv=(k,v)=>{DB[k]=clone(v);pend[k]=++ver;setSync('wait');clearTimeout(sTimer);sTimer=setTimeout(flush,600)};
+async function flush(){
+ const keys=Object.keys(pend);if(!keys.length||!user)return;
+ const sent={},rows=keys.map(k=>{sent[k]=pend[k];return{user_id:user.id,key:k,value:DB[k],updated_at:new Date().toISOString()}});
+ const {error}=await sb.from('bos_kv').upsert(rows,{onConflict:'user_id,key'});
+ if(error){setSync('err');clearTimeout(sTimer);sTimer=setTimeout(flush,5000);return}
+ keys.forEach(k=>{if(pend[k]===sent[k])delete pend[k]});
+ if(Object.keys(pend).length){clearTimeout(sTimer);sTimer=setTimeout(flush,300)}else setSync('ok');
+}
+const TXK=y=>'bos4-tx-'+y, SAK=y=>'bos4-sa-'+y, CFGK='bos4-cfg', YK='bos4-years';
+
+/* ─── LOGIN ─── */
+function showLogin(msg,email){
+ $('app').innerHTML=`<div style="max-width:380px;margin:50px auto;padding:0 14px"><div class="card">
+  <div style="text-align:center;font-size:36px">📒</div><div class="ct" style="text-align:center;font-size:16px">Aplikasi BOS Digital</div>
+  ${msg?`<div class="info" style="background:#fef2f2;border-color:#fecaca;color:#991b1b">${esc(msg)}</div>`:''}
+  <label>Email</label><input id="lg-e" type="email" autocomplete="username" value="${esc(email||'')}">
+  <label>Password</label><input id="lg-p" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+  <button class="btn" style="width:100%;margin-top:14px" onclick="doLogin()">Masuk</button></div></div>`;
+}
+async function doLogin(){
+ const email=$('lg-e').value.trim(),password=$('lg-p').value;
+ if(!email||!password){showLogin('Isi email dan password',email);return}
+ const {data,error}=await sb.auth.signInWithPassword({email,password});
+ if(error){showLogin('Email atau password salah',email);return}
+ user=data.user;await start();
+}
+async function logout(){
+ if(Object.keys(pend).length&&!confirm('Masih ada data yang belum tersimpan online. Tetap keluar?'))return;
+ await sb.auth.signOut();user=null;DB={};pend={};showLogin();
+}
+async function fetchAll(){
+ const {data,error}=await sb.from('bos_kv').select('key,value');
+ if(error)return null;
+ const o={};data.forEach(r=>o[r.key]=r.value);return o;
+}
+/* Data lama di browser ini (versi sebelumnya) dipindah ke online satu kali, hanya jika server masih kosong */
+async function migrateLocal(){
+ if(Object.keys(DB).length)return;
+ let ks=[];try{ks=Object.keys(localStorage).filter(k=>k.startsWith('bos4-'))}catch(e){}
+ if(!ks.length||!confirm(`Ditemukan ${ks.length} data BOS lama di browser ini. Pindahkan ke online?`))return;
+ ks.forEach(k=>{try{sv(k,JSON.parse(localStorage.getItem(k)))}catch(e){}});
+ await flush();
+}
+async function start(){
+ $('app').innerHTML='<div style="text-align:center;padding:60px;color:#166534;font-weight:700">📒 Memuat data BOS…</div>';
+ const o=await fetchAll();
+ if(!o){showLogin('Gagal memuat data. Periksa internet atau proyek Supabase (mungkin nonaktif).');return}
+ DB=o;pend={};
+ await migrateLocal();
+ cfg={...DEF_CFG,...(ld(CFGK)||{})};
+ loadYear(String(new Date().getFullYear()));
+ newForm();render();
+ if(!window._ev){window._ev=1;
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});
+  addEventListener('beforeunload',e=>{if(Object.keys(pend).length){e.preventDefault();e.returnValue=''}});
+ }
+}
+/* Saat aplikasi dibuka kembali, ambil data terbaru jika ada perubahan dari perangkat lain */
+async function refresh(){
+ if(!user||Object.keys(pend).length)return;
+ const o=await fetchAll();if(!o||Object.keys(pend).length)return;
+ let ch=false;new Set([...Object.keys(o),...Object.keys(DB)]).forEach(k=>{if(canon(o[k])!==canon(DB[k]))ch=true});
+ if(!ch)return;
+ DB=o;cfg={...DEF_CFG,...(ld(CFGK)||{})};loadYear(yr);render();toast('🔄 Data diperbarui dari perangkat lain');
+}
+function exportDb(){
+ const b=new Blob([JSON.stringify(DB)],{type:'application/json'}),a=document.createElement('a');
+ a.href=URL.createObjectURL(b);a.download=`cadangan-bos-${today()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+}
+function importDb(el){
+ const f=el.files[0];if(!f)return;
+ const rd=new FileReader();
+ rd.onload=()=>{
+  let o,ks;
+  try{o=JSON.parse(rd.result);ks=Object.keys(o).filter(k=>k.startsWith('bos4-'));if(!ks.length)throw 0}catch(e){toast('⚠️ File cadangan tidak valid');return}
+  if(!confirm(`Pulihkan ${ks.length} data dari cadangan? Data dengan nama sama akan ditimpa.`))return;
+  ks.forEach(k=>sv(k,o[k]));cfg={...DEF_CFG,...(ld(CFGK)||{})};loadYear(yr);render();toast('✅ Cadangan dipulihkan');
+ };
+ rd.readAsText(f);
+}
+
+/* ─── STATE ─── */
+let yr,cfg,tx=[],sa={bank:0,tunai:0},R={rows:[]};
+let tab='dashboard',editId=null,delId=null,cfgD=null,F;
+const nowM=String(new Date().getMonth()+1);
+let bkuM=nowM,pjM=nowM,pMo=nowM,rkT=+nowM<=6?'1':'2',rkTgl='';
+
+/* Daftar tahun: tahun lalu, ini, depan + tahun yang sudah ada datanya + tahun yang ditambah operator */
+function yearList(){
+ const y0=new Date().getFullYear(),s=new Set([...(ld(YK)||[]),+yr,y0-1,y0,y0+1]);
+ Object.keys(DB).forEach(k=>{const m=k.match(/^bos4-tx-(\d{4})$/);if(m)s.add(+m[1])});
+ return[...s].sort();
+}
+
+const fGuru=id=>(cfg.guruList||[]).find(g=>g.id===id);
+/* tanggal = LUNAS BAYAR (BKU, A2, SP, = tanggal terima pajak). tglTrx = tanggal transaksi (A2). pajak.tglStor = tanggal stor pajak */
+function initForm(){return{tanggal:today(),tglTrx:today(),tglStor:today(),ntpn:'',noBukti:'',kode:'',uraian:'',komponen:'2',jenis:'kredit',jumlah:'',ket:'',guruId:'',pajakOn:false,pajakKode:'pph23'}}
+/* No bukti otomatis hanya untuk belanja: 1/BOSP/V/2026 (urut per bulan) */
+function autoNo(){
+ if(editId)return;
+ if(F.jenis!=='kredit'){F.noBukti='';return}
+ const m=getMonth(F.tanggal)||new Date().getMonth()+1;
+ const n=tx.filter(t=>t.jenis==='kredit'&&getMonth(t.tanggal)===m).length+1;
+ F.noBukti=`${n}/BOSP/${ROM[m]}/${yr}`;
+}
+function newForm(){F=initForm();autoNo()}
+function loadYear(y){yr=y;tx=ld(TXK(y))||[];sa=ld(SAK(y))||{bank:0,tunai:0}}
+
+/* ─── HITUNG SALDO ───
+   Dana masuk  -> bank +
+   Tarik dana  -> bank -, tunai +
+   Belanja BKU -> tunai -
+   Pajak: terima (tgl lunas bayar) tunai +, stor (tgl stor pajak) tunai -
+   Urutan hari yang sama: masuk, tarik, belanja(+terima pajak), stor pajak */
+const RANK={debet:0,tarik:1,kredit:2};
+const sortTx=l=>[...l].sort((a,b)=>a.tanggal.localeCompare(b.tanggal)||RANK[a.jenis]-RANK[b.jenis]||a.id.localeCompare(b.id));
+function run(list,s0){
+ s0=s0||sa;let bank=s0.bank,tunai=s0.tunai,err=null,n=0;const rows=[],ev=[];
+ list.forEach(t=>{
+  ev.push({d:t.tanggal,r:RANK[t.jenis],id:t.id,s:0,k:'m',t});
+  if(t.jenis==='kredit'&&t.pajak){
+   ev.push({d:t.tanggal,r:2,id:t.id,s:1,k:'t',t});
+   ev.push({d:t.pajak.tglStor||t.tanggal,r:3,id:t.id,s:2,k:'s',t});
+  }
+ });
+ ev.sort((a,b)=>a.d.localeCompare(b.d)||a.r-b.r||a.id.localeCompare(b.id)||a.s-b.s);
+ ev.forEach(e=>{
+  const t=e.t;
+  if(e.k==='m'){
+   if(t.jenis==='debet')bank+=t.jumlah;
+   else if(t.jenis==='tarik'){bank-=t.jumlah;tunai+=t.jumlah}
+   else tunai-=t.jumlah;
+   if(!err&&bank<0)err={t,k:'bank',v:bank};
+   if(!err&&tunai<0)err={t,k:'tunai',v:tunai};
+   rows.push({...t,rt:'main',no:++n,bank,tunai});
+  }else{
+   const p=t.pajak,lb=(fP(p.kode)||{}).label||'',ter=e.k==='t';
+   tunai+=ter?p.jumlah:-p.jumlah;
+   if(!err&&tunai<0)err={t,k:'tunai',v:tunai};
+   rows.push({id:t.id+(ter?'_tp':'_ts'),parentId:t.id,rt:'tax',tk:e.k,pk:p.kode,pb:t.noBukti,tanggal:e.d,noBukti:'',uraian:`${ter?'Terima':'Setor'} Pajak ${lb} ${t.uraian}`,jenis:ter?'debet':'kredit',jumlah:p.jumlah,bank,tunai});
+  }
+ });
+ return{rows,bank,tunai,err};
+}
+function tot(){
+ const s=j=>tx.filter(t=>t.jenis===j).reduce((a,t)=>a+t.jumlah,0);
+ const masuk=s('debet'),tarik=s('tarik'),real=s('kredit');
+ return{masuk,tarik,real,sisa:masuk-real,bank:sa.bank+masuk-tarik,tunai:sa.tunai+tarik-real};
+}
+const errMsg=e=>`${e.k==='bank'?'Saldo bank':'Saldo tunai'} tidak cukup untuk "${e.t.uraian}" (${tglS(e.t.tanggal)}), kurang ${rp(-e.v)}.${e.k==='tunai'?' Lakukan Tarik Dana dulu.':''}`;
+function commit(list,msg){
+ const r=run(list);
+ if(r.err){toast('⚠️ '+errMsg(r.err),5500);return false}
+ tx=list;sv(TXK(yr),tx);if(msg)toast(msg);return true;
+}
+let tt;
+function toast(m,ms){const e=$('toast');e.textContent=m;e.style.display='block';clearTimeout(tt);tt=setTimeout(()=>e.style.display='none',ms||3000)}
+
+/* ─── FORM HANDLERS ─── */
+function fset(k,v){F[k]=v}
+function fTgl(v){
+ const old=F.tanggal;F.tanggal=v;
+ if(F.tglTrx===old){F.tglTrx=v;if($('f-trx'))$('f-trx').value=v}
+ if(F.tglStor===old){F.tglStor=v;if($('f-stor'))$('f-stor').value=v}
+ if($('f-trm'))$('f-trm').value=v;
+ autoNo();if($('f-no'))$('f-no').value=F.noBukti;
+}
+function setJ(j){F.jenis=j;F.komponen=j==='kredit'?'2':'0';F.pajakOn=false;if(j==='kredit'){F.tglTrx=F.tanggal;F.tglStor=F.tanggal}autoNo();render()}
+function fmt(el,tid){
+ const d=el.value.replace(/\D/g,'');el.value=d?(+d).toLocaleString('id-ID'):'';
+ const n=+d||0,t=$(tid);
+ if(t){t.style.display=n>0?'block':'none';t.textContent='✍️ '+terbilang(n)}
+ return n;
+}
+function onJml(el){const n=fmt(el,'f-terb');F.jumlah=n?String(n):'';upd()}
+function upd(){
+ const j=cleanNum(F.jumlah),pi=fP(F.pajakKode),pj=F.jenis==='kredit'&&F.pajakOn&&pi?Math.round(j*pi.persen/100):0;
+ if($('f-pj'))$('f-pj').textContent=rp(pj);
+ if($('f-net'))$('f-net').textContent='Net: '+rp(j-pj);
+}
+function doSubmit(){
+ const f=F;
+ if(!f.tanggal||!f.uraian.trim()||!f.jumlah){toast('⚠️ Tanggal, uraian, jumlah wajib!');return}
+ const j=cleanNum(f.jumlah);if(j<=0){toast('⚠️ Jumlah harus > 0');return}
+ const pi=fP(f.pajakKode),k=f.jenis==='kredit',sd=f.tglStor||f.tanggal;
+ if(k&&f.pajakOn){
+  if(sd<f.tanggal){toast('⚠️ Tanggal stor pajak tidak boleh sebelum tanggal terima (lunas bayar)');return}
+  if(sd.slice(0,4)!==yr){toast('⚠️ Tanggal stor pajak harus di tahun '+yr);return}
+ }
+ const pajak=k&&f.pajakOn&&pi?{kode:pi.kode,persen:pi.persen,jumlah:Math.round(j*pi.persen/100),tglStor:sd,ntpn:f.ntpn.trim()}:null;
+ const e={tanggal:f.tanggal,tglTrx:k?(f.tglTrx||f.tanggal):'',noBukti:f.noBukti,kode:k?f.kode.trim():'',uraian:f.uraian.trim(),komponen:k?f.komponen:'0',jenis:f.jenis,jumlah:j,ket:f.ket,guruId:k?f.guruId:'',pajak};
+ const list=editId?tx.map(t=>t.id===editId?{...e,id:editId}:t):[...tx,{...e,id:uid()}];
+ if(!commit(list,editId?'✅ Transaksi diperbarui':'✅ Transaksi disimpan'))return;
+ editId=null;newForm();render();
+}
+function doEdit(id){
+ const t=tx.find(x=>x.id===id);if(!t)return;
+ F={tanggal:t.tanggal,tglTrx:t.tglTrx||t.tanggal,tglStor:(t.pajak&&t.pajak.tglStor)||t.tanggal,ntpn:(t.pajak&&t.pajak.ntpn)||'',noBukti:t.noBukti,kode:t.kode||'',uraian:t.uraian,komponen:t.komponen,jenis:t.jenis,jumlah:String(t.jumlah),ket:t.ket||'',guruId:t.guruId||'',pajakOn:!!t.pajak,pajakKode:t.pajak?t.pajak.kode:'pph23'};
+ editId=id;tab='input';render();scrollTo(0,0);
+}
+function cancelEdit(){editId=null;newForm();render()}
+function doDel(id){commit(tx.filter(t=>t.id!==id),'🗑️ Dihapus');delId=null;render()}
+function go(t){tab=t;render();scrollTo(0,0)}
+function switchYr(y){loadYear(y);editId=null;rkTgl='';newForm();render();toast('📅 Beralih ke Tahun '+y)}
+
+/* ─── PENGATURAN HANDLERS ─── */
+function cs(k,v){cfgD=cfgD||JSON.parse(JSON.stringify(cfg));cfgD[k]=v}
+function addGuru(){
+ const n=$('g-nama').value.trim();if(!n)return;
+ cfgD=cfgD||JSON.parse(JSON.stringify(cfg));
+ cfgD.guruList=[...(cfgD.guruList||[]),{id:uid(),nama:n,nip:$('g-nip').value.trim(),jabatan:$('g-jab').value.trim()}];render();
+}
+function rmGuru(id){cfgD=cfgD||JSON.parse(JSON.stringify(cfg));cfgD.guruList=cfgD.guruList.filter(g=>g.id!==id);render()}
+function setLogo(k,el){
+ const f=el.files[0];if(!f)return;
+ const rd=new FileReader();
+ rd.onload=()=>{const im=new Image();im.onload=()=>{
+  const s=Math.min(1,200/Math.max(im.width,im.height)),c=document.createElement('canvas');
+  c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);
+  c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+  cs(k,c.toDataURL('image/png'));render();
+ };im.src=rd.result};
+ rd.readAsDataURL(f);
+}
+function saveCfg(){if(!cfgD){toast('Tidak ada perubahan');return}cfg=cfgD;sv(CFGK,cfg);cfgD=null;render();toast('✅ Pengaturan disimpan')}
+function cancelCfg(){cfgD=null;render()}
+function setSa(n){
+ const old=sa;sa=n;const r=run(tx);
+ if(r.err){sa=old;toast('⚠️ '+errMsg(r.err),5500);return false}
+ sv(SAK(yr),sa);render();return true;
+}
+function saveSa(){if(setSa({bank:cleanNum($('sa-b').value),tunai:cleanNum($('sa-t').value)}))toast('✅ Saldo awal disimpan')}
+function carry(){
+ const py=String(+yr-1),pt=ld(TXK(py)),ps=ld(SAK(py));
+ if(!pt&&!ps){toast('⚠️ Tidak ada data tahun sebelumnya');return}
+ const r=run(pt||[],ps||{bank:0,tunai:0});
+ if(setSa({bank:r.bank,tunai:r.tunai}))toast(`✅ Saldo awal ${yr}: Bank ${rp(r.bank)}, Tunai ${rp(r.tunai)}`);
+}
+function pindahTahun(){
+ const v=$('yr-inp').value;
+ if(!/^\d{4}$/.test(v)){toast('⚠️ Tahun harus 4 digit');return}
+ sv(YK,[...new Set([...(ld(YK)||[]),+v])]);switchYr(v);
+}
+function wipe(){if(confirm(`Hapus SEMUA transaksi ${yr}?`)){tx=[];sv(TXK(yr),tx);render();toast('🗑️ Data dihapus')}}
+
+/* ═════════ VIEWS ═════════ */
+function vDash(){
+ const T=tot();
+ const pR=T.masuk>0?Math.min(100,T.real/T.masuk*100):0;
+ const ks=KOMP.map(k=>({...k,v:tx.filter(t=>t.komponen===k.kode&&t.jenis==='kredit').reduce((s,t)=>s+t.jumlah,0)})).filter(k=>k.v>0);
+ const sum=ks.reduce((s,k)=>s+k.v,0);let a=0;
+ const stops=ks.map(k=>{const s=a;a+=k.v/sum*100;return `${k.color} ${s}% ${a}%`}).join(',');
+ const recent=[...tx].sort((a,b)=>b.tanggal.localeCompare(a.tanggal)||b.id.localeCompare(a.id)).slice(0,6);
+ const card=(l,v,c)=>`<div class="sc" style="background:${c}"><small>${l}</small><b>${v}</b></div>`;
+ return `
+ <div class="stats">
+  ${card('🏦 Saldo Bank',rp(T.bank),'#0369a1')}
+  ${card('💵 Saldo Tunai',rp(T.tunai),'#0f766e')}
+  ${card('💰 Dana Masuk',rp(T.masuk),'#166534')}
+  ${card('💸 Realisasi',rp(T.real),'#dc2626')}
+  ${card('📦 Sisa Dana Masuk',rp(T.sisa),'#7C3AED')}
+  ${card('📋 Pagu',rp(cfg.pagu),'#CA8A04')}
+ </div>
+ <div class="card"><div class="ct">📊 Realisasi ${yr}</div>
+  <div class="row" style="font-size:12px;margin-bottom:4px"><span>Realisasi dari dana masuk</span><b style="color:#dc2626">${pR.toFixed(1)}%</b></div>
+  <div class="bar"><i style="width:${pR}%;background:${pR>90?'#dc2626':pR>70?'#f59e0b':'#16a34a'}"></i></div>
+  <div style="font-size:11px;color:#6b7280;margin-top:4px">Sisa dana masuk: <b>${rp(T.sisa)}</b> | Saldo awal: bank <b>${rp(sa.bank)}</b>, tunai <b>${rp(sa.tunai)}</b></div>
+ </div>
+ ${ks.length?`<div class="card"><div class="ct">🍰 Belanja per Komponen</div>
+  <div class="g2" style="align-items:center">
+   <div style="width:150px;height:150px;border-radius:50%;margin:auto;background:conic-gradient(${stops})"></div>
+   <div style="display:flex;flex-direction:column;gap:4px">${ks.map(k=>`<div style="display:flex;align-items:center;gap:5px;font-size:11px"><span style="width:9px;height:9px;border-radius:2px;background:${k.color};flex-shrink:0"></span><span style="flex:1">${k.nama}</span><b style="color:${k.color}">${rp(k.v)}</b></div>`).join('')}</div>
+  </div></div>`:''}
+ <div class="card"><div class="ct">🕐 Transaksi Terbaru</div>
+  ${recent.length?recent.map(t=>{const c=t.jenis==='debet'?'#16a34a':t.jenis==='tarik'?'#0369a1':'#dc2626',s=t.jenis==='debet'?'+':t.jenis==='tarik'?'⇄ ':'-';
+   return `<div class="row" style="padding:7px 0;border-bottom:1px solid #f0fdf4"><div style="min-width:0;flex:1"><div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.uraian)}</div><div style="font-size:10px;color:#9ca3af">${tglS(t.tanggal)} · ${esc(t.noBukti)}</div></div><b style="color:${c};font-size:13px">${s}${rp(t.jumlah)}</b></div>`}).join('')
+  :`<div style="text-align:center;color:#9ca3af;padding:20px;font-size:13px">Belum ada data. <a href="#" style="color:#166534" onclick="go('input');return false">+ Input sekarang</a></div>`}
+ </div>`;
+}
+
+function vInput(){
+ const f=F,T=tot(),k=f.jenis==='kredit';
+ const j=cleanNum(f.jumlah),pi=fP(f.pajakKode),pj=k&&f.pajakOn&&pi?Math.round(j*pi.persen/100):0;
+ const jt=[['debet','💰 Dana Masuk','#16a34a'],['tarik','🏧 Tarik Dana','#0369a1'],['kredit','💸 Belanja (BKU)','#dc2626']];
+ const note=f.jenis==='debet'?'Dana masuk otomatis <b>menambah saldo bank</b>.'
+  :f.jenis==='tarik'?`Saldo bank <b>berkurang</b> sebesar jumlah tarik, saldo tunai <b>bertambah</b>. Saldo bank: <b>${rp(T.bank)}</b> | Saldo tunai: <b>${rp(T.tunai)}</b>`
+  :`Belanja <b>mengurangi saldo tunai</b> dan sisa dana masuk. Saldo tunai: <b>${rp(T.tunai)}</b>`;
+ const noInp=`<input id="f-no" value="${esc(f.noBukti)}" oninput="fset('noBukti',this.value)">`;
+ return `<div class="card">
+  <div class="ct">${editId?'✏️ Edit Transaksi':'➕ Input Transaksi'}</div>
+  <div class="g3">${jt.map(([v,l,c])=>`<button class="jt" style="border:2px solid ${f.jenis===v?c:'#e5e7eb'};color:${f.jenis===v?c:'#6b7280'};background:${f.jenis===v?c+'11':'#fff'}" onclick="setJ('${v}')">${l}</button>`).join('')}</div>
+  <div class="info">${note}</div>
+  ${k?`<div class="g2">
+   <div><label>📅 Tanggal Transaksi *</label><input type="date" id="f-trx" value="${esc(f.tglTrx)}" onchange="fset('tglTrx',this.value)"></div>
+   <div><label>📅 Tanggal Lunas Bayar *</label><input type="date" value="${esc(f.tanggal)}" onchange="fTgl(this.value)"></div>
+  </div>
+  <label>🔢 No. Bukti</label>${noInp}`
+  :`<div class="g2">
+   <div><label>📅 Tanggal *</label><input type="date" value="${esc(f.tanggal)}" onchange="fTgl(this.value)"></div>
+   <div><label>🔢 No. Bukti</label>${noInp}</div>
+  </div>`}
+  <label>📝 Uraian *</label>
+  <input value="${esc(f.uraian)}" oninput="fset('uraian',this.value)" placeholder="${f.jenis==='debet'?'Contoh: Penerimaan Dana BOS Tahap 1':f.jenis==='tarik'?'Contoh: Pengambilan dana BOS':'Contoh: Belanja Cetak Soal PAT Kelas 6'}">
+  ${k?`<label>🏷️ Komponen BOS</label>
+  <select onchange="fset('komponen',this.value)">${KOMP.map(x=>`<option value="${x.kode}"${f.komponen===x.kode?' selected':''}>${x.kode}. ${x.full}</option>`).join('')}</select>
+  <label>🔖 No. Kode (Kode Rekening)</label>
+  <input value="${esc(f.kode)}" oninput="fset('kode',this.value)" placeholder="5.1.02.01.01.0026">
+  <label>👤 Pelaksana Belanja</label>
+  <select onchange="fset('guruId',this.value)"><option value="">— Pilih Guru/Pelaksana —</option>${(cfg.guruList||[]).map(g=>`<option value="${g.id}"${f.guruId===g.id?' selected':''}>${esc(g.nama)}${g.nip?` (${esc(g.nip)})`:''}</option>`).join('')}</select>`:''}
+  <label>💵 Jumlah (Rp) *</label>
+  <input id="f-jml" inputmode="numeric" placeholder="0" style="font-size:18px;font-weight:700;color:${k?'#dc2626':f.jenis==='tarik'?'#0369a1':'#16a34a'}" value="${f.jumlah?(+f.jumlah).toLocaleString('id-ID'):''}" oninput="onJml(this)">
+  <div class="tbx" id="f-terb" style="display:${j>0?'block':'none'}">✍️ ${terbilang(j)}</div>
+  ${k?`<div style="margin-top:10px;padding:11px;background:#fefce8;border-radius:10px;border:1px solid #fde68a">
+   <div style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="pjcb"${f.pajakOn?' checked':''} onchange="F.pajakOn=this.checked;render()"><label for="pjcb" style="margin:0;font-size:13px;color:#CA8A04;cursor:pointer">🧾 Ada Pajak?</label></div>
+   ${f.pajakOn?`<div class="g2" style="margin-top:7px"><div><label>Jenis Pajak</label><select onchange="F.pajakKode=this.value;upd()">${PAJAK.map(p=>`<option value="${p.kode}"${f.pajakKode===p.kode?' selected':''}>${p.label} (${p.persen}%)</option>`).join('')}</select></div>
+   <div><label>Jumlah Pajak</label><div style="padding:9px 10px;background:#f9fafb;border-radius:8px;color:#dc2626;font-weight:700" id="f-pj">${rp(pj)}</div><div style="font-size:11px;color:#6b7280;margin-top:2px" id="f-net">Net: ${rp(j-pj)}</div></div></div>
+   <label>🔢 NTPN</label><input value="${esc(f.ntpn)}" oninput="fset('ntpn',this.value)" placeholder="Nomor NTPN (bisa diisi nanti lewat Edit)">
+   <div class="g2"><div><label>📅 Tanggal Terima Pajak</label><input type="date" id="f-trm" value="${esc(f.tanggal)}" disabled></div>
+   <div><label>📅 Tanggal Stor Pajak</label><input type="date" id="f-stor" value="${esc(f.tglStor)}" onchange="fset('tglStor',this.value)"></div></div>
+   <div style="font-size:11px;color:#6b7280;margin-top:4px">Terima pajak = tanggal lunas bayar. Ubah tanggal stor sesuai hari pajak dibayarkan.</div>`:''}
+  </div>`:''}
+  <label>📌 Keterangan</label>
+  <input value="${esc(f.ket)}" oninput="fset('ket',this.value)" placeholder="Nama toko, bank, dsb.">
+  <div style="display:flex;gap:8px;margin-top:13px"><button class="btn" style="flex:1" onclick="doSubmit()">${editId?'💾 Perbarui':'💾 Simpan'}</button>${editId?'<button class="btn gray" onclick="cancelEdit()">Batal</button>':''}</div>
+ </div>`;
+}
+
+/* ─── bagian bersama lembar ─── */
+function sigBlock(tglEnd){return `<div class="sg">
+  <div><div>Mengetahui,</div><div>Kepala ${esc(cfg.namaSekolah)}</div><div class="sp"></div><div class="b" style="text-decoration:underline">${esc(cfg.kepsek)||'(___________________)'}</div><div class="b">NIP. ${esc(cfg.nipKepsek)||'………………………………'}</div></div>
+  <div><div>${esc(cfg.tempat||cfg.kota)}, ${tglEnd}</div><div>Bendahara BOS,</div><div class="sp"></div><div class="b" style="text-decoration:underline">${esc(cfg.bendahara)||'(___________________)'}</div><div class="b">NIP. ${esc(cfg.nipBendahara)||'………………………………'}</div></div>
+ </div>`}
+const endOf=m=>{const d=new Date(+yr,m,0);return{tglEnd:`${d.getDate()} ${MO[m]} ${yr}`,hari:d.toLocaleDateString('id-ID',{weekday:'long'})}};
+const mSel=(v,fn)=>`<select class="auto" onchange="${fn}=this.value;render()">${MO.slice(1).map((mm,i)=>`<option value="${i+1}"${String(i+1)===v?' selected':''}>${mm}</option>`).join('')}</select>`;
+
+/* ─── LEMBAR BKU format Bos-K3 ─── */
+function bkuSheet(m,act){
+ const prev=R.rows.filter(r=>getMonth(r.tanggal)<m),lp=prev[prev.length-1];
+ const open=lp?lp.bank+lp.tunai:sa.bank+sa.tunai;
+ const rows=R.rows.filter(r=>getMonth(r.tanggal)===m);
+ const q=Math.ceil(m/3),ac=h=>act?`<td>${h||''}</td>`:'';
+ let pen=open,peng=0;
+ let body=`<tr><td>${tglN(`${yr}-${String(m).padStart(2,'0')}-01`)}</td><td></td><td></td><td>Sisa saldo bulan ${m===1?'Desember':MO[m-1]}</td><td class="r">${n2(open)}</td><td class="r">-</td><td class="r">${n2(open)}</td>${ac()}</tr>`;
+ rows.forEach(r=>{
+  const tax=r.rt==='tax';let a=0,b=0;
+  if(r.jenis==='debet')a=r.jumlah;else if(r.jenis==='kredit')b=r.jumlah;else a=b=r.jumlah;
+  pen+=a;peng+=b;
+  body+=`<tr><td>${tglN(r.tanggal)}</td><td class="b">${tax?'':esc(r.kode||'')}</td><td class="b">${esc(r.noBukti)}</td><td>${esc(r.uraian)}</td><td class="r">${a?n2(a):''}</td><td class="r">${b?n2(b):''}</td><td class="r">${n2(r.bank+r.tunai)}</td>${ac(tax?'':`<button class="ib" onclick="doEdit('${r.id}')">✏️</button><button class="ib" onclick="delId='${r.id}';render()">🗑️</button>`)}</tr>`;
+ });
+ const last=rows.length?rows[rows.length-1]:(lp||{bank:sa.bank,tunai:sa.tunai});
+ const tot2=last.bank+last.tunai;
+ body+=`<tr class="j"><td></td><td></td><td></td><td>JUMLAH</td><td class="r">${n2(pen)}</td><td class="r">${n2(peng)}</td><td class="r">${n2(tot2)}</td>${ac()}</tr>`;
+ const {tglEnd,hari}=endOf(m);
+ return `<div class="bk">
+ <div class="tt">BUKU KAS UMUM<br>BANTUAN OPERASIONAL SEKOLAH<br>TAHUN ${yr}</div>
+ <div style="display:flex;justify-content:space-between;align-items:flex-start;margin:8px 0;gap:10px;flex-wrap:wrap">
+  <table class="inf"><tr><td>Nama Sekolah</td><td>: ${esc(cfg.namaSekolah)}</td></tr><tr><td>Triwulan</td><td>: ${ROM[q]} (${TW[q]})</td></tr><tr><td>Bulan</td><td>: ${MO[m]}</td></tr></table>
+  <table class="fm"><tr><td class="b">Format Bos-K3</td></tr><tr><td>Diisi oleh Bendahara</td></tr><tr><td>Disimpan di Sekolah</td></tr></table>
+ </div>
+ <table class="t"><thead><tr><th>Tanggal</th><th>No Kode</th><th>No Bukti</th><th>Uraian</th><th>Penerimaan</th><th>Pengeluaran</th><th>Saldo</th>${act?'<th></th>':''}</tr></thead><tbody>${body}</tbody></table>
+ <table class="inf" style="margin-top:14px"><tr><td>${hari}, ${tglEnd} kas ditutup dengan</td><td class="r">${n2(tot2)}</td></tr><tr><td>saldo sebagai berikut :</td><td></td></tr>
+  <tr><td style="padding-left:40px!important">1. Saldo Tunai</td><td class="r">${n2(last.tunai)}</td></tr><tr><td style="padding-left:40px!important">2. Saldo Bank</td><td class="r">${n2(last.bank)}</td></tr></table>
+ ${sigBlock(tglEnd)}</div>`;
+}
+
+/* ─── LEMBAR BKU PAJAK (per bulan) ─── */
+function pjSheet(m){
+ const tr=R.rows.filter(r=>r.rt==='tax'),sg=r=>r.tk==='t'?r.jumlah:-r.jumlah;
+ const bef=r=>getMonth(r.tanggal)<m,cur=r=>getMonth(r.tanggal)===m;
+ const open=tr.filter(bef).reduce((s,r)=>s+sg(r),0),rows=tr.filter(cur);
+ let sal=open,pen=open,peng=0;
+ let body=`<tr><td>${tglN(`${yr}-${String(m).padStart(2,'0')}-01`)}</td><td></td><td>Sisa saldo pajak bulan ${m===1?'Desember':MO[m-1]}</td><td class="r">${n2(open)}</td><td class="r">-</td><td class="r">${n2(open)}</td></tr>`;
+ rows.forEach(r=>{
+  const a=r.tk==='t'?r.jumlah:0,b=r.tk==='s'?r.jumlah:0;pen+=a;peng+=b;sal+=a-b;
+  body+=`<tr><td>${tglN(r.tanggal)}</td><td class="b">${esc(r.pb)}</td><td>${esc(r.uraian)}</td><td class="r">${a?n2(a):''}</td><td class="r">${b?n2(b):''}</td><td class="r">${n2(sal)}</td></tr>`;
+ });
+ body+=`<tr class="j"><td></td><td></td><td>JUMLAH</td><td class="r">${n2(pen)}</td><td class="r">${n2(peng)}</td><td class="r">${n2(sal)}</td></tr>`;
+ const jr=PAJAK.map(p=>{
+  const a=tr.filter(r=>r.pk===p.kode),o=a.filter(bef).reduce((s,r)=>s+sg(r),0);
+  const te=a.filter(r=>cur(r)&&r.tk==='t').reduce((s,r)=>s+r.jumlah,0),st=a.filter(r=>cur(r)&&r.tk==='s').reduce((s,r)=>s+r.jumlah,0);
+  return[p.label,o,te,st,o+te-st];
+ });
+ const sm=i=>jr.reduce((s,x)=>s+x[i],0),cells=(x)=>[1,2,3,4].map(i=>`<td class="r">${n2(x[i])}</td>`).join('');
+ const {tglEnd,hari}=endOf(m);
+ return `<div class="bk">
+ <div class="tt">BUKU KAS PEMBANTU PAJAK<br>BANTUAN OPERASIONAL SEKOLAH<br>TAHUN ${yr}</div>
+ <table class="inf" style="margin:8px 0"><tr><td>Nama Sekolah</td><td>: ${esc(cfg.namaSekolah)}</td></tr><tr><td>Bulan</td><td>: ${MO[m]}</td></tr></table>
+ <table class="t"><thead><tr><th>Tanggal</th><th>No Bukti</th><th>Uraian</th><th>Terima Pajak</th><th>Stor Pajak</th><th>Saldo</th></tr></thead><tbody>${body}</tbody></table>
+ <div class="b" style="margin-top:14px">Rekap Pajak Bulan ${MO[m]} ${yr}</div>
+ <table class="t"><thead><tr><th>Jenis Pajak</th><th>Saldo Awal</th><th>Terima Pajak</th><th>Stor Pajak</th><th>Saldo Akhir</th></tr></thead><tbody>
+  ${jr.map(x=>`<tr><td>${x[0]}</td>${cells(x)}</tr>`).join('')}
+  <tr class="j"><td>JUMLAH</td>${cells([0,sm(1),sm(2),sm(3),sm(4)])}</tr></tbody></table>
+ <table class="inf" style="margin-top:12px"><tr><td>${hari}, ${tglEnd} saldo pajak yang belum disetor</td><td class="r">${n2(sal)}</td></tr></table>
+ ${sigBlock(tglEnd)}</div>`;
+}
+
+/* ─── LEMBAR REKAP PAJAK / NTPN (per tahap) ─── */
+function rkData(th){
+ const a=th==='1'?1:7,b=th==='1'?6:12,list=[];
+ tx.forEach(t=>{if(t.jenis==='kredit'&&t.pajak){const ds=t.pajak.tglStor||t.tanggal,m=getMonth(ds);if(m>=a&&m<=b)list.push({ds,t})}});
+ list.sort((x,y)=>x.ds.localeCompare(y.ds)||x.t.tanggal.localeCompare(y.t.tanggal));
+ const total=list.reduce((s,x)=>s+x.t.pajak.jumlah,0);
+ const auto=list.length?list[list.length-1].ds:`${yr}-${String(b).padStart(2,'0')}-${new Date(+yr,b,0).getDate()}`;
+ return{a,b,list,total,lastD:rkTgl||auto};
+}
+function rkSheet(th,act){
+ const {a,b,list,total,lastD}=rkData(th);
+ const c='style="text-align:center"',nm=esc(cfg.namaSekolah);
+ const rows=list.map((x,i)=>`<tr><td ${c}>${i+1}</td><td>${nm}</td><td ${c}>${tglN(x.ds)}</td><td>${JL[x.t.pajak.kode]||''}</td><td>${esc(x.t.pajak.ntpn||'')}</td><td class="r">Rp${num(x.t.pajak.jumlah)}</td>${act?`<td><button class="ib" onclick="doEdit('${x.t.id}')">✏️</button></td>`:''}</tr>`).join('')
+  ||`<tr><td colspan="${act?7:6}" ${c}>Belum ada pajak pada tahap ini</td></tr>`;
+ const nmU=s=>`<div style="text-decoration:underline">${esc(s)||'(___________________)'}</div>`;
+ return `<div class="bk" style="font-size:13px">
+ <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">${logoImg(cfg.logoKiri)}
+  <div style="text-align:center;flex:1;line-height:1.35"><div style="font-size:19px;font-weight:700">${esc(cfg.kopPemda)}</div><div style="font-size:17px;font-weight:700">${esc(cfg.namaLengkap)}</div><div style="font-size:12px">${esc(cfg.alamatRekap)}</div></div>
+  ${logoImg(cfg.logoKanan)}</div>
+ <div style="text-align:center;margin:22px 0 12px;line-height:1.5"><div>NOMER TRANSAKSI PENERIMAAN NEGARA (NTPN)</div><div>TAHAP ${th} (${MO[a]}-${MO[b]})</div></div>
+ <table class="t" style="border:2px solid #000">
+  <colgroup><col style="width:5%"><col style="width:19%"><col style="width:18%"><col style="width:12%"><col style="width:26%"><col style="width:20%">${act?'<col style="width:6%">':''}</colgroup>
+  <thead><tr><th>No</th><th>Nama Sekolah</th><th>Tanggal Pembayaran</th><th>Jenis Pajak</th><th>Nomer NTPN</th><th>Nilai Pembayaran</th>${act?'<th></th>':''}</tr></thead>
+  <tbody>${rows}<tr class="j"><td colspan="5" style="text-align:center">TOTAL</td><td class="r">Rp${num(total)}</td>${act?'<td></td>':''}</tr></tbody></table>
+ <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:22px">
+  <div><div>Kepala Sekolah</div><div style="height:52px"></div>${nmU(cfg.kepsek)}<div>NIP. ${esc(cfg.nipKepsek)||'………………………………'}</div></div>
+  <div><div>${esc(cfg.tempat||cfg.kota)}, ${tglN(lastD)}</div><div>Bendahara</div><div style="height:52px"></div>${nmU(cfg.bendahara)}<div>NIP. ${esc(cfg.nipBendahara)||'………………………………'}</div></div>
+ </div></div>`;
+}
+
+function vBKU(){
+ return `<div class="card row" style="flex-wrap:wrap">
+  <div style="display:flex;gap:8px;align-items:center"><label style="margin:0">📅 Bulan:</label>${mSel(bkuM,'bkuM')}</div>
+  <button class="btn" onclick="printBKU()">🖨️ Cetak BKU (Landscape)</button></div>
+ <div class="card wrap"><div style="min-width:720px">${bkuSheet(+bkuM,true)}</div></div>`;
+}
+function vPj(){
+ return `<div class="card row" style="flex-wrap:wrap">
+  <div style="display:flex;gap:8px;align-items:center"><label style="margin:0">📅 Bulan:</label>${mSel(pjM,'pjM')}</div>
+  <button class="btn" onclick="printPj()">🖨️ Cetak BKU Pajak</button></div>
+ <div class="card wrap"><div style="min-width:640px">${pjSheet(+pjM)}</div></div>`;
+}
+function vRk(){
+ return `<div class="card row" style="flex-wrap:wrap">
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label style="margin:0">📅 Tahap:</label>
+   <select class="auto" onchange="rkT=this.value;rkTgl='';render()"><option value="1"${rkT==='1'?' selected':''}>Tahap 1 (Januari-Juni)</option><option value="2"${rkT==='2'?' selected':''}>Tahap 2 (Juli-Desember)</option></select>
+   <label style="margin:0">✍️ Tanggal TTD:</label>
+   <input type="date" class="auto" value="${rkData(rkT).lastD}" onchange="rkTgl=this.value;render()"></div>
+  <button class="btn" onclick="printRk()">🖨️ Cetak Rekap Pajak</button></div>
+ <div class="info">Data diambil dari pajak yang diinput di belanja BKU (menurut tanggal stor pajak). NTPN diisi/diubah lewat ✏️. Tanggal TTD bisa diubah sesuai kebutuhan (kosongkan untuk otomatis).</div>
+ <div class="card wrap"><div style="min-width:640px">${rkSheet(rkT,true)}</div></div>`;
+}
+
+function monthList(){
+ const bm={};sortTx(tx).filter(t=>t.jenis==='kredit').forEach(t=>{const m=getMonth(t.tanggal);(bm[m]=bm[m]||[]).push(t)});
+ const av=Object.keys(bm).map(Number).sort((a,b)=>a-b);
+ const m=av.includes(+pMo)?+pMo:av[0];
+ return{bm,av,m,list:m?bm[m]:[]};
+}
+function vList(a2){
+ const {bm,av,m,list}=monthList();
+ return `<div class="card row" style="flex-wrap:wrap"><div class="ct" style="margin:0">${a2?'📋 Formulir A2 — per Transaksi':'📜 Surat Perintah (SP) — per Transaksi'}</div>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label style="margin:0">📅 Bulan:</label>
+  <select class="auto" onchange="pMo=this.value;render()">${av.length?av.map(x=>`<option value="${x}"${x===m?' selected':''}>${MO[x]} (${bm[x].length} tx)</option>`).join(''):'<option>— Belum ada belanja —</option>'}</select>
+  <button class="btn" onclick="printAll(${a2})"${list.length?'':' disabled'}>🖨️ Cetak Semua (${list.length})</button></div></div>
+ <div class="info"><b>${list.length} transaksi</b> di bulan ${MO[m]||'—'} (menurut tanggal lunas bayar) → cetak satu per satu, atau klik <b>Cetak Semua</b>.</div>
+ ${list.length?list.map((t,i)=>{const k=fK(t.komponen),g=fGuru(t.guruId),p=t.pajak?fP(t.pajak.kode):null;
+  return `<div class="card" style="border-left:4px solid ${k?k.color:'#d1d5db'}"><div class="row" style="align-items:flex-start">
+   <div><div style="font-weight:700;font-size:13px">${i+1}. ${esc(t.uraian)}</div>
+   <div style="font-size:11px;color:#6b7280;margin-top:2px">Lunas ${tgl(t.tanggal)} · Transaksi ${tgl(t.tglTrx||t.tanggal)} · ${esc(t.noBukti)} ${k?`<span class="bd" style="background:${k.color}22;color:${k.color}">${k.nama}</span>`:''}</div>
+   ${g?`<div style="font-size:11px;margin-top:2px">👤 ${esc(g.nama)}${g.nip?` (${esc(g.nip)})`:''}</div>`:''}
+   ${p?`<div style="font-size:11px;color:#b45309;margin-top:2px">🧾 ${p.label} ${t.pajak.persen}% = ${rp(t.pajak.jumlah)}</div>`:''}</div>
+   <div style="text-align:right;flex-shrink:0"><div style="font-weight:800;color:#dc2626;font-size:15px">${rp(t.jumlah)}</div>
+   <button class="btn ${a2?'gold':'blue'}" style="margin-top:7px;padding:7px 14px;font-size:12px" onclick="${a2?'printA2':'printSP'}('${t.id}')">🖨️ Cetak ${a2?'A2':'SP'}</button></div></div></div>`}).join('')
+ :'<div class="card" style="text-align:center;color:#9ca3af;padding:30px">Tidak ada belanja di bulan ini</div>'}`;
+}
+
+function vSet(){
+ const d=cfgD||cfg;
+ const inp=(l,k,ph)=>`<div><label>${l}</label><input value="${esc(d[k])}" oninput="cs('${k}',this.value)" placeholder="${ph||''}"></div>`;
+ const lg=(l,k)=>`<div><label>${l}</label><input type="file" accept="image/*" onchange="setLogo('${k}',this)">${d[k]?`<div style="margin-top:6px"><img src="${d[k]}" style="height:50px;vertical-align:middle"> <button class="ib" onclick="cs('${k}','');render()">🗑️</button></div>`:''}</div>`;
+ return `
+ <div class="card" style="border-left:4px solid #0369a1"><div class="ct">👤 Akun &amp; Cadangan</div>
+  <div class="row" style="flex-wrap:wrap"><div style="font-size:13px">Masuk sebagai <b>${esc(user&&user.email)}</b><div style="font-size:11px;color:#6b7280">${SYN[sync]}</div></div><button class="btn gray" onclick="logout()">Keluar</button></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn teal" onclick="exportDb()">⬇️ Unduh Cadangan</button>
+   <label class="btn blue" style="margin:0;display:inline-block;font-size:13px">⬆️ Pulihkan Cadangan<input type="file" accept=".json,application/json" style="display:none" onchange="importDb(this)"></label></div>
+  <div style="font-size:11px;color:#6b7280;margin-top:6px">Data tersimpan online di Supabase. Unduh cadangan secara berkala sebagai pengaman tambahan.</div></div>
+ <div class="card"><div class="ct">📅 Manajemen Tahun Anggaran</div>
+  <div class="g2"><div><label>Tahun Aktif</label><div style="font-weight:800;font-size:22px;color:#166534">${yr}</div></div>
+  <div><label>Tambah / Pindah ke Tahun</label><div style="display:flex;gap:7px"><input id="yr-inp" style="width:90px" inputmode="numeric" placeholder="${+yr+1}"><button class="btn blue" onclick="pindahTahun()">Tambah / Pindah</button></div>
+  <div style="font-size:11px;color:#6b7280;margin-top:4px">Tahun yang ditambahkan akan muncul di pilihan TA (pojok kanan atas).</div></div></div>
+  <div style="margin-top:11px;background:#f0fdf4;border-radius:10px;padding:12px;border:1px solid #dcfce7">
+   <div style="font-weight:700;font-size:12px;color:#166534;margin-bottom:4px">💰 Saldo Awal ${yr} (sisa Des ${+yr-1})</div>
+   <div class="g2">
+    <div><label>🏦 Saldo Bank</label><input id="sa-b" inputmode="numeric" style="font-weight:700" value="${sa.bank?sa.bank.toLocaleString('id-ID'):''}" oninput="fmt(this,'tb-sab')"><div class="tbx" id="tb-sab" style="display:${sa.bank>0?'block':'none'}">✍️ ${terbilang(sa.bank)}</div></div>
+    <div><label>💵 Saldo Tunai</label><input id="sa-t" inputmode="numeric" style="font-weight:700" value="${sa.tunai?sa.tunai.toLocaleString('id-ID'):''}" oninput="fmt(this,'tb-sat')"><div class="tbx" id="tb-sat" style="display:${sa.tunai>0?'block':'none'}">✍️ ${terbilang(sa.tunai)}</div></div>
+   </div>
+   <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:9px"><button class="btn" onclick="saveSa()">💾 Simpan Saldo Awal</button><button class="btn teal" onclick="carry()">🔄 Ambil otomatis dari Des ${+yr-1}</button></div>
+  </div></div>
+ <div class="card"><div class="ct">🏫 Informasi Sekolah</div>
+  ${inp('Nama Sekolah','namaSekolah')}${inp('NPSN','npsn')}${inp('Alamat','alamat')}${inp('Kecamatan','kecamatan')}${inp('Kota / Kabupaten (mis. Batang)','kota')}${inp('Tempat Tanda Tangan BKU & Rekap Pajak (mis. nama desa)','tempat','Kalisari')}
+  <div class="g2"><div><label>Pagu Dana BOS (Rp) — angka tetap</label><input inputmode="numeric" value="${d.pagu?Number(d.pagu).toLocaleString('id-ID'):''}" oninput="cs('pagu',fmt(this,'tb-pagu'))"><div class="tbx" id="tb-pagu" style="display:${d.pagu>0?'block':'none'}">✍️ ${terbilang(d.pagu)}</div></div></div></div>
+ <div class="card" style="border-left:4px solid #7C3AED"><div class="ct">📜 Kop Surat (SP &amp; Rekap Pajak)</div>
+  ${inp('Baris 1 (Pemerintah)','kopPemda')}${inp('SP — Baris 2 (Nama Sekolah)','kopSekolah')}${inp('SP — Pos-el (Email)','email')}
+  ${inp('Rekap Pajak — Nama Sekolah Lengkap','namaLengkap')}${inp('Rekap Pajak — Baris Alamat','alamatRekap')}
+  <div class="g2">${lg('Logo Kiri (Pemda)','logoKiri')}${lg('Logo Kanan (Tut Wuri Handayani)','logoKanan')}</div>
+  <div style="font-size:11px;color:#6b7280;margin-top:6px">Huruf besar/kecil di cetakan mengikuti yang Anda ketik di sini. Alamat SP memakai isian Alamat di atas. Setelah pilih logo, klik Simpan Semua Pengaturan.</div></div>
+ <div class="card" style="border-left:4px solid #166534"><div class="ct">👨‍💼 Kepala Sekolah</div><div class="g2">${inp('Nama','kepsek','Nama + Gelar')}${inp('NIP','nipKepsek','19XXXXXXX')}</div></div>
+ <div class="card" style="border-left:4px solid #CA8A04"><div class="ct">💼 Bendahara BOS</div><div class="g2">${inp('Nama','bendahara')}${inp('NIP','nipBendahara','19XXXXXXX')}</div></div>
+ <div class="card" style="border-left:4px solid #0891B2"><div class="ct">👥 Daftar Guru / Pelaksana Belanja</div>
+  ${(d.guruList||[]).map(g=>`<div class="row" style="padding:7px 10px;background:#f0fdf4;border-radius:8px;margin-bottom:6px"><div><div style="font-weight:600;font-size:13px">${esc(g.nama)}</div><div style="font-size:11px;color:#6b7280">${g.nip?`NIP. ${esc(g.nip)} · `:''}${esc(g.jabatan||'Guru Kelas')}</div></div><button class="ib" style="color:#dc2626" onclick="rmGuru('${g.id}')">🗑️</button></div>`).join('')}
+  <div style="margin-top:9px;padding:11px;background:#f9fafb;border-radius:10px;border:1px dashed #d1d5db"><b style="font-size:12px;color:#166534">+ Tambah Guru</b>
+   <div class="g2"><div><label>Nama Guru</label><input id="g-nama" placeholder="Nama lengkap + gelar"></div><div><label>NIP (opsional)</label><input id="g-nip" placeholder="19XXXXXXX"></div></div>
+   <label>Jabatan</label><input id="g-jab" placeholder="Guru Kelas">
+   <button class="btn blue" style="margin-top:8px" onclick="addGuru()">+ Tambah</button></div></div>
+ <div style="display:flex;gap:8px;margin-bottom:11px"><button class="btn" style="flex:1" onclick="saveCfg()">💾 Simpan Semua Pengaturan</button>${cfgD?'<button class="btn gray" onclick="cancelCfg()">Batal</button>':''}</div>
+ <div style="padding:13px;background:#fef2f2;border-radius:10px;border:1px solid #fecaca"><b style="color:#dc2626">⚠️ Zona Berbahaya</b><br><button class="btn red" style="margin-top:7px;font-size:12px" onclick="wipe()">🗑️ Hapus Data Tahun ${yr}</button></div>`;
+}
+
+/* ═════════ RENDER ═════════ */
+const TABS=[['dashboard','🏠','Dashboard'],['input','➕','Input'],['bku','📒','BKU'],['bkupj','🧾','BKU Pajak'],['rekap','📑','Rekap Pajak'],['a2','📋','Form A2'],['sp','📜','SP'],['set','⚙️','Pengaturan']];
+function render(){
+ R=run(tx);const T=tot();
+ const nv=document.querySelector('nav'),sl=nv?nv.scrollLeft:0;
+ const views={dashboard:vDash,input:vInput,bku:vBKU,bkupj:vPj,rekap:vRk,a2:()=>vList(true),sp:()=>vList(false),set:vSet};
+ $('app').innerHTML=`<div class="top">
+  <div class="hdr"><div class="logo">📒</div>
+   <div style="flex:1"><div style="font-weight:800;font-size:13px">Aplikasi BOS Digital</div><div style="font-size:10px;opacity:.85">${esc(cfg.namaSekolah)} · <span id="sync">${SYN[sync]}</span></div></div>
+   <div class="yr"><span>TA</span><select onchange="switchYr(this.value)">${yearList().map(y=>`<option value="${y}"${String(y)===yr?' selected':''}>${y}</option>`).join('')}</select></div>
+   <div style="text-align:right;font-size:10px;line-height:1.4"><div>Bank <b>${rp(T.bank)}</b></div><div>Tunai <b>${rp(T.tunai)}</b></div></div></div>
+  <nav>${TABS.map(([id,ic,l])=>`<button class="${tab===id?'on':''}" onclick="go('${id}')">${ic} ${l}</button>`).join('')}</nav></div>
+ <main>${views[tab]()}</main>
+ ${delId?`<div class="modal"><div><div style="font-size:22px;text-align:center">🗑️</div><div style="font-weight:700;text-align:center;margin:6px 0">Hapus Transaksi?</div><div style="font-size:12px;color:#6b7280;text-align:center;margin-bottom:17px">Tidak dapat dibatalkan.</div><div style="display:flex;gap:8px"><button class="btn gray" style="flex:1" onclick="delId=null;render()">Batal</button><button class="btn red" style="flex:1" onclick="doDel('${delId}')">Hapus</button></div></div></div>`:''}`;
+ const n2b=document.querySelector('nav');if(n2b)n2b.scrollLeft=sl;
+}
+
+/* ═════════ CETAK (CSS print browser, orientasi per dokumen) ═════════ */
+function doPrint(h,o){
+ $('pg').textContent=`@page{margin:1cm;size:A4 ${o||'portrait'}}`;
+ const l=$('print-layer');
+ l.innerHTML=h+`<div class="no-print" style="text-align:center;margin:16px 0;display:flex;gap:10px;justify-content:center"><button class="btn" onclick="window.print()">🖨️ Cetak Sekarang</button><button class="btn gray" onclick="closePrint()">✕ Tutup</button></div>`;
+ l.className='show';l.scrollTop=0;
+}
+function closePrint(){const l=$('print-layer');l.className='';l.innerHTML=''}
+function printBKU(){doPrint(bkuSheet(+bkuM,false),'landscape')}
+function printPj(){doPrint(pjSheet(+pjM))}
+function printRk(){doPrint(rkSheet(rkT,false))}
+function printA2(id){const t=tx.find(x=>x.id===id);if(t)doPrint(a2Html(t))}
+function printSP(id){const t=tx.find(x=>x.id===id);if(t)doPrint(spHtml(t))}
+/* Cetak semua A2 / SP bulan terpilih: satu lembar per transaksi */
+function printAll(a2){
+ const {list}=monthList();if(!list.length){toast('Tidak ada transaksi');return}
+ doPrint(list.map((t,i)=>`<div style="${i<list.length-1?'break-after:page;page-break-after:always':''}">${a2?a2Html(t):spHtml(t)}</div>`).join(''));
+}
+
+/* A2: nama kepala / bendahara / yang membayar sejajar (blok judul tinggi tetap), terbilang + Rupiah,
+   "pada tanggal" = tanggal lunas bayar, jarak antar kolom & baris dilonggarkan lewat class .a2 */
+function a2Html(t){
+ const g=fGuru(t.guruId),pk=t.pajak?t.pajak.kode:'';
+ const ppn=pk==='ppn'?num(t.pajak.jumlah):'-',p21=pk==='pph21'?num(t.pajak.jumlah):'-',p23=pk==='pph23'?num(t.pajak.jumlah):'-';
+ const pot=t.pajak?t.pajak.jumlah:0,byr=t.jumlah-pot;
+ const sig=(top,nama,nip)=>`<div style="height:100px">${top}</div><div style="font-weight:700;text-decoration:underline">${nama}</div><div>NIP. ${nip}</div>`;
+ const dots='………………………………';
+ return `<div class="a2">
+<table style="width:100%;border:1px solid #333;border-collapse:collapse;font-size:11px"><tr>
+ <td style="width:55%;border-right:1px solid #333;vertical-align:top"><div style="font-weight:700;font-size:12px">${esc(cfg.namaSekolah.toUpperCase())}</div><div>${esc(cfg.kecamatan.toUpperCase())}, ${esc(cfg.kota.toUpperCase())}</div>
+  <div style="margin-top:8px"><b>TAHUN ANGGARAN</b> &nbsp; : ${yr}</div><div><b>KODE REKENING</b> &nbsp;&nbsp; : ${esc(t.kode||'')}</div></td>
+ <td style="vertical-align:top"><div>: ${esc(t.noBukti)}</div><div style="margin-top:8px">: I/II/III/IV</div></td></tr></table>
+<table style="width:100%;border:1px solid #333;border-top:none;border-collapse:collapse;font-size:11px"><tr>
+ <td style="width:55%;border-right:1px solid #333;vertical-align:top">
+  <div style="text-align:center;font-weight:700;text-decoration:underline;font-size:13px;margin-bottom:16px">TANDA BUKTI PENGELUARAN</div>
+  <table style="width:100%;font-size:11px;border-collapse:collapse">
+   <tr><td style="width:130px;vertical-align:top">Telah terima dari</td><td>: Kepala ${esc(cfg.namaSekolah)}</td></tr>
+   <tr><td style="vertical-align:top">Uang sejumlah</td><td>: Rp. <span style="border:1px solid #333;padding:2px 8px;margin:0 4px">${num(t.jumlah)}</span> (${terbilang(t.jumlah)})</td></tr>
+   <tr><td style="vertical-align:top">Yaitu untuk pembayaran</td><td>: ${esc(t.uraian)}</td></tr>
+   <tr><td style="vertical-align:top">Untuk kegiatan</td><td>: Penyediaan Bantuan Operasional Sekolah (BOS) Jenjang SD</td></tr></table>
+  <table style="width:100%;margin-top:18px;font-size:11px;border-collapse:collapse"><tr>
+   <td style="width:45%;border:1px solid #333;vertical-align:top"><div style="text-align:center;font-weight:700">LUNAS DIBAYAR</div><div style="margin-top:8px">Tanggal &nbsp; : ${tgl(t.tanggal)}</div><div style="margin-top:6px">Paraf &nbsp;&nbsp;&nbsp;&nbsp; :</div><div style="height:30px"></div></td>
+   <td style="vertical-align:top"><div>${esc(cfg.kota)}, ${tgl(t.tglTrx||t.tanggal)}</div><div style="margin-top:6px">Tanda tangan</div><div style="height:40px"></div><div>Nama &nbsp; :</div><div style="margin-top:4px">Alamat &nbsp;:</div></td></tr></table>
+ </td>
+ <td style="vertical-align:top;font-size:11px">
+  <div style="border:1px solid #333;padding:8px 10px;margin-bottom:12px;font-size:10px">Barang-barang dimaksud telah dibuku-kan ke buku persediaan/inventaris<br/>pada tanggal : ${tgl(t.tanggal)}</div>
+  <table style="width:100%;border-collapse:collapse;font-size:11px">
+   <tr><td>Jumlah kotor</td><td class="right">Rp. ${num(t.jumlah)}</td></tr>
+   <tr><td>Potongan</td><td class="right">Rp. ${num(pot)}</td></tr>
+   <tr><td><b>Dibayarkan</b></td><td class="right"><b>Rp. ${num(byr)}</b></td></tr>
+   <tr><td colspan="2" style="padding-top:10px!important"><b>Perincian :</b></td></tr>
+   <tr><td>1. PPN</td><td class="right">Rp. ${ppn}</td></tr>
+   <tr><td>2. PPh Ps. 21</td><td class="right">Rp. ${p21}</td></tr>
+   <tr><td>3. PPh Ps. 22</td><td class="right">Rp. -</td></tr>
+   <tr><td>4. PPh Ps. 23</td><td class="right">Rp. ${p23}</td></tr></table>
+  <div style="margin-top:12px;font-size:10px">Bukti terlampir</div></td></tr></table>
+<table style="width:100%;border:1px solid #333;border-top:none;border-collapse:collapse;font-size:11px"><tr>
+ <td style="width:33%;border-right:1px solid #333;text-align:center;vertical-align:top">${sig('<div>Setuju dibayarkan</div><div>Kepala sekolah</div><div>'+esc(cfg.namaSekolah)+'</div>',esc(cfg.kepsek)||'(___________________)',esc(cfg.nipKepsek)||dots)}</td>
+ <td style="width:34%;border-right:1px solid #333;text-align:center;vertical-align:top">${sig('<div>Bendahara BOS</div>',esc(cfg.bendahara)||'(___________________)',esc(cfg.nipBendahara)||dots)}</td>
+ <td style="text-align:center;vertical-align:top">${sig('<div>Yang membayarkan</div>',g?esc(g.nama):'(___________________)',(g&&esc(g.nip))||dots)}</td></tr></table></div>`;
+}
+
+/* SP: semua tanggal = tanggal lunas bayar; TA & tahun nomor mengikuti tahun aktif */
+function spHtml(t){
+ const g=fGuru(t.guruId),d=tglN(t.tanggal),m=getMonth(t.tanggal);
+ const kv=(l,v,w)=>`<div style="display:grid;grid-template-columns:${w||95}px 14px 1fr;padding:2px 0"><div>${l}</div><div>:</div><div>${v}</div></div>`;
+ const dots='………………………………';
+ return `<div style="font-family:Cambria,'Times New Roman',serif;font-size:13px;color:#000;line-height:1.35">
+ <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+  ${logoImg(cfg.logoKiri)}
+  <div style="text-align:center;flex:1">
+   <div style="font-size:17px;font-weight:700">${esc(cfg.kopPemda||'PEMERINTAH '+cfg.kota.toUpperCase())}</div>
+   <div style="font-size:17px;font-weight:700">${esc(cfg.kopSekolah||cfg.namaSekolah.toUpperCase())}</div>
+   <div style="font-size:12px">${esc(cfg.alamat)}</div>
+   ${cfg.email?`<div style="font-size:12px;color:#0563c1;text-decoration:underline">Pos-el : ${esc(cfg.email)}</div>`:''}
+  </div>
+  ${logoImg(cfg.logoKanan)}
+ </div>
+ <div style="text-align:center;margin-top:30px">
+  <div style="font-size:17px;font-weight:700;text-decoration:underline">SURAT PERINTAH</div>
+  <div style="margin-top:6px">Nomor : 400.3.5.5/&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/${ROM[m]}/ ${yr}</div>
+ </div>
+ <div style="margin:22px 0 14px">Kepala ${esc(cfg.namaSekolah)}, Kecamatan ${esc(cfg.kecamatan)}, Kabupaten ${esc(cfg.kota)} memerintahkan kepada :</div>
+ <div style="margin-left:50px">
+  ${kv('Nama',g?esc(g.nama):dots)}
+  ${kv('NIP',(g&&esc(g.nip))||dots)}
+  ${kv('Jabatan',g?esc(g.jabatan||'Guru Kelas'):dots)}
+  ${kv('Keperluan',esc(t.uraian))}
+  ${kv('Berlaku',d)}
+  ${kv('Keterangan','Kegiatan Penyediaan Bantuan Operasional Sekolah (BOS)<br>Jenjang SD TA '+yr)}
+ </div>
+ <div style="margin:20px 0 34px">Demikian untuk dilaksanakan dengan sebaik-baiknya dan penuh tanggung jawab.</div>
+ <div style="margin-left:55%">
+  ${kv('Dikeluarkan di',esc(cfg.kota),110)}
+  ${kv('Pada tanggal',d,110)}
+  <div style="margin-top:8px">Kepala ${esc(cfg.namaSekolah)}</div>
+  <div>Kecamatan ${esc(cfg.kecamatan)}</div>
+  <div style="height:64px"></div>
+  <div style="font-weight:700;text-decoration:underline">${esc(cfg.kepsek)||'(___________________)'}</div>
+  <div style="font-weight:700">NIP. ${esc(cfg.nipKepsek)||dots}</div>
+ </div></div>`;
+}
+
+/* ═════════ START ═════════ */
+(async function boot(){
+ if(!window.supabase){
+  $('app').innerHTML='<div style="max-width:420px;margin:60px auto;padding:0 14px"><div class="card"><div class="ct">⚠️ Tidak bisa terhubung</div>Pustaka Supabase gagal dimuat. Periksa koneksi internet lalu muat ulang halaman. (Aplikasi ini harus dibuka dari alamat GitHub Pages, bukan dari pratinjau.)</div></div>';
+  return;
+ }
+ sb=supabase.createClient(SB_URL,SB_KEY);
+ const {data}=await sb.auth.getSession();
+ if(data.session){user=data.session.user;await start()}else showLogin();
+})();
+</script>
+</body>
+</html>
