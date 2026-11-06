@@ -484,7 +484,7 @@ function importDb(el){
 let yr,cfg,tx=[],sa={bank:0,tunai:0},R={rows:[]};
 let tab='dashboard',editId=null,delId=null,cfgD=null,F;
 const nowM=String(new Date().getMonth()+1);
-let rkM=nowM,bkuM=nowM,pjM=nowM,pMo=nowM,rkT=+nowM<=6?'1':'2',rkTgl='';
+let dashTab='bulan',rkM=nowM,bkuM=nowM,pjM=nowM,pMo=nowM,rkT=+nowM<=6?'1':'2',rkTgl='';
 
 /* Daftar tahun: tahun lalu, ini, depan + tahun yang sudah ada datanya + tahun yang ditambah operator */
 function yearList(){
@@ -748,7 +748,6 @@ async function doWipe(){
 function vDash(){
  const T=tot(),tp=today();
  const pc=v=>cfg.pagu>0?Math.min(100,v/cfg.pagu*100):0;
- const bar=(l,v,c)=>`<div class="row" style="font-size:12px;margin:10px 0 4px"><span>${l}</span><b>${v.toFixed(1)}%</b></div><div class="bar"><i style="width:${v}%;background:${c}"></i></div>`;
  /* perlu perhatian: pajak yang tanggal stornya belum tiba, NTPN yang masih kosong */
  const wait=tx.filter(t=>t.pajak&&t.pajak.tglStor>tp),noN=tx.filter(t=>t.pajak&&!t.pajak.ntpn);
  const al=[];
@@ -763,13 +762,6 @@ function vDash(){
  const ks=KOMP.map(k=>({...k,v:tx.filter(t=>t.komponen===k.kode&&t.jenis==='kredit').reduce((s,t)=>s+t.jumlah,0)})).filter(k=>k.v>0);
  const sum=ks.reduce((s,k)=>s+k.v,0);let cum=0;
  const segs=ks.map(k=>{const p=k.v/sum*100,c=`<circle r="15.9155" cx="18" cy="18" stroke="${k.color}" stroke-dasharray="${p} ${100-p}" stroke-dashoffset="${-cum}" data-tip="${k.full}|${rp(k.v)}|${p.toFixed(1)}% dari belanja"/>`;cum+=p;return c}).join('');
- /* belanja per komponen per bulan: satu batang per komponen yang ada di bulan itu, berjejer; skala = komponen terbesar */
- const mk=Array.from({length:12},(_,i)=>{const per=KOMP.map(k=>({k,v:tx.filter(t=>t.jenis==='kredit'&&t.komponen===k.kode&&getMonth(t.tanggal)===i+1).reduce((a,t)=>a+t.jumlah,0)})).filter(x=>x.v>0);return{m:i+1,per,tot:per.reduce((a,x)=>a+x.v,0)}});
- const mx2=Math.max(1,...mk.flatMap(x=>x.per.map(p=>p.v)));
- const komBulan=`<div class="card"><div class="ct">📊 Belanja per Komponen per Bulan ${yr}</div>`+(ks.length?
-  `<div class="wrap"><div style="min-width:560px"><div class="mchart">${mk.map(x=>`<div class="mc" data-tip="${MO[x.m]} ${yr}|Total ${rp(x.tot)}${x.per.map(p=>`|${p.k.nama}: ${rp(p.v)}`).join('')}"><div class="mq">${x.per.map(p=>`<i style="height:${Math.max(2,Math.round(p.v/mx2*130))}px;background:${p.k.color};--i:${x.m}"></i>`).join('')}</div><span>${MO[x.m].slice(0,3)}</span></div>`).join('')}</div></div></div>
-  <div style="display:flex;flex-wrap:wrap;gap:6px 14px;font-size:11px;color:#64748b;margin-top:8px">${ks.map(k=>`<span><span class="dot" style="background:${k.color}"></span>${k.nama}</span>`).join('')}</div>`
-  :empty('bku','Belum ada belanja','Grafik per komponen per bulan muncul setelah belanja pertama dicatat.',[['➕ Catat belanja',"go('input')"]],1))+`</div>`;
  /* rencana (Pengaturan) vs realisasi (belanja bulan itu), 2 batang per bulan; skala = nilai terbesar dari keduanya */
  const rc=cfg.rencana||[],rl=Array.from({length:12},(_,i)=>tx.filter(t=>t.jenis==='kredit'&&getMonth(t.tanggal)===i+1).reduce((a,t)=>a+t.jumlah,0));
  const rcT=rc.reduce((a,v)=>a+(+v||0),0),rlT=rl.reduce((a,v)=>a+v,0),mx3=Math.max(1,...rc.map(v=>+v||0),...rl);
@@ -778,49 +770,48 @@ function vDash(){
   `<div class="wrap"><div style="min-width:560px"><div class="mchart">${rl.map((v,i)=>{const p=+rc[i]||0;return `<div class="mc" data-tip="${MO[i+1]} ${yr}|Rencana ${rp(p)}|Realisasi ${rp(v)}|${p?`${(v/p*100).toFixed(0)}% dari rencana`:'Belum ada rencana'}"><div class="mq"><i style="height:${bh(p)}px;background:#7C3AED;--i:${i+1}"></i><i style="height:${bh(v)}px;background:#f59e0b;--i:${i+1}"></i></div><span>${MO[i+1].slice(0,3)}</span></div>`}).join('')}</div></div></div>
   <div style="display:flex;flex-wrap:wrap;gap:6px 14px;font-size:11px;color:#64748b;margin-top:8px"><span><span class="dot" style="background:#7C3AED"></span>Rencana ${rp(rcT)}</span><span><span class="dot" style="background:#f59e0b"></span>Realisasi ${rp(rlT)} (${(rlT/rcT*100).toFixed(0)}% dari rencana)</span></div>`
   :empty('set','Rencana anggaran belum diisi','Isi rencana belanja tiap bulan di Pengaturan. Jumlah 12 bulan harus sama dengan pagu.',[['⚙️ Isi di Pengaturan',"go('set')"]],1))+`</div>`;
- const recent=[...tx].sort((x,y)=>y.tanggal.localeCompare(x.tanggal)||y.id.localeCompare(x.id)).slice(0,6);
+ const recent=[...tx].sort((x,y)=>y.tanggal.localeCompare(x.tanggal)||y.id.localeCompare(x.id)).slice(0,5);
  const card=(l,v,c,sub)=>`<div class="sc" style="background:${c}"><small>${l}</small><b>${v}</b>${sub?`<div style="font-size:10px;opacity:.9;margin-top:3px;position:relative">${sub}</div>`:''}</div>`;
+ const sisaPagu=Math.max(0,cfg.pagu-T.real),tipis=cfg.pagu>0&&sisaPagu/cfg.pagu<.1;
  const stats=`<div class="stats">
-  ${card('💼 Total Kas (Bank + Tunai)',rp(T.bank+T.tunai),'#0f766e',`Bank ${rp(T.bank)} · Tunai ${rp(T.tunai)}`)}
-  ${card('💰 Dana Masuk',rp(T.masuk),'#0369a1',`${pc(T.masuk).toFixed(0)}% dari pagu`)}
-  ${card('💸 Realisasi',rp(T.real),'#d97706',`${pc(T.real).toFixed(0)}% dari pagu`)}
-  ${card('📦 Sisa Pagu',rp(Math.max(0,cfg.pagu-T.real)),'#7C3AED',`Sisa dana masuk ${rp(T.sisa)}`)}
+  ${card('💼 Total Kas',rp(T.bank+T.tunai),'#0f766e',`Uang yang ada sekarang<br>Bank ${rp(T.bank)} · Tunai ${rp(T.tunai)}`)}
+  ${card('💰 Dana Masuk',rp(T.masuk),'#0f766e',`Dana BOS yang sudah diterima<br>${pc(T.masuk).toFixed(0)}% dari pagu`)}
+  ${card('💸 Sudah Dibelanjakan',rp(T.real),'#0f766e',`Total belanja tahun ini<br>${pc(T.real).toFixed(0)}% dari pagu`)}
+  ${card('📦 Sisa Pagu',rp(sisaPagu),tipis?'#dc2626':'#0f766e',tipis?'Hampir habis, pagu tinggal sedikit':'Masih boleh dibelanjakan')}
  </div>`;
  /* buku kas masih kosong: panduan langkah pertama, bukan deretan angka nol */
  if(!tx.length){
   const py=String(+yr-1),prev=!!(ld(TXK(py))||ld(SAK(py))),noSa=!sa.bank&&!sa.tunai;
   return stats+`<div class="card">${empty('input',`Yuk mulai catat BOS ${yr}`,`Buku kas ${yr} masih kosong. Urutan yang biasa dipakai:<ol class="ems"><li>Isi <b>saldo awal</b> (sisa bulan Desember)</li><li>Catat <b>dana masuk</b> BOS</li><li><b>Tarik dana</b> ke tunai, lalu catat belanja</li></ol>`,[['➕ Catat dana masuk',"go('input')"],...(prev&&noSa?[[`🔄 Ambil saldo dari Des ${+yr-1}`,'carry()']]:[]),['⚙️ Atur saldo awal',"go('set')"]])}</div>`;
  }
+ const pt=pc(T.real);
+ const serap=`<div class="card"><div class="row" style="font-size:13px;margin-bottom:7px;flex-wrap:wrap"><span>🎯 Pagu terpakai</span><b>${cfg.pagu>0?`${rp(T.real)} dari ${rp(cfg.pagu)} (${pt.toFixed(1)}%)`:'Pagu belum diisi — isi di Pengaturan → Manajemen BOS'}</b></div>
+  <div class="bar"><i style="width:${pt}%;background:${pt>90?'#dc2626':'#0f766e'}"></i></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn" onclick="go('input')">➕ Input Belanja</button><button class="btn blue" onclick="go('a2')">📄 Cetak A2</button></div>
+  <div style="font-size:11px;color:#64748b;margin-top:8px">Saldo awal bank <b>${rp(sa.bank)}</b>, tunai <b>${rp(sa.tunai)}</b></div></div>`;
+ const tabs=[['bulan','📈 Per Bulan',`  <div class="card"><div class="ct">📈 Dana Masuk vs Belanja ${yr}</div>
+   <div class="mchart">${mm.map(x=>`<div class="mc" data-tip="${MO[x.m]} ${yr}|Dana masuk ${rp(x.i)}|Belanja ${rp(x.o)}"><div class="mb"><i style="height:${h(x.i)};background:#0369a1;--i:${x.m}"></i><i style="height:${h(x.o)};background:#f59e0b;--i:${x.m}"></i></div><span>${MO[x.m].slice(0,3)}</span></div>`).join('')}</div>
+   <div style="display:flex;gap:14px;font-size:11px;color:#64748b;margin-top:8px"><span><span class="dot" style="background:#0369a1"></span>Dana masuk</span><span><span class="dot" style="background:#f59e0b"></span>Belanja</span></div>
+  </div>`],['komp','🍰 Per Komponen',`  <div class="card" style="display:flex;flex-direction:column"><div class="ct">🍰 Belanja per Komponen</div>
+   ${ks.length?`<div class="g2" style="align-items:center;flex:1"><div class="dnw"><svg class="dn" viewBox="0 0 36 36" role="img" aria-label="Belanja per komponen">${segs}</svg><div class="dc"><small>Total belanja</small><b>${rp(sum)}</b></div></div>
+   <div style="display:flex;flex-direction:column;gap:2px">${ks.map(k=>`<div class="lg" data-tip="${k.full}|${rp(k.v)}|${(k.v/sum*100).toFixed(1)}%"><span style="width:9px;height:9px;border-radius:2px;background:${k.color};flex-shrink:0"></span><span style="flex:1">${k.nama} <small style="color:#64748b">${(k.v/sum*100).toFixed(0)}%</small></span><b style="color:${k.color}">${rp(k.v)}</b></div>`).join('')}</div></div>`
+   :empty('bku','Belum ada belanja','Grafik komposisi muncul setelah belanja pertama dicatat.',[['➕ Catat belanja',"go('input')"]],1)}
+  </div>`],['renc','🎯 Rencana vs Realisasi',rencBulan]];
+ const ct=tabs.find(x=>x[0]===dashTab)||tabs[0];
+ const cRecent=`  <div class="card"><div class="row" style="margin-bottom:9px"><div class="ct" style="margin:0">🕐 Transaksi Terbaru</div><a href="#" style="font-size:12px;font-weight:700;color:#0f766e;text-decoration:none;white-space:nowrap" onclick="go('riwayat');return false">Lihat semua ›</a></div>
+   ${recent.length?recent.map(t=>{const c=t.jenis==='debet'?'#16a34a':t.jenis==='tarik'?'#0369a1':'#dc2626',s=t.jenis==='debet'?'+':t.jenis==='tarik'?'⇄ ':'-';
+    return `<div class="row" style="padding:7px 0;border-bottom:1px solid #f0fdf4;cursor:pointer" onclick="go('riwayat')"><div style="min-width:0;flex:1"><div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.uraian)}</div><div style="font-size:10px;color:#9ca3af">${tglS(t.tanggal)}</div></div><b style="color:${c};font-size:13px">${s}${rp(t.jumlah)}</b></div>`}).join('')
+   :`<div style="text-align:center;color:#9ca3af;padding:20px;font-size:13px">Belum ada data. <a href="#" style="color:#166534" onclick="go('input');return false">+ Input sekarang</a></div>`}
+  </div>`;
+ /* peringatan di paling atas karena perlu ditindak; grafik dipilih lewat tab supaya halaman tidak panjang */
  return `
- ${stats}
  <div class="card"><div class="ct">🔔 Perlu Perhatian</div>
   ${al.length?al.map(([t,i,l,v])=>`<div class="row al" onclick="go('${t}')"><span>${i} ${l}</span><b>${v} ›</b></div>`).join(''):'<div style="font-size:13px;color:#065f46">✅ Semua beres, tidak ada yang perlu ditindaklanjuti.</div>'}
  </div>
- <div class="dg">
-  <div class="card"><div class="ct">📈 Dana Masuk vs Belanja ${yr}</div>
-   <div class="mchart">${mm.map(x=>`<div class="mc" data-tip="${MO[x.m]} ${yr}|Dana masuk ${rp(x.i)}|Belanja ${rp(x.o)}"><div class="mb"><i style="height:${h(x.i)};background:#0369a1;--i:${x.m}"></i><i style="height:${h(x.o)};background:#f59e0b;--i:${x.m}"></i></div><span>${MO[x.m].slice(0,3)}</span></div>`).join('')}</div>
-   <div style="display:flex;gap:14px;font-size:11px;color:#64748b;margin-top:8px"><span><span class="dot" style="background:#0369a1"></span>Dana masuk</span><span><span class="dot" style="background:#f59e0b"></span>Belanja</span></div>
-  </div>
-  <div class="card"><div class="ct">🎯 Serapan Pagu</div>
-   ${bar('Dana masuk dari pagu',pc(T.masuk),'#0369a1')}
-   ${bar('Realisasi dari pagu',pc(T.real),pc(T.real)>90?'#dc2626':'#f59e0b')}
-   <div style="font-size:11px;color:#64748b;margin-top:10px">Pagu <b>${rp(cfg.pagu)}</b> · Saldo awal bank <b>${rp(sa.bank)}</b>, tunai <b>${rp(sa.tunai)}</b></div>
-  </div>
- </div>
- <div class="dg">
-  <div class="card" style="display:flex;flex-direction:column"><div class="ct">🍰 Belanja per Komponen</div>
-   ${ks.length?`<div class="g2" style="align-items:center;flex:1"><div class="dnw"><svg class="dn" viewBox="0 0 36 36" role="img" aria-label="Belanja per komponen">${segs}</svg><div class="dc"><small>Total belanja</small><b>${rp(sum)}</b></div></div>
-   <div style="display:flex;flex-direction:column;gap:2px">${ks.map(k=>`<div class="lg" data-tip="${k.full}|${rp(k.v)}|${(k.v/sum*100).toFixed(1)}%"><span style="width:9px;height:9px;border-radius:2px;background:${k.color};flex-shrink:0"></span><span style="flex:1">${k.nama}</span><b style="color:${k.color}">${rp(k.v)}</b></div>`).join('')}</div></div>`
-   :empty('bku','Belum ada belanja','Grafik komposisi muncul setelah belanja pertama dicatat.',[['➕ Catat belanja',"go('input')"]],1)}
-  </div>
-  <div class="card"><div class="row" style="margin-bottom:9px"><div class="ct" style="margin:0">🕐 Transaksi Terbaru</div><a href="#" style="font-size:12px;font-weight:700;color:#0f766e;text-decoration:none;white-space:nowrap" onclick="go('riwayat');return false">Lihat semua ›</a></div>
-   ${recent.length?recent.map(t=>{const c=t.jenis==='debet'?'#16a34a':t.jenis==='tarik'?'#0369a1':'#dc2626',s=t.jenis==='debet'?'+':t.jenis==='tarik'?'⇄ ':'-';
-    return `<div class="row" style="padding:7px 0;border-bottom:1px solid #f0fdf4;cursor:pointer" onclick="go('riwayat')"><div style="min-width:0;flex:1"><div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.uraian)}</div><div style="font-size:10px;color:#9ca3af">${tglS(t.tanggal)} · ${esc(t.noBukti)}${t.dibuat?` · input ${tglInp(t.dibuat)}`:''}</div></div><b style="color:${c};font-size:13px">${s}${rp(t.jumlah)}</b></div>`}).join('')
-   :`<div style="text-align:center;color:#9ca3af;padding:20px;font-size:13px">Belum ada data. <a href="#" style="color:#166534" onclick="go('input');return false">+ Input sekarang</a></div>`}
-  </div>
- </div>
- ${komBulan}
- ${rencBulan}`;
+ ${stats}
+ ${serap}
+ <div class="dg"><div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:9px">${tabs.map(x=>`<button class="btn ${x[0]===ct[0]?'':'gray'}" style="padding:7px 12px;font-size:12px" onclick="dashTab='${x[0]}';render()">${x[1]}</button>`).join('')}</div>${ct[2]}</div>
+ ${cRecent}</div>`;
 }
 
 /* ─── RIWAYAT: semua dana masuk, tarik, dan belanja + kapan datanya diinput ─── */
