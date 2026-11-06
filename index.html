@@ -233,6 +233,7 @@ input[type=file]::file-selector-button{border:0;background:#ccfbf1;color:var(--t
 #print-layer th,#print-layer td{border:1px solid #555;padding:5px 7px}
 #print-layer th{background:#d1fae5;font-weight:700;text-align:center}
 #print-layer .right{text-align:right}
+#print-layer table.n td{border:0;padding:1px 0}#print-layer .rp th{background:none}
 @media print{
  body>*:not(#print-layer){display:none!important}
  #print-layer.show{position:static;overflow:visible;padding:0}
@@ -418,6 +419,7 @@ async function start(){
  await migrateLocal();
  cfg={...DEF_CFG,...(ld(CFGK)||{})};
  loadYear(String(new Date().getFullYear()));
+ RP={...DEF_RP,...(ld(RPK)||{}),dU:today(),dR:today()};
  newForm();render();fadeIn();
  if(!window._ev){window._ev=1;
   /* keluar dari tab/aplikasi atau tutup halaman: kirim data yang tertunda sekarang juga, tanpa menunggu jeda 0,6 detik */
@@ -838,7 +840,55 @@ function vInput(){
   <label>📌 Keterangan</label>
   <input value="${esc(f.ket)}" oninput="fset('ket',this.value)" placeholder="Nama toko, bank, dsb.">
   <div style="display:flex;gap:8px;margin-top:13px"><button class="btn" style="flex:1" onclick="doSubmit()">${editId?'💾 Perbarui':'💾 Simpan'}</button>${editId?'<button class="btn gray" onclick="cancelEdit()">Batal</button>':''}</div>
- </div>`;
+ </div>`+vRapat();
+}
+
+/* ─── UNDANGAN RAPAT & DAFTAR HADIR ───
+   Teks (waktu, tujuan, tempat, keperluan, keterangan) diingat di server; tanggal selalu mulai dari hari ini. */
+const RPK='bos4-rapat',DEF_RP={waktu:'Pukul 12.30 WIB',tujuan:'Bapak/ Ibu Guru dan Staf SD Negeri Kalisari',tempat:'Ruang Guru SD Negeri Kalisari',perlu:'Rapat Rutin Guru',ket:'Mohon hadir tepat waktu'};
+let RP={...DEF_RP};
+function rpSet(k,v){RP[k]=v;const {dU,dR,...t}=RP;sv(RPK,t)}
+function vRapat(){
+ const f=(l,k,t)=>`<div><label>${l}</label><input${t?` type="${t}"`:''} value="${esc(RP[k])}" onchange="rpSet('${k}',this.value)" oninput="rpSet('${k}',this.value)"></div>`;
+ return `<div class="card" style="border-left:4px solid #7C3AED"><div class="ct">📣 Undangan Rapat &amp; Daftar Hadir</div>
+  <div class="g2">${f('📅 Tanggal Undangan','dU','date')}${f('📅 Tanggal Rapat','dR','date')}</div>
+  <div class="g2">${f('🕐 Waktu','waktu')}${f('📍 Tempat','tempat')}</div>
+  ${f('👥 Tujuan Undangan','tujuan')}${f('📝 Keperluan / Acara','perlu')}${f('📌 Keterangan','ket')}
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:13px"><button class="btn gold" onclick="printUndangan()">🖨️ Cetak Undangan</button><button class="btn blue" onclick="printHadir()">🖨️ Cetak Daftar Hadir</button></div>
+  <div style="font-size:11px;color:#6b7280;margin-top:6px">Daftar hadir diurutkan dari Daftar Guru di Pengaturan menurut kolom Jabatan: Kepala Sekolah, guru kelas (yang ber-NIP dulu), PJOK, PAI, Staf Administrasi, Penjaga.</div></div>`;
+}
+const hariTgl=s=>new Date(s+'T00:00:00').toLocaleDateString('id-ID',{weekday:'long'})+', '+tglN(s);
+const rpFont='font-family:\'Times New Roman\',Times,serif;font-size:14px;color:#000;line-height:1.5';
+const kopHtml=()=>`<div style="display:flex;align-items:center;justify-content:center;gap:16px">${logoImg(cfg.logoKiri)}
+  <div style="text-align:center"><div style="font-size:20px;font-weight:700">${esc(cfg.kopPemda)}</div><div style="font-size:20px;font-weight:700">${esc(cfg.kopSekolah)}</div><div style="font-size:13px">${esc(cfg.alamat)}</div>${cfg.email?`<div style="font-size:13px;font-style:italic;color:#0563c1;text-decoration:underline">Pos-el : ${esc(cfg.email)}</div>`:''}</div>${logoImg(cfg.logoKanan)}</div>
+  <div style="border-top:3px double #000;margin:6px 0 14px"></div>`;
+const ttdHtml=(tg)=>`<div style="margin:30px 0 0 58%;text-align:center"><div>${esc(cfg.tempat||cfg.kota)}, ${tglN(tg)}</div><div>Kepala Sekolah</div><div style="height:64px"></div><div style="font-weight:700;text-decoration:underline">${esc(cfg.kepsek)||'(___________________)'}</div><div>NIP. ${esc(cfg.nipKepsek)||'………………………………'}</div></div>`;
+const rpKv=(l,v)=>`<tr><td style="width:120px;padding:1px 0">${l}</td><td style="width:14px">:</td><td>${esc(v)}</td></tr>`;
+function printUndangan(){
+ if(!RP.dU||!RP.dR){toast('⚠️ Isi tanggal undangan dan tanggal rapat');return}
+ doPrint(`<div class="rp" style="${rpFont}">${kopHtml()}
+ <div style="text-align:right">${esc(cfg.tempat||cfg.kota)}, ${tglN(RP.dU)}</div>
+ <table class="n" style="width:100%;margin-top:10px;border-collapse:collapse"><tr><td style="width:50%;vertical-align:top"><table class="n"><tr><td style="border:0;padding:1px 0;width:80px">Nomor</td><td style="border:0">:</td></tr><tr><td style="border:0;padding:1px 0">Lampiran</td><td style="border:0">:</td></tr><tr><td style="border:0;padding:1px 0">Hal</td><td style="border:0">: <b style="text-decoration:underline">Undangan</b></td></tr></table></td>
+  <td style="vertical-align:top;border:0"><div>Kepada:</div><div>Yth</div><div>${esc(RP.tujuan)}</div><div>Di Tempat</div></td></tr></table>
+ <div style="margin-top:22px">Dengan Hormat,</div><div>Dimohon kehadiran ${esc(RP.tujuan)} pada:</div>
+ <table class="n" style="margin:6px 0 0 36px;border-collapse:collapse">${rpKv('Hari / Tanggal',hariTgl(RP.dR))}${rpKv('Waktu',RP.waktu)}${rpKv('Tempat',RP.tempat)}${rpKv('Keperluan',RP.perlu)}${rpKv('Keterangan',RP.ket)}</table>
+ <div style="margin-top:20px">Atas perhatian dan kehadirannya diucapkan terima kasih.</div>${ttdHtml(RP.dU)}</div>`);
+}
+/* Urutan daftar hadir menurut teks jabatan: 0 guru kelas ber-NIP, 1 guru kelas tanpa NIP, 2 PJOK, 3 PAI, 4 staf administrasi, 5 penjaga */
+function hadirRank(g){
+ const j=(g.jabatan||'Guru Kelas').toLowerCase();
+ return /penjaga/.test(j)?5:/staf|administrasi|tu\b/.test(j)?4:/\bpai\b|agama/.test(j)?3:/pjok|olahraga|penjas/.test(j)?2:g.nip?0:1;
+}
+function printHadir(){
+ if(!RP.dR){toast('⚠️ Isi tanggal rapat');return}
+ const gs=(cfg.guruList||[]).map((g,i)=>({g,i,r:hadirRank(g)})).sort((a,b)=>a.r-b.r||a.i-b.i).map(x=>x.g);
+ const rows=[{nama:cfg.kepsek||'',jab:'Kepala Sekolah'},...gs.map(g=>({nama:g.nama,jab:g.jabatan||'Guru Kelas'}))];
+ const c='border:1px solid #000;padding:8px 8px';
+ doPrint(`<div class="rp" style="${rpFont}">${kopHtml()}
+ <div style="text-align:center;font-weight:700;text-decoration:underline;margin-bottom:12px">DAFTAR HADIR</div>
+ <table class="n" style="border-collapse:collapse;margin-bottom:10px">${rpKv('Hari / Tanggal',hariTgl(RP.dR))}${rpKv('Tempat',RP.tempat)}${rpKv('Acara',RP.perlu)}</table>
+ <table style="width:100%;border-collapse:collapse"><thead><tr><th style="${c};width:6%">No</th><th style="${c}">Nama</th><th style="${c};width:24%">Jabatan</th><th style="${c};width:26%">Tanda Tangan</th></tr></thead>
+ <tbody>${rows.map((r,i)=>`<tr><td style="${c};text-align:center">${i+1}</td><td style="${c}">${esc(r.nama)}</td><td style="${c}">${esc(r.jab)}</td><td style="${c}">${i+1}.</td></tr>`).join('')}</tbody></table>${ttdHtml(RP.dR)}</div>`);
 }
 
 /* ─── bagian bersama lembar ─── */
