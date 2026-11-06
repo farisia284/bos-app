@@ -686,7 +686,18 @@ function pindahTahun(){
  if(!/^\d{4}$/.test(v)){toast('⚠️ Tahun harus 4 digit');return}
  sv(YK,[...new Set([...(ld(YK)||[]),+v])]);switchYr(v);
 }
-function wipe(){if(confirm(`Hapus SEMUA transaksi ${yr}?`)){tx=[];sv(TXK(yr),tx);render();toast('🗑️ Data dihapus')}}
+/* Hapus data tahun aktif: wajib ketik ulang password akun; salah -> ditolak, benar -> langsung dihapus */
+let wipeAsk=false,wipeErr='';
+function wipe(){wipeAsk=true;wipeErr='';render();$('wp-pw').focus()}
+function wipeNo(){wipeAsk=false;render()}
+async function doWipe(){
+ const pw=$('wp-pw').value;if(!pw){$('wp-pw').focus();return}
+ $('wp-ok').disabled=true;
+ const {error}=await sb.auth.signInWithPassword({email:user.email,password:pw});
+ if(error){wipeErr=error.status===400?'Password salah. Penghapusan ditolak.':'Gagal memeriksa password: '+error.message;render();$('wp-pw').focus();return}
+ const n=tx.length;tx=[];sv(TXK(yr),tx);addLog('hapus',`Hapus SEMUA transaksi tahun ${yr} (${n} transaksi)`);
+ wipeAsk=false;render();toast('🗑️ Data dihapus');
+}
 
 /* ═════════ VIEWS ═════════ */
 function vDash(){
@@ -1175,6 +1186,10 @@ function render(){
    <div style="text-align:right;font-size:10px;line-height:1.4"><div>Bank <b>${rp(T.bank)}</b></div><div>Tunai <b>${rp(T.tunai)}</b></div></div></div>
   </div>
  <main>${views[tab]()}</main></div></div>
+ ${wipeAsk?`<div class="modal"><div><div style="font-size:22px;text-align:center">⚠️</div><div style="font-weight:700;text-align:center;margin:6px 0">Hapus SEMUA data ${yr}?</div><div style="font-size:12px;color:#6b7280;text-align:center;margin-bottom:10px">${tx.length} transaksi tahun ${yr} akan dihapus dan tidak bisa dibatalkan. Masukkan password akun untuk melanjutkan.</div>
+ <input id="wp-pw" type="password" autocomplete="current-password" placeholder="Password" onkeydown="if(event.key==='Enter')doWipe()">
+ ${wipeErr?`<div style="color:#dc2626;font-size:12px;font-weight:600;margin-top:6px">${esc(wipeErr)}</div>`:''}
+ <div style="display:flex;gap:8px;margin-top:14px"><button class="btn gray" style="flex:1" onclick="wipeNo()">Batal</button><button class="btn red" style="flex:1" id="wp-ok" onclick="doWipe()">Hapus</button></div></div></div>`:''}
  ${delId?`<div class="modal"><div><div style="font-size:22px;text-align:center">🗑️</div><div style="font-weight:700;text-align:center;margin:6px 0">Hapus Transaksi?</div><div style="font-size:12px;color:#6b7280;text-align:center;margin-bottom:17px">Tidak dapat dibatalkan.</div><div style="display:flex;gap:8px"><button class="btn gray" style="flex:1" onclick="delId=null;render()">Batal</button><button class="btn red" style="flex:1" onclick="doDel('${delId}')">Hapus</button></div></div></div>`:''}`;
 }
 
