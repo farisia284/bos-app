@@ -1251,12 +1251,12 @@ function a2Html(t){
  const sig=(top,nama,nip)=>`<div style="height:100px">${top}</div><div style="font-weight:700;text-decoration:underline">${nama}</div><div>NIP. ${nip}</div>`;
  const dots='………………………………';
  const sKep=sig('<div>Setuju dibayarkan</div><div>Kepala sekolah</div><div>'+esc(cfg.namaSekolah)+'</div>',esc(cfg.kepsek)||'(___________________)',esc(cfg.nipKepsek)||dots);
- const sBen=sig('<div>Bendahara BOS</div>',esc(cfg.bendahara)||'(___________________)',esc(cfg.nipBendahara)||dots);
+ const sBen=sig('<div>&nbsp;</div><div>Bendahara BOS</div>',esc(cfg.bendahara)||'(___________________)',esc(cfg.nipBendahara)||dots);
  const sRow=t.tukang
   ?`<td style="width:50%;border-right:1px solid #333;text-align:center;vertical-align:top">${sKep}</td><td style="text-align:center;vertical-align:top">${sBen}</td>`
   :`<td style="width:33%;border-right:1px solid #333;text-align:center;vertical-align:top">${sKep}</td>
  <td style="width:34%;border-right:1px solid #333;text-align:center;vertical-align:top">${sBen}</td>
- <td style="text-align:center;vertical-align:top">${sig('<div>Yang membayarkan</div>',g?esc(g.nama):'(___________________)',(g&&esc(g.nip))||dots)}</td>`;
+ <td style="text-align:center;vertical-align:top">${sig('<div>&nbsp;</div><div>Yang membayarkan</div>',g?esc(g.nama):'(___________________)',(g&&esc(g.nip))||dots)}</td>`;
  return `<div class="a2">
 <table style="width:100%;border:1px solid #333;border-collapse:collapse"><tr>
  <td style="width:55%;border-right:1px solid #333;vertical-align:top"><div style="font-weight:700">${esc(cfg.namaSekolah.toUpperCase())}</div><div>${esc(cfg.kecamatan.toUpperCase())}, ${esc(cfg.kota.toUpperCase())}</div>
