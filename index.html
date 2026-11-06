@@ -45,6 +45,8 @@ select.auto,input.auto{width:auto;font-size:12px}
 .wrap{overflow-x:auto}
 .row{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .ib{background:none;border:0;cursor:pointer;font-size:13px;padding:2px 4px}
+/* kolom tanggal: tampilan hh/bb/tttt + kolom date asli transparan di atasnya sebagai pemilih */
+.dw{position:relative}.dt{cursor:pointer}.dp{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0;padding:0}
 #toast{position:fixed;bottom:16px;right:16px;left:16px;max-width:420px;margin-left:auto;background:#1f2937;color:#fff;padding:10px 16px;border-radius:9px;z-index:99999;font-size:13px;font-weight:500;box-shadow:0 4px 14px #0004;display:none}
 .modal{position:fixed;inset:0;background:#0008;display:flex;align-items:center;justify-content:center;z-index:999;padding:20px}
 .modal>div{background:#fff;border-radius:13px;padding:22px;max-width:300px;width:100%}
@@ -570,13 +572,19 @@ function commit(list,msg){
 let tt;
 function toast(m,ms){const e=$('toast');e.textContent=m;e.style.display='block';clearTimeout(tt);tt=setTimeout(()=>e.style.display='none',ms||3000)}
 
+/* ─── INPUT TANGGAL: tampil hh/bb/tttt, dipilih lewat kalender bawaan (kolom date transparan di atas kolom tampilan).
+   Kolom date bawaan browser mengikuti bahasa perangkat dan tidak bisa dipaksa, jadi hanya dipakai sebagai pemilih. Disimpan ISO tttt-bb-hh. ─── */
+const dtShow=v=>v?v.split('-').reverse().join('/'):'';
+function dtSet(id,v){const e=$(id);if(e){e.value=dtShow(v);if(e.nextElementSibling)e.nextElementSibling.value=v}}
+const dIn=(v,js,x,c)=>`<div class="dw"${c?' style="display:inline-block"':''}><input class="dt${c||''}" readonly size="10" placeholder="hh/bb/tttt" value="${dtShow(v)}"${x||''}>${/disabled/.test(x||'')?'':`<input type="date" class="dp" value="${v||''}" aria-label="Pilih tanggal" onclick="try{this.showPicker()}catch(e){}" onchange="{const v=this.value;this.previousElementSibling.value=dtShow(v);${js}}">`}</div>`;
+
 /* ─── FORM HANDLERS ─── */
 function fset(k,v){F[k]=v}
 function fTgl(v){
  const old=F.tanggal;F.tanggal=v;
- if(F.tglTrx===old){F.tglTrx=v;if($('f-trx'))$('f-trx').value=v}
- if(F.tglStor===old){F.tglStor=v;if($('f-stor'))$('f-stor').value=v}
- if($('f-trm'))$('f-trm').value=v;
+ if(F.tglTrx===old){F.tglTrx=v;dtSet('f-trx',v)}
+ if(F.tglStor===old){F.tglStor=v;dtSet('f-stor',v)}
+ dtSet('f-trm',v);
  autoNo();if($('f-no'))$('f-no').value=F.noBukti;
 }
 function setJ(j){F.jenis=j;F.komponen=j==='kredit'?'2':'0';F.pajakOn=false;if(j==='kredit'){F.tglTrx=F.tanggal;F.tglStor=F.tanggal}autoNo();render()}
@@ -838,12 +846,12 @@ function vInput(){
   <div class="g3">${jt.map(([v,l,c])=>`<button class="jt" style="border:2px solid ${f.jenis===v?c:'#e5e7eb'};color:${f.jenis===v?c:'#6b7280'};background:${f.jenis===v?c+'11':'#fff'}" onclick="setJ('${v}')">${l}</button>`).join('')}</div>
   <div class="info">${note}</div>
   ${k?`<div class="g2">
-   <div><label>📅 Tanggal Transaksi *</label><input type="date" id="f-trx" value="${esc(f.tglTrx)}" onchange="fset('tglTrx',this.value)"></div>
-   <div><label>📅 Tanggal Lunas Bayar *</label><input type="date" value="${esc(f.tanggal)}" onchange="fTgl(this.value)"></div>
+   <div><label>📅 Tanggal Transaksi *</label>${dIn(f.tglTrx,"fset('tglTrx',v)",' id="f-trx"')}</div>
+   <div><label>📅 Tanggal Lunas Bayar *</label>${dIn(f.tanggal,'fTgl(v)')}</div>
   </div>
   <label>🔢 No. Bukti (otomatis)</label>${noInp}`
   :`<div class="g2">
-   <div><label>📅 Tanggal *</label><input type="date" value="${esc(f.tanggal)}" onchange="fTgl(this.value)"></div>
+   <div><label>📅 Tanggal *</label>${dIn(f.tanggal,'fTgl(v)')}</div>
    <div><label>🔢 No. Bukti</label>${noInp}</div>
   </div>`}
   <label>📝 Uraian *</label>
@@ -865,8 +873,8 @@ function vInput(){
    ${f.pajakOn?`<div class="g2" style="margin-top:7px"><div><label>Jenis Pajak</label><select onchange="F.pajakKode=this.value;upd()">${PAJAK.map(p=>`<option value="${p.kode}"${f.pajakKode===p.kode?' selected':''}>${p.label} (${p.persen}%)</option>`).join('')}</select></div>
    <div><label>Jumlah Pajak</label><div style="padding:9px 10px;background:#f9fafb;border-radius:8px;color:#dc2626;font-weight:700" id="f-pj">${rp(pj)}</div><div style="font-size:11px;color:#6b7280;margin-top:2px" id="f-net">Net: ${rp(j-pj)}</div></div></div>
    <label>🔢 NTPN</label><input value="${esc(f.ntpn)}" oninput="fset('ntpn',this.value)" placeholder="Nomor NTPN (bisa diisi nanti lewat Edit)">
-   <div class="g2"><div><label>📅 Tanggal Terima Pajak</label><input type="date" id="f-trm" value="${esc(f.tanggal)}" disabled></div>
-   <div><label>📅 Tanggal Stor Pajak</label><input type="date" id="f-stor" value="${esc(f.tglStor)}" onchange="fset('tglStor',this.value)"></div></div>
+   <div class="g2"><div><label>📅 Tanggal Terima Pajak</label>${dIn(f.tanggal,'',' id="f-trm" disabled')}</div>
+   <div><label>📅 Tanggal Stor Pajak</label>${dIn(f.tglStor,"fset('tglStor',v)",' id="f-stor"')}</div></div>
    <div style="font-size:11px;color:#6b7280;margin-top:4px">Terima pajak = tanggal lunas bayar. Ubah tanggal stor sesuai hari pajak dibayarkan.</div>`:''}
   </div>`:''}
   <label>📌 Keterangan</label>
@@ -879,7 +887,7 @@ function vInput(){
    Dicatat per belanja (t.rapat), seperti t.tukang: dicentang di Input, dicetak di menu Undangan / Daftar Hadir. */
 function newRp(){return{dU:today(),dR:today(),waktu:'Pukul 12.30 WIB',tujuan:'Bapak/ Ibu Guru dan Staf SD Negeri Kalisari',lain:'',tempat:'Ruang Guru SD Negeri Kalisari',perlu:'Rapat Rutin Guru',ket:'Mohon hadir tepat waktu'}}
 function rapatBlk(f){
- const r=f.rp,i=(l,k,t)=>`<div><label>${l}</label><input${t?` type="${t}"`:''} value="${esc(r[k])}" oninput="F.rp.${k}=this.value"></div>`;
+ const r=f.rp,i=(l,k,t)=>`<div><label>${l}</label>${t?dIn(r[k],`F.rp.${k}=v`):`<input value="${esc(r[k])}" oninput="F.rp.${k}=this.value">`}</div>`;
  return `<div style="display:flex;align-items:center;gap:8px;margin-top:10px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px"><input type="checkbox" id="rpcb"${f.rapatOn?' checked':''} onchange="F.rapatOn=this.checked;render()"><label for="rpcb" style="margin:0;cursor:pointer;font-size:12px">📣 Ada <b>undangan rapat</b> — dicetak di menu <b>Undangan</b> &amp; <b>Daftar Hadir</b></label></div>`
  +(f.rapatOn?`<div style="margin-top:8px;padding:11px;background:#faf5ff;border:1px solid #e9d5ff;border-radius:10px">
   <div class="g2">${i('📅 Tanggal Undangan','dU','date')}${i('📅 Tanggal Rapat','dR','date')}</div>
@@ -1056,7 +1064,7 @@ function vRk(){
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label style="margin:0">📅 Tahap:</label>
    <select class="auto" onchange="rkT=this.value;rkTgl='';render()"><option value="1"${rkT==='1'?' selected':''}>Tahap 1 (Januari-Juni)</option><option value="2"${rkT==='2'?' selected':''}>Tahap 2 (Juli-Desember)</option></select>
    <label style="margin:0">✍️ Tanggal TTD:</label>
-   <input type="date" class="auto" value="${rkData(rkT).lastD}" onchange="rkTgl=this.value;render()"></div>
+   ${dIn(rkData(rkT).lastD,'rkTgl=v;render()','',' auto')}</div>
   <button class="btn" onclick="printRk()">🖨️ Cetak Rekap Pajak</button></div>
  <div class="info">Data diambil dari pajak yang diinput di belanja BKU (menurut tanggal stor pajak). NTPN diisi/diubah lewat ✏️. Tanggal TTD bisa diubah sesuai kebutuhan (kosongkan untuk otomatis).</div>
  <div class="card wrap"><div style="min-width:640px">${rkSheet(rkT,true)}</div></div>
