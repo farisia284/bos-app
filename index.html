@@ -299,6 +299,7 @@ const DEF_CFG={namaSekolah:"SDN Kalisari",npsn:"20208284",alamat:"Jl. Kalisari R
  kopPemda:"PEMERINTAH KABUPATEN BATANG",kopSekolah:"SD NEGERI KALISARI REBAN",email:"sdnkalisarireban@gmail.com",
  namaLengkap:"SEKOLAH DASAR NEGERI KALISARI",alamatRekap:"Alamat : Desa Kalisari Kecamatan Reban Kabupaten Batang",logoKiri:"",logoKanan:"",
  bendahara:"Salman Alfarisi, S.Pd.",nipBendahara:"",
+ rekening:[["ATK","5.1.02.01.01.0024"],["BAHAN KOMPUTER","5.1.02.01.01.0029"],["KERTAS DAN COVER","5.1.02.01.01.0025"],["CETAK PENGGANDAAN FC","5.1.02.01.01.0026"],["CETAK MMT","5.1.02.01.01.0036"],["OBAT OBATAN","5.1.02.01.01.0037"],["LISTRIK","5.1.02.02.01.0061"],["INTERNET","5.1.02.02.01.0063"],["KONSUMSI RAPAT","5.1.02.01.01.0052"],["PELAYANAN FASILITAS","5.1.02.01.01.0055"],["SEWA KENDARAAN","5.1.02.02.04.0036"],["PERJADIN","5.1.02.04.01.0003"],["PRINTER","5.1.02.03.02.0408"],["LAPTOP","5.1.02.03.02.0405"],["ALAT KELISTRIKAN","5.1.02.01.01.0031"],["HONOR TKA","5.1.02.02.01.0011"],["MATERAI","5.1.02.01.01.0027"],["OLAHRAGA","5.1.02.01.01.0034"],["ALAT KEBERSIHAN","5.1.02.01.01.0030"],["PENDAFTARAN LOMBA","5.1.02.01.01.0036"],["LANGGANAN MAJALAH","5.1.02.02.01.0062"],["MODAL BUKU","5.2.05.01.01.0001"],["WORKSHOP KEPALA SEKOLAH","5.1.02.02.01.0066"]].map(([nama,kode],i)=>({id:"r"+(i+1),nama,kode})),
  noAwal:"",pagu:100000000,guruList:[{id:"g1",nama:"Salman Alfarisi, S.Pd.",nip:""},{id:"g2",nama:"Siti Rahayu, S.Pd.",nip:""}]};
 
 /* ═════════ PENYIMPANAN ONLINE (Supabase) ═════════
@@ -617,6 +618,7 @@ function switchYr(y){loadYear(y);editId=null;rkTgl='';newForm();render();toast('
 
 /* ─── PENGATURAN HANDLERS ─── */
 function cs(k,v){cfgD=cfgD||JSON.parse(JSON.stringify(cfg));cfgD[k]=v}
+let setT='akun',rekEd=null; /* sub-menu Pengaturan aktif; id rekening yang sedang diedit */
 let guruEd=null; /* id guru yang sedang diedit; id tetap sama supaya transaksi lama tetap terhubung */
 function addGuru(){
  const n=$('g-nama').value.trim();if(!n)return;
@@ -627,6 +629,18 @@ function addGuru(){
 }
 function editGuru(id){guruEd=id;render();$('g-nama').focus();$('g-nama').scrollIntoView({block:'center'})}
 function cancelGuru(){guruEd=null;render()}
+function addRek(){
+ const n=$('rk-nama').value.trim(),k=$('rk-kode').value.trim();if(!n||!k){toast('⚠️ Nama dan kode rekening wajib diisi');return}
+ cfgD=cfgD||JSON.parse(JSON.stringify(cfg));
+ const x={id:rekEd||uid(),nama:n,kode:k};
+ cfgD.rekening=rekEd?cfgD.rekening.map(y=>y.id===rekEd?x:y):[...(cfgD.rekening||[]),x];
+ rekEd=null;render();
+}
+function editRek(id){rekEd=id;render();$('rk-nama').focus();$('rk-nama').scrollIntoView({block:'center'})}
+function cancelRek(){rekEd=null;render()}
+function rmRek(id){if(rekEd===id)rekEd=null;cfgD=cfgD||JSON.parse(JSON.stringify(cfg));cfgD.rekening=cfgD.rekening.filter(x=>x.id!==id);render()}
+/* pilih nama rekening di Input -> kode rekening terisi otomatis (tetap bisa diketik manual) */
+function pickRek(id){const x=(cfg.rekening||[]).find(y=>y.id===id);if(!x)return;F.kode=x.kode;$('f-kode').value=x.kode}
 function rmGuru(id){if(guruEd===id)guruEd=null;cfgD=cfgD||JSON.parse(JSON.stringify(cfg));cfgD.guruList=cfgD.guruList.filter(g=>g.id!==id);render()}
 function setLogo(k,el){
  const f=el.files[0];if(!f)return;
@@ -831,8 +845,10 @@ function vInput(){
   <input value="${esc(f.uraian)}" oninput="fset('uraian',this.value)" placeholder="${f.jenis==='debet'?'Contoh: Penerimaan Dana BOS Tahap 1':f.jenis==='tarik'?'Contoh: Pengambilan dana BOS':'Contoh: Belanja Cetak Soal PAT Kelas 6'}">
   ${k?`<label>🏷️ Komponen BOS</label>
   <select onchange="fset('komponen',this.value)">${KOMP.map(x=>`<option value="${x.kode}"${f.komponen===x.kode?' selected':''}>${x.kode}. ${x.full}</option>`).join('')}</select>
+  <label>🔖 Nama Rekening</label>
+  <select onchange="pickRek(this.value)"><option value="">— Pilih nama rekening —</option>${(cfg.rekening||[]).map(x=>`<option value="${x.id}"${(cfg.rekening||[]).find(y=>y.kode===f.kode)===x?' selected':''}>${esc(x.nama)}</option>`).join('')}</select>
   <label>🔖 No. Kode (Kode Rekening)</label>
-  <input value="${esc(f.kode)}" oninput="fset('kode',this.value)" placeholder="5.1.02.01.01.0026">
+  <input id="f-kode" value="${esc(f.kode)}" oninput="fset('kode',this.value)" placeholder="Terisi otomatis saat nama rekening dipilih">
   <label>👤 Pelaksana Belanja</label>
   <select onchange="fset('guruId',this.value)"><option value="">— Pilih Guru/Pelaksana —</option>${(cfg.guruList||[]).map(g=>`<option value="${g.id}"${f.guruId===g.id?' selected':''}>${esc(g.nama)}${g.nip?` (${esc(g.nip)})`:''}</option>`).join('')}</select>
   <div style="display:flex;align-items:center;gap:8px;margin-top:12px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px"><input type="checkbox" id="tkcb"${f.tukang?' checked':''} onchange="F.tukang=this.checked"><label for="tkcb" style="margin:0;cursor:pointer;font-size:12px">🔨 Pembayaran tukang — dicetak di menu <b>A2 Tukang</b> (tanda tangan hanya Kepala Sekolah &amp; Bendahara BOS)</label></div>${rapatBlk(f)}`:''}
@@ -1083,7 +1099,8 @@ function vSet(){
  const inp=(l,k,ph)=>`<div><label>${l}</label><input value="${esc(d[k])}" oninput="cs('${k}',this.value)" placeholder="${ph||''}"></div>`;
  const lg=(l,k)=>`<div><label>${l}</label><input type="file" accept="image/*" onchange="setLogo('${k}',this)">${d[k]?`<div style="margin-top:6px"><img src="${d[k]}" style="height:50px;vertical-align:middle"> <button class="ib" onclick="cs('${k}','');render()">🗑️</button></div>`:''}</div>`;
  return `
- <div class="card" style="border-left:4px solid #0369a1"><div class="ct">👤 Akun &amp; Cadangan</div>
+ <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:11px">${[['akun','👤 Akun',''],['profil','🏫 Profil Sekolah',''],['bos','💰 Manajemen BOS',''],['bahaya','⚠️ Zona Berbahaya','red']].map(([id,l,c])=>`<button class="btn ${setT===id?c:'gray'}" onclick="setT='${id}';render();scrollTo(0,0)">${l}</button>`).join('')}</div>
+ ${setT==='akun'?` <div class="card" style="border-left:4px solid #0369a1"><div class="ct">👤 Akun &amp; Cadangan</div>
   <div class="row" style="flex-wrap:wrap"><div style="font-size:13px">Masuk sebagai <b>${esc(user&&user.email)}</b><div style="font-size:11px;color:#6b7280">${SYN[sync]}</div></div><button class="btn gray" onclick="logout()">Keluar</button></div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn teal" onclick="exportDb()">⬇️ Unduh Cadangan</button>
    <label class="btn blue" style="margin:0;display:inline-block;font-size:13px">⬆️ Pulihkan Cadangan<input type="file" accept=".json,application/json" style="display:none" onchange="importDb(this)"></label></div>
@@ -1094,29 +1111,10 @@ function vSet(){
   <button class="btn" style="margin-top:8px" onclick="gantiPass()">Ganti Password</button>
   <div style="margin-top:12px"><label>Email baru (sekarang: ${esc(user&&user.email)})</label><input id="em-n" type="email" autocomplete="off" placeholder="email@baru.com"></div>
   <button class="btn blue" style="margin-top:8px" onclick="gantiEmail()">Ganti Email</button>
-  <div style="font-size:11px;color:#6b7280;margin-top:6px">Ganti email mengirim link konfirmasi; email lama tetap dipakai login sampai link diklik.</div></div>
- <div class="card"><div class="ct">🔢 Nomor Bukti Pembayaran</div>
-  ${inp('No. bukti awal (boleh kosong)','noAwal','contoh: 15/BOSP/XI/2026')}
-  <div style="font-size:11px;color:#6b7280;margin-top:4px">Tulis contoh nomor bukti pertama dengan format bebas, mis. <b>15/BOSP/XI/2026</b> atau <b>BKT-007/2026</b>. Angka pertama jadi nomor awal, angka Romawi diganti bulan, tahun diganti tahun aktif, teks lain dipakai apa adanya. Saat input belanja, nomor lanjut urut otomatis. Dengan angka Romawi, nomor mulai lagi dari 1 tiap bulan baru; tanpa Romawi, nomor lanjut terus. Kosongkan untuk format bawaan 1/I/2026. Tekan Simpan Semua Pengaturan.</div></div>
- <div class="card"><div class="ct">📅 Manajemen Tahun Anggaran</div>
-  <div class="g2"><div><label>Tahun Aktif</label><div style="font-weight:800;font-size:22px;color:#166534">${yr}</div></div>
-  <div><label>Tambah / Pindah ke Tahun</label><div style="display:flex;gap:7px"><input id="yr-inp" style="width:90px" inputmode="numeric" placeholder="${+yr+1}"><button class="btn blue" onclick="pindahTahun()">Tambah / Pindah</button></div>
-  <div style="font-size:11px;color:#6b7280;margin-top:4px">Tahun yang ditambahkan akan muncul di pilihan TA (pojok kanan atas).</div></div></div>
-  <div style="margin-top:11px;background:#f0fdf4;border-radius:10px;padding:12px;border:1px solid #dcfce7">
-   <div style="font-weight:700;font-size:12px;color:#166534;margin-bottom:4px">💰 Saldo Awal ${yr} (sisa Des ${+yr-1})</div>
-   <div class="g2">
-    <div><label>🏦 Saldo Bank</label><input id="sa-b" inputmode="numeric" style="font-weight:700" value="${sa.bank?sa.bank.toLocaleString('id-ID'):''}" oninput="fmt(this,'tb-sab')"><div class="tbx" id="tb-sab" style="display:${sa.bank>0?'block':'none'}">✍️ ${terbilang(sa.bank)}</div></div>
-    <div><label>💵 Saldo Tunai</label><input id="sa-t" inputmode="numeric" style="font-weight:700" value="${sa.tunai?sa.tunai.toLocaleString('id-ID'):''}" oninput="fmt(this,'tb-sat')"><div class="tbx" id="tb-sat" style="display:${sa.tunai>0?'block':'none'}">✍️ ${terbilang(sa.tunai)}</div></div>
-   </div>
-   <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:9px"><button class="btn" onclick="saveSa()">💾 Simpan Saldo Awal</button><button class="btn teal" onclick="carry()">🔄 Ambil otomatis dari Des ${+yr-1}</button></div>
-  </div></div>
- <div class="card"><div class="ct">🏫 Informasi Sekolah</div>
+  <div style="font-size:11px;color:#6b7280;margin-top:6px">Ganti email mengirim link konfirmasi; email lama tetap dipakai login sampai link diklik.</div></div>`:''}
+ ${setT==='profil'?` <div class="card"><div class="ct">🏫 Informasi Sekolah</div>
   ${inp('Nama Sekolah','namaSekolah')}${inp('NPSN','npsn')}${inp('Alamat','alamat')}${inp('Kecamatan','kecamatan')}${inp('Kota / Kabupaten (mis. Batang)','kota')}${inp('Tempat Tanda Tangan BKU & Rekap Pajak (mis. nama desa)','tempat','Kalisari')}
-  <div class="g2"><div><label>Pagu Dana BOS (Rp) — angka tetap</label><input inputmode="numeric" value="${d.pagu?Number(d.pagu).toLocaleString('id-ID'):''}" oninput="cs('pagu',fmt(this,'tb-pagu'));rnSt()"><div class="tbx" id="tb-pagu" style="display:${d.pagu>0?'block':'none'}">✍️ ${terbilang(d.pagu)}</div></div></div></div>
- <div class="card" style="border-left:4px solid #7C3AED"><div class="ct">🗓️ Rencana Anggaran per Bulan</div>
-  <div class="rg">${MO.slice(1).map((m,i)=>`<div><label>${m}</label><input inputmode="numeric" value="${d.rencana&&d.rencana[i]?Number(d.rencana[i]).toLocaleString('id-ID'):''}" oninput="rn(${i},this)" placeholder="0"></div>`).join('')}</div>
-  <div class="info" id="rn-st" style="margin:11px 0 0">${rnHtml(d)}</div>
-  <div style="font-size:11px;color:#6b7280;margin-top:6px">Jumlah 12 bulan harus sama dengan Pagu. Kalau belum sama, tombol Simpan Semua Pengaturan akan menolak. Tampil di dashboard sebagai grafik Rencana vs Realisasi.</div></div>
+ </div>
  <div class="card" style="border-left:4px solid #7C3AED"><div class="ct">📜 Kop Surat (SP &amp; Rekap Pajak)</div>
   ${inp('Baris 1 (Pemerintah)','kopPemda')}${inp('SP — Baris 2 (Nama Sekolah)','kopSekolah')}${inp('SP — Pos-el (Email)','email')}
   ${inp('Rekap Pajak — Nama Sekolah Lengkap','namaLengkap')}${inp('Rekap Pajak — Baris Alamat','alamatRekap')}
@@ -1132,8 +1130,39 @@ function vSet(){
    <label>Jabatan</label><input id="g-jab" placeholder="Guru Kelas" value="${esc(e.jabatan)}">
    <div style="display:flex;gap:8px;margin-top:8px"><button class="btn blue" onclick="addGuru()">${e.id?'💾 Simpan Perubahan':'+ Tambah'}</button>${e.id?'<button class="btn gray" onclick="cancelGuru()">Batal</button>':''}</div></div>`})()}
   </div>
- <div style="display:flex;gap:8px;margin-bottom:11px"><button class="btn" style="flex:1" onclick="saveCfg()">💾 Simpan Semua Pengaturan</button>${cfgD?'<button class="btn gray" onclick="cancelCfg()">Batal</button>':''}</div>
- <div style="padding:13px;background:#fef2f2;border-radius:10px;border:1px solid #fecaca"><b style="color:#dc2626">⚠️ Zona Berbahaya</b><br><button class="btn red" style="margin-top:7px;font-size:12px" onclick="wipe()">🗑️ Hapus Data Tahun ${yr}</button></div>`;
+ <div style="display:flex;gap:8px;margin-bottom:11px"><button class="btn" style="flex:1" onclick="saveCfg()">💾 Simpan Semua Pengaturan</button>${cfgD?'<button class="btn gray" onclick="cancelCfg()">Batal</button>':''}</div>`:''}
+ ${setT==='bos'?` <div class="card"><div class="ct">📅 Manajemen Tahun Anggaran</div>
+  <div class="g2"><div><label>Tahun Aktif</label><div style="font-weight:800;font-size:22px;color:#166534">${yr}</div></div>
+  <div><label>Tambah / Pindah ke Tahun</label><div style="display:flex;gap:7px"><input id="yr-inp" style="width:90px" inputmode="numeric" placeholder="${+yr+1}"><button class="btn blue" onclick="pindahTahun()">Tambah / Pindah</button></div>
+  <div style="font-size:11px;color:#6b7280;margin-top:4px">Tahun yang ditambahkan akan muncul di pilihan TA (pojok kanan atas).</div></div></div>
+  <div style="margin-top:11px;background:#f0fdf4;border-radius:10px;padding:12px;border:1px solid #dcfce7">
+   <div style="font-weight:700;font-size:12px;color:#166534;margin-bottom:4px">💰 Saldo Awal ${yr} (sisa Des ${+yr-1})</div>
+   <div class="g2">
+    <div><label>🏦 Saldo Bank</label><input id="sa-b" inputmode="numeric" style="font-weight:700" value="${sa.bank?sa.bank.toLocaleString('id-ID'):''}" oninput="fmt(this,'tb-sab')"><div class="tbx" id="tb-sab" style="display:${sa.bank>0?'block':'none'}">✍️ ${terbilang(sa.bank)}</div></div>
+    <div><label>💵 Saldo Tunai</label><input id="sa-t" inputmode="numeric" style="font-weight:700" value="${sa.tunai?sa.tunai.toLocaleString('id-ID'):''}" oninput="fmt(this,'tb-sat')"><div class="tbx" id="tb-sat" style="display:${sa.tunai>0?'block':'none'}">✍️ ${terbilang(sa.tunai)}</div></div>
+   </div>
+   <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:9px"><button class="btn" onclick="saveSa()">💾 Simpan Saldo Awal</button><button class="btn teal" onclick="carry()">🔄 Ambil otomatis dari Des ${+yr-1}</button></div>
+  </div></div>
+<div class="card" style="border-left:4px solid #CA8A04"><div class="ct">💰 Pagu Dana BOS</div>
+  <div class="g2"><div><label>Pagu Dana BOS (Rp) — angka tetap</label><input inputmode="numeric" value="${d.pagu?Number(d.pagu).toLocaleString('id-ID'):''}" oninput="cs('pagu',fmt(this,'tb-pagu'));rnSt()"><div class="tbx" id="tb-pagu" style="display:${d.pagu>0?'block':'none'}">✍️ ${terbilang(d.pagu)}</div></div></div>
+</div>
+ <div class="card" style="border-left:4px solid #7C3AED"><div class="ct">🗓️ Rencana Anggaran per Bulan</div>
+  <div class="rg">${MO.slice(1).map((m,i)=>`<div><label>${m}</label><input inputmode="numeric" value="${d.rencana&&d.rencana[i]?Number(d.rencana[i]).toLocaleString('id-ID'):''}" oninput="rn(${i},this)" placeholder="0"></div>`).join('')}</div>
+  <div class="info" id="rn-st" style="margin:11px 0 0">${rnHtml(d)}</div>
+  <div style="font-size:11px;color:#6b7280;margin-top:6px">Jumlah 12 bulan harus sama dengan Pagu. Kalau belum sama, tombol Simpan Semua Pengaturan akan menolak. Tampil di dashboard sebagai grafik Rencana vs Realisasi.</div></div>
+ <div class="card"><div class="ct">🔢 Nomor Bukti Pembayaran</div>
+  ${inp('No. bukti awal (boleh kosong)','noAwal','contoh: 15/BOSP/XI/2026')}
+  <div style="font-size:11px;color:#6b7280;margin-top:4px">Tulis contoh nomor bukti pertama dengan format bebas, mis. <b>15/BOSP/XI/2026</b> atau <b>BKT-007/2026</b>. Angka pertama jadi nomor awal, angka Romawi diganti bulan, tahun diganti tahun aktif, teks lain dipakai apa adanya. Saat input belanja, nomor lanjut urut otomatis. Dengan angka Romawi, nomor mulai lagi dari 1 tiap bulan baru; tanpa Romawi, nomor lanjut terus. Kosongkan untuk format bawaan 1/I/2026. Tekan Simpan Semua Pengaturan.</div></div>
+ <div class="card" style="border-left:4px solid #0f766e"><div class="ct">🔖 Daftar Rekening &amp; Kode Rekening</div>
+  <div style="font-size:11px;color:#6b7280;margin:-4px 0 8px">Dipakai di Input belanja: pilih nama rekening, kode rekening terisi otomatis.</div>
+  <div style="max-height:340px;overflow:auto;margin-bottom:6px">${(d.rekening||[]).map(x=>`<div class="row" style="padding:6px 10px;background:#f0fdf4;border-radius:8px;margin-bottom:5px"><div style="min-width:0"><div style="font-weight:600;font-size:13px">${esc(x.nama)}</div><div style="font-size:11px;color:#6b7280">${esc(x.kode)}</div></div><div style="flex-shrink:0"><button class="ib" title="Edit" onclick="editRek('${x.id}')">✏️</button><button class="ib" style="color:#dc2626" onclick="rmRek('${x.id}')">🗑️</button></div></div>`).join('')}</div>
+  ${(d.rekening||[]).length?'':empty('input','Belum ada rekening','Tambahkan nama dan kode rekening agar bisa dipilih saat input belanja.',[],1)}
+  ${(()=>{const e=(d.rekening||[]).find(x=>x.id===rekEd)||{};return `<div style="margin-top:9px;padding:11px;background:#f9fafb;border-radius:10px;border:1px dashed ${e.id?'#0f766e':'#d1d5db'}"><b style="font-size:12px;color:#166534">${e.id?'✏️ Edit Rekening':'+ Tambah Rekening'}</b>
+   <div class="g2"><div><label>Nama Rekening</label><input id="rk-nama" placeholder="Contoh: ATK" value="${esc(e.nama)}"></div><div><label>Kode Rekening</label><input id="rk-kode" placeholder="5.1.02.01.01.0024" value="${esc(e.kode)}"></div></div>
+   <div style="display:flex;gap:8px;margin-top:8px"><button class="btn blue" onclick="addRek()">${e.id?'💾 Simpan Perubahan':'+ Tambah'}</button>${e.id?'<button class="btn gray" onclick="cancelRek()">Batal</button>':''}</div></div>`})()}
+ </div>
+ <div style="display:flex;gap:8px;margin-bottom:11px"><button class="btn" style="flex:1" onclick="saveCfg()">💾 Simpan Semua Pengaturan</button>${cfgD?'<button class="btn gray" onclick="cancelCfg()">Batal</button>':''}</div>`:''}
+ ${setT==='bahaya'?`<div style="padding:13px;background:#fef2f2;border-radius:10px;border:1px solid #fecaca"><b style="color:#dc2626">⚠️ Zona Berbahaya</b><br><button class="btn red" style="margin-top:7px;font-size:12px" onclick="wipe()">🗑️ Hapus Data Tahun ${yr}</button></div>`:''}`;
 }
 
 /* ═════════ RENDER ═════════ */
