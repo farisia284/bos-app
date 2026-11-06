@@ -368,7 +368,7 @@ async function doLogin(){
 async function logout(){
  if(Object.keys(pend).length&&!confirm('Masih ada data yang belum tersimpan online. Tetap keluar?'))return;
  addLog('logout','Keluar dari aplikasi');await flush();
- await sb.auth.signOut();user=null;DB={};pend={};showLogin();
+ await sb.auth.signOut();try{sessionStorage.removeItem(VK)}catch(e){}user=null;DB={};pend={};showLogin();
 }
 async function fetchAll(){
  const {data,error}=await sb.from('bos_kv').select('key,value');
@@ -419,7 +419,11 @@ async function start(){
  if(justLogin){justLogin=false;addLog('login','Masuk ke aplikasi')} /* setelah data termuat, supaya log lama tidak tertimpa */
  await migrateLocal();
  cfg={...DEF_CFG,...(ld(CFGK)||{})};
- loadYear(String(new Date().getFullYear()));
+/* Setelah refresh: kembali ke menu, sub-menu Pengaturan, dan tahun terakhir (disimpan per tab, hilang saat tab ditutup) */
+ let sv0={};try{sv0=JSON.parse(sessionStorage.getItem(VK))||{}}catch(e){}
+ loadYear(/^\d{4}$/.test(sv0.yr)?sv0.yr:String(new Date().getFullYear()));
+ if(TABS.some(t=>t[0]===sv0.tab))tab=sv0.tab;
+ if(['akun','profil','bos','bahaya'].includes(sv0.setT))setT=sv0.setT;
  newForm();render();fadeIn();
  if(!window._ev){window._ev=1;
   /* keluar dari tab/aplikasi atau tutup halaman: kirim data yang tertunda sekarang juga, tanpa menunggu jeda 0,6 detik */
@@ -618,6 +622,7 @@ function switchYr(y){loadYear(y);editId=null;rkTgl='';newForm();render();toast('
 
 /* ─── PENGATURAN HANDLERS ─── */
 function cs(k,v){cfgD=cfgD||JSON.parse(JSON.stringify(cfg));cfgD[k]=v}
+const VK='bos-view';
 let setT='akun',rekEd=null; /* sub-menu Pengaturan aktif; id rekening yang sedang diedit */
 let guruEd=null; /* id guru yang sedang diedit; id tetap sama supaya transaksi lama tetap terhubung */
 function addGuru(){
@@ -1207,6 +1212,7 @@ function sidebar(){
 }
 function render(){
  R=run(tx);const T=tot();
+ try{sessionStorage.setItem(VK,JSON.stringify({tab,yr,setT}))}catch(e){}
  const views={dashboard:vDash,input:vInput,riwayat:vRiw,bku:vBKU,bkupj:vPj,rekap:vRk,a2:()=>vList('a2'),a2t:()=>vList('a2t'),sp:()=>vList('sp'),und:()=>vRp('und'),hdr:()=>vRp('hdr'),log:vLog,set:vSet};
  $('app').innerHTML=`<div class="shell${sbMini?' mini':''}">${sidebar()}<div class="scrim" onclick="document.querySelector('.shell').classList.remove('open')"></div><div class="mainc"><div class="top">
   <div class="hdr"><button class="mbtn" aria-label="Buka menu" onclick="sbTgl()">${ico('menu')}</button>
