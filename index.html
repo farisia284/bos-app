@@ -147,9 +147,20 @@ input[type=file]::file-selector-button{border:0;background:#ccfbf1;color:var(--t
 .sbn::-webkit-scrollbar{display:none}
 .sbg{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#6ee7b799;padding:14px 8px 6px;white-space:nowrap}
 .sbi{display:flex;align-items:center;gap:12px;width:100%;padding:11px 12px;margin:2px 0;border:0;border-radius:12px;background:none;color:inherit;font-family:inherit;font-size:13px;font-weight:600;white-space:nowrap;text-align:left;cursor:pointer;transition:background .15s,color .15s}
+.sbi{position:relative}
 .sbi:hover{background:#ffffff1a}
 .sbi:focus-visible,.mbtn:focus-visible{outline:2px solid #5eead4;outline-offset:2px}
-.sbi.on{background:#fff;color:#0f766e;box-shadow:0 6px 14px -6px #0006}
+.sbi.on{background:#fff;color:#0f766e;font-weight:800;box-shadow:0 6px 14px -6px #0006}
+.sbi.on::before{content:'';position:absolute;left:-12px;top:8px;bottom:8px;width:4px;border-radius:0 4px 4px 0;background:#5eead4}
+button.sbg{display:flex;align-items:center;justify-content:space-between;width:100%;border:0;background:none;font-family:inherit;cursor:pointer;text-align:left}
+.sbg i{font-style:normal;font-size:11px;transition:transform .2s}.sbc.shut .sbg i{transform:rotate(-90deg)}
+.sbc.shut .sbl{display:none}
+@media(min-width:820px){.mini .sbc.shut .sbl{display:block}}
+.bdg{position:absolute;right:10px;top:50%;transform:translateY(-50%);min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#ef4444;color:#fff;font-size:10px;font-style:normal;font-weight:800;display:flex;align-items:center;justify-content:center}
+.sbi.on .bdg{background:#dc2626}
+.mini .bdg{top:3px;right:1px;transform:none;min-width:14px;height:14px;padding:0 3px;font-size:9px}
+.sbu{font-size:10px;opacity:.7;padding:0 4px 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mini .sbu{display:none}
 .ic{width:20px;height:20px;flex-shrink:0}
 .sbf{padding:10px 12px;border-top:1px solid #ffffff1f}
 .sbo{padding:0 12px 12px}
@@ -157,12 +168,14 @@ input[type=file]::file-selector-button{border:0;background:#ccfbf1;color:var(--t
 .sbf .ic{transition:transform .25s}
 .mini .sbf .ic{transform:rotate(180deg)}
 .mini .sbh>div:last-child,.mini .sbi span,.mini .sbg{opacity:0}
-.mbtn{display:none;width:40px;height:40px;flex-shrink:0;align-items:center;justify-content:center;border-radius:12px;border:1px solid #ffffff40;background:#ffffff22;color:#fff;cursor:pointer}
+.mbtn{display:none;width:44px;height:44px;flex-shrink:0;align-items:center;justify-content:center;border-radius:12px;border:1px solid #ffffff40;background:#ffffff22;color:#fff;cursor:pointer}
 .scrim{display:none}
 @media(max-width:819px){
  .sb{position:fixed;left:0;top:0;width:260px;transform:translateX(-100%);visibility:hidden;transition:transform .28s cubic-bezier(.4,0,.2,1),visibility 0s .28s}
  .mini .sb{width:260px}
  .mini .sbh>div:last-child,.mini .sbi span,.mini .sbg{opacity:1}
+ .mini .sbu{display:block}
+ .mini .bdg{top:50%;right:10px;transform:translateY(-50%);min-width:18px;height:18px;padding:0 5px;font-size:10px}
  .open .sb{transform:none;visibility:visible;transition:transform .28s cubic-bezier(.4,0,.2,1);box-shadow:14px 0 40px -12px #000a}
  .scrim{display:block;position:fixed;inset:0;z-index:250;background:#0f172a80;backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .25s}
  .open .scrim{opacity:1;pointer-events:auto}
@@ -1213,7 +1226,7 @@ function vSet(){
 
 /* ═════════ RENDER ═════════ */
 /* [id, label, grup]. Ikon = IC[id]. Menambah menu baru: tambah di sini + IC + views di render() */
-const TABS=[['dashboard','Dashboard','Utama'],['input','Input','Utama'],['rkn','Rekapan','Utama'],['riwayat','Riwayat','Utama'],['bku','BKU','Buku Kas'],['bkupj','BKU Pajak','Buku Kas'],['rekap','Rekap Pajak','Buku Kas'],['a2','Form A2','Dokumen'],['a2t','A2 Tukang','Dokumen'],['sp','SP','Dokumen'],['und','Undangan','Dokumen'],['hdr','Daftar Hadir','Dokumen'],['log','Riwayat Aktivitas','Sistem'],['set','Pengaturan','Sistem']];
+const TABS=[['dashboard','Dashboard','Harian'],['input','Input','Harian'],['rkn','Rekapan Belanja','Harian'],['riwayat','Riwayat','Harian'],['bku','BKU','Buku Kas'],['bkupj','BKU Pajak','Buku Kas'],['rekap','Rekap Pajak','Buku Kas'],['a2','Form A2','Pembayaran'],['a2t','A2 Tukang','Pembayaran'],['sp','Surat Pesanan (SP)','Pembayaran'],['und','Undangan','Rapat'],['hdr','Daftar Hadir','Rapat'],['log','Riwayat Aktivitas','Sistem'],['set','Pengaturan','Sistem']];
 const IC={
  dashboard:'<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>',
  input:'<circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/>',
@@ -1244,13 +1257,24 @@ function sbTgl(){
  if(innerWidth<820)s.classList.toggle('open');
  else{sbMini=s.classList.toggle('mini');try{localStorage.setItem('bos-sb',sbMini?'1':'0')}catch(e){}}
 }
+/* Grup menu bisa dilipat (pilihan diingat per perangkat); grup yang berisi menu aktif selalu terbuka.
+   Lencana merah = jumlah hal yang perlu ditindak (sama dengan peringatan di Dashboard). */
+const GRP_TUTUP={Rapat:1,Sistem:1};
+function sbGrp(el){
+ const c=el.parentElement,sh=c.classList.toggle('shut');el.setAttribute('aria-expanded',!sh);
+ try{const o=JSON.parse(localStorage.getItem('bos-grup'))||{};o[c.dataset.g]=sh?1:0;localStorage.setItem('bos-grup',JSON.stringify(o))}catch(e){}
+}
 function sidebar(){
- let g='';
+ let sv0={};try{sv0=JSON.parse(localStorage.getItem('bos-grup'))||{}}catch(e){}
+ const tp=today(),bd={bkupj:tx.filter(t=>t.pajak&&t.pajak.tglStor>tp).length,rekap:tx.filter(t=>t.pajak&&!t.pajak.ntpn).length};
+ const nav=[...new Set(TABS.map(t=>t[2]))].map(g=>{
+  const its=TABS.filter(t=>t[2]===g),shut=!its.some(t=>t[0]===tab)&&!!(g in sv0?sv0[g]:GRP_TUTUP[g]);
+  return `<div class="sbc${shut?' shut':''}" data-g="${g}"><button class="sbg" aria-expanded="${!shut}" onclick="sbGrp(this)">${g}<i>▾</i></button><div class="sbl">${its.map(([id,l])=>
+   `<button class="sbi${tab===id?' on':''}" title="${l}${bd[id]?` — ${bd[id]} perlu ditindak`:''}"${tab===id?' aria-current="page"':''} onclick="go('${id}')">${ico(id)}<span>${l}</span>${bd[id]?`<i class="bdg">${bd[id]}</i>`:''}</button>`).join('')}</div></div>`}).join('');
  return `<aside class="sb"><div class="sbh"><div class="logo">📒</div><div><b>BOS Digital</b><small>${esc(cfg.namaSekolah)}</small></div></div>
-  <nav class="sbn">${TABS.map(([id,l,gr])=>{const h=gr!==g?`<div class="sbg">${gr}</div>`:'';g=gr;
-   return h+`<button class="sbi${tab===id?' on':''}" title="${l}"${tab===id?' aria-current="page"':''} onclick="go('${id}')">${ico(id)}<span>${l}</span></button>`}).join('')}</nav>
+  <nav class="sbn">${nav}</nav>
   <div class="sbf"><button class="sbi" title="Ciutkan / lebarkan menu" aria-label="Ciutkan atau lebarkan menu" onclick="sbTgl()">${ico('fold')}<span>Ciutkan menu</span></button></div>
-  <div class="sbo"><button class="sbi out" title="Keluar" onclick="logout()">${ico('out')}<span>Keluar</span></button></div></aside>`;
+  <div class="sbo"><div class="sbu" title="${esc(user&&user.email)}">${esc(user&&user.email)}</div><button class="sbi out" title="Keluar" onclick="logout()">${ico('out')}<span>Keluar</span></button></div></aside>`;
 }
 function render(){
  R=run(tx);const T=tot();
