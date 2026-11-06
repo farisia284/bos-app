@@ -35,6 +35,8 @@ select.auto,input.auto{width:auto;font-size:12px}
 .btn.gold{background:#CA8A04}.btn.red{background:#dc2626}.btn.blue{background:#0369a1}.btn.teal{background:#0f766e}.btn.gray{background:#f3f4f6;color:#374151}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
 .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:11px}
+.fg{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:12px;align-items:start;margin-top:12px}.fg>.card{margin:0}
+.fg3{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:9px}
 @media(max-width:480px){.g2{grid-template-columns:1fr}}
 .tbx{background:#fefce8;border:1px solid #CA8A04;border-radius:8px;padding:7px 11px;font-size:12px;color:#713f12;font-style:italic;margin-top:4px}
 .info{background:#f0fdf4;border:1px solid #dcfce7;border-radius:8px;padding:8px 11px;font-size:12px;margin-bottom:8px}
@@ -292,6 +294,9 @@ const KOMP=[
  {kode:"8",nama:"Belanja Modal",full:"Belanja Modal",color:"#BE185D"},
 ];
 const fK=k=>KOMP.find(x=>x.kode===k);
+/* komponen bawaan tiap rekening (bisa diubah di Pengaturan > Manajemen BOS > Daftar Rekening) */
+const REKKOMP={"ATK":"2","BAHAN KOMPUTER":"2","KERTAS DAN COVER":"2","CETAK PENGGANDAAN FC":"3","CETAK MMT":"3","OBAT OBATAN":"7","LISTRIK":"4","INTERNET":"4","KONSUMSI RAPAT":"7","PELAYANAN FASILITAS":"7","SEWA KENDARAAN":"7","PERJADIN":"6","PRINTER":"8","LAPTOP":"8","ALAT KELISTRIKAN":"5","HONOR TKA":"1","MATERAI":"2","OLAHRAGA":"7","ALAT KEBERSIHAN":"7","PENDAFTARAN LOMBA":"7","LANGGANAN MAJALAH":"7","MODAL BUKU":"8","WORKSHOP KEPALA SEKOLAH":"7"};
+const rekKomp=x=>x.komp||REKKOMP[x.nama]||'';
 const PAJAK=[{kode:"pph21",label:"PPh 21",persen:5},{kode:"pph23",label:"PPh 23",persen:4},{kode:"ppn",label:"PPN",persen:12}];
 const fP=k=>PAJAK.find(x=>x.kode===k);
 const JL={pph21:'Pph 21',pph23:'Pph 23',ppn:'PPn'};
@@ -370,7 +375,7 @@ async function doLogin(){
 async function logout(){
  if(Object.keys(pend).length&&!confirm('Masih ada data yang belum tersimpan online. Tetap keluar?'))return;
  addLog('logout','Keluar dari aplikasi');await flush();
- await sb.auth.signOut();try{sessionStorage.removeItem(VK)}catch(e){}user=null;DB={};pend={};showLogin();
+ await sb.auth.signOut();clearDraft();try{sessionStorage.removeItem(VK)}catch(e){}user=null;DB={};pend={};showLogin();
 }
 async function fetchAll(){
  const {data,error}=await sb.from('bos_kv').select('key,value');
@@ -426,7 +431,9 @@ async function start(){
  loadYear(/^\d{4}$/.test(sv0.yr)?sv0.yr:String(new Date().getFullYear()));
  if(TABS.some(t=>t[0]===sv0.tab))tab=sv0.tab;
  if(['akun','profil','bos','bahaya'].includes(sv0.setT))setT=sv0.setT;
- newForm();render();fadeIn();
+ newForm();
+ try{const d=JSON.parse(sessionStorage.getItem(DK));if(d&&d.jenis){F={...initForm(),...d};autoNo()}}catch(e){}
+ render();fadeIn();
  if(!window._ev){window._ev=1;
   /* keluar dari tab/aplikasi atau tutup halaman: kirim data yang tertunda sekarang juga, tanpa menunggu jeda 0,6 detik */
   document.addEventListener('visibilitychange',()=>{document.hidden?flush():refresh()});
@@ -489,7 +496,14 @@ function yearList(){
 const fGuru=id=>(cfg.guruList||[]).find(g=>g.id===id);
 /* tanggal = LUNAS BAYAR (BKU, A2, SP, = tanggal terima pajak). tglTrx = tanggal transaksi (A2). pajak.tglStor = tanggal stor pajak.
    tukang = true -> dicetak di menu A2 Tukang (tanda tangan hanya Kepala Sekolah & Bendahara) */
-function initForm(){return{tanggal:today(),tglTrx:today(),tglStor:today(),ntpn:'',noBukti:'',kode:'',uraian:'',komponen:'2',jenis:'kredit',jumlah:'',ket:'',guruId:'',tukang:false,pajakOn:false,pajakKode:'pph23',rapatOn:false,rp:newRp(),rek:''}}
+const GK='bos-guru-terakhir',DK='bos-draf';
+/* pelaksana terakhir dipakai jadi bawaan; hanya jika masih ada di Daftar Guru */
+function lastGuru(){try{const g=localStorage.getItem(GK);return cfg&&(cfg.guruList||[]).some(x=>x.id===g)?g:''}catch(e){return ''}}
+/* draf formulir disimpan per tab supaya tidak hilang saat refresh (tidak untuk mode edit) */
+function saveDraft(){if(F&&!editId)try{sessionStorage.setItem(DK,JSON.stringify(F))}catch(e){}}
+function clearDraft(){try{sessionStorage.removeItem(DK)}catch(e){}}
+document.addEventListener('input',saveDraft);document.addEventListener('change',saveDraft);
+function initForm(){return{tanggal:today(),tglTrx:today(),tglStor:today(),ntpn:'',noBukti:'',kode:'',uraian:'',komponen:'2',jenis:'kredit',jumlah:'',ket:'',guruId:lastGuru(),tukang:false,pajakOn:false,pajakKode:'pph23',rapatOn:false,rp:newRp(),rek:''};}
 /* No bukti belanja otomatis: 8/XI/2026. Urut per bulan menurut tanggal lunas bayar; tanggal sama -> yang lebih dulu diinput.
    Ganti bulan mulai lagi dari 1; tahun = tahun aktif. Dihitung ulang tiap simpan/hapus/muat, jadi selalu rapat dan berurutan. */
 /* Format bebas dari Pengaturan, mis. "15/BOSP/XI/2026" atau "BKT-007/2026": angka pertama = nomor awal, angka Romawi = bulan,
@@ -518,7 +532,7 @@ function autoNo(){
  const cur=tx.find(t=>t.id===editId),id=editId||'~';
  F.noBukti=renumber([...tx.filter(t=>t.id!==id),{id,jenis:'kredit',tanggal:F.tanggal,dibuat:cur?cur.dibuat:new Date().toISOString()}]).find(t=>t.id===id).noBukti;
 }
-function newForm(){F=initForm();autoNo()}
+function newForm(){clearDraft();F=initForm();autoNo()}
 function loadYear(y){yr=y;tx=renumber(ld(TXK(y))||[]);sa=ld(SAK(y))||{bank:0,tunai:0}}
 
 /* ─── HITUNG SALDO ───
@@ -586,6 +600,7 @@ function fTgl(v){
  if(F.tglStor===old){F.tglStor=v;dtSet('f-stor',v)}
  dtSet('f-trm',v);
  autoNo();if($('f-no'))$('f-no').value=F.noBukti;
+ upd();saveDraft();
 }
 function setJ(j){F.jenis=j;F.komponen=j==='kredit'?'2':'0';F.pajakOn=false;if(j==='kredit'){F.tglTrx=F.tanggal;F.tglStor=F.tanggal}autoNo();render()}
 function fmt(el,tid){
@@ -599,8 +614,9 @@ function upd(){
  const j=cleanNum(F.jumlah),pi=fP(F.pajakKode),pj=F.jenis==='kredit'&&F.pajakOn&&pi?Math.round(j*pi.persen/100):0;
  if($('f-pj'))$('f-pj').textContent=rp(pj);
  if($('f-net'))$('f-net').textContent='Net: '+rp(j-pj);
+ if($('f-sum'))$('f-sum').innerHTML=sumHtml();
 }
-function doSubmit(){
+function doSubmit(again){
  const f=F;
  if(!f.tanggal||!f.uraian.trim()||!f.jumlah){toast('⚠️ Tanggal, uraian, jumlah wajib!');return}
  const j=cleanNum(f.jumlah);if(j<=0){toast('⚠️ Jumlah harus > 0');return}
@@ -615,12 +631,14 @@ function doSubmit(){
  /* dibuat = waktu pertama kali disimpan; otomatis, tidak bisa diubah, dipertahankan saat edit */
  const list=editId?tx.map(t=>t.id===editId?{...e,id:editId,dibuat:t.dibuat}:t):[...tx,{...e,id:uid(),dibuat:new Date().toISOString()}];
  if(!commit(list,editId?'✅ Transaksi diperbarui':'✅ Transaksi disimpan'))return;
- editId=null;newForm();render();
+ if(k&&f.guruId)try{localStorage.setItem(GK,f.guruId)}catch(e){}
+ const keep=again===true&&!editId?{jenis:f.jenis,tanggal:f.tanggal,tglTrx:f.tglTrx,tglStor:f.tglStor,komponen:f.komponen,guruId:f.guruId,kode:f.kode,rek:f.rek}:null;
+ editId=null;newForm();if(keep){Object.assign(F,keep);autoNo()}render();
 }
 function doEdit(id){
  const t=tx.find(x=>x.id===id);if(!t)return;
  F={tanggal:t.tanggal,tglTrx:t.tglTrx||t.tanggal,tglStor:(t.pajak&&t.pajak.tglStor)||t.tanggal,ntpn:(t.pajak&&t.pajak.ntpn)||'',noBukti:t.noBukti,kode:t.kode||'',uraian:t.uraian,komponen:t.komponen,jenis:t.jenis,jumlah:String(t.jumlah),ket:t.ket||'',guruId:t.guruId||'',tukang:!!t.tukang,pajakOn:!!t.pajak,pajakKode:t.pajak?t.pajak.kode:'pph23',rapatOn:!!t.rapat,rp:{...newRp(),...(t.rapat||{})},rek:t.rek||''};
- editId=id;tab='input';render();scrollTo(0,0);
+ editId=id;clearDraft();tab='input';render();scrollTo(0,0);
 }
 function cancelEdit(){editId=null;newForm();render()}
 function doDel(id){commit(tx.filter(t=>t.id!==id),'🗑️ Dihapus');delId=null;render()}
@@ -645,7 +663,7 @@ function cancelGuru(){guruEd=null;render()}
 function addRek(){
  const n=$('rk-nama').value.trim(),k=$('rk-kode').value.trim();if(!n||!k){toast('⚠️ Nama dan kode rekening wajib diisi');return}
  cfgD=cfgD||JSON.parse(JSON.stringify(cfg));
- const x={id:rekEd||uid(),nama:n,kode:k};
+ const x={id:rekEd||uid(),nama:n,kode:k,komp:$('rk-komp').value};
  cfgD.rekening=rekEd?cfgD.rekening.map(y=>y.id===rekEd?x:y):[...(cfgD.rekening||[]),x];
  rekEd=null;render();
 }
@@ -653,7 +671,7 @@ function editRek(id){rekEd=id;render();$('rk-nama').focus();$('rk-nama').scrollI
 function cancelRek(){rekEd=null;render()}
 function rmRek(id){if(rekEd===id)rekEd=null;cfgD=cfgD||JSON.parse(JSON.stringify(cfg));cfgD.rekening=cfgD.rekening.filter(x=>x.id!==id);render()}
 /* pilih nama rekening di Input -> kode rekening terisi otomatis (tetap bisa diketik manual) */
-function pickRek(id){const x=(cfg.rekening||[]).find(y=>y.id===id);if(!x)return;F.kode=x.kode;F.rek=x.id;$('f-kode').value=x.kode}
+function pickRek(id){const x=(cfg.rekening||[]).find(y=>y.id===id);if(!x)return;F.kode=x.kode;F.rek=x.id;$('f-kode').value=x.kode;const kk=rekKomp(x);if(kk){F.komponen=kk;$('f-komp').value=kk}}
 function rmGuru(id){if(guruEd===id)guruEd=null;cfgD=cfgD||JSON.parse(JSON.stringify(cfg));cfgD.guruList=cfgD.guruList.filter(g=>g.id!==id);render()}
 function setLogo(k,el){
  const f=el.files[0];if(!f)return;
@@ -832,6 +850,14 @@ function vRiw(){
  :`<div class="card">${tx.length?empty('riwayat','Tidak ada transaksi yang cocok','Coba ganti filter jenis atau bulan.',[['Tampilkan semua',"rwJ='all';rwM='0';render()"]]):empty('riwayat','Belum ada transaksi','Dana masuk, tarik dana, dan belanja yang Anda catat akan tampil di sini beserta waktu inputnya.',[['➕ Catat transaksi',"go('input')"]])}</div>`}`;
 }
 
+/* Ringkasan di bawah Jumlah: nilai bersih, saldo tunai setelah belanja, dan peringatan sebelum Simpan */
+function sumHtml(){
+ const f=F,j=cleanNum(f.jumlah);if(f.jenis!=='kredit'||!j)return '';
+ const pi=fP(f.pajakKode),pj=f.pajakOn&&pi?Math.round(j*pi.persen/100):0,cur=editId?tx.find(x=>x.id===editId):null;
+ const tmp={id:editId||'~',jenis:'kredit',tanggal:f.tanggal,jumlah:j,uraian:f.uraian||'belanja ini',pajak:pj?{kode:pi.kode,jumlah:pj,tglStor:f.tglStor||f.tanggal}:null};
+ const e=run([...(editId?tx.filter(t=>t.id!==editId):tx),tmp]).err,after=tot().tunai+(cur&&cur.jenis==='kredit'?cur.jumlah:0)-j;
+ return `Dibayar bersih${pj?' setelah pajak':''}: <b>${rp(j-pj)}</b> · Saldo tunai setelah belanja ini: <b style="color:${after<0?'#dc2626':'#166534'}">${rp(after)}</b>${e&&e.t===tmp?`<div style="color:#dc2626;font-weight:700;margin-top:4px">⚠️ ${esc(errMsg(e))}</div>`:''}`;
+}
 function vInput(){
  const f=F,T=tot(),k=f.jenis==='kredit',cur=editId?tx.find(x=>x.id===editId):null;
  const j=cleanNum(f.jumlah),pi=fP(f.pajakKode),pj=k&&f.pajakOn&&pi?Math.round(j*pi.persen/100):0;
@@ -840,47 +866,48 @@ function vInput(){
   :f.jenis==='tarik'?`Saldo bank <b>berkurang</b> sebesar jumlah tarik, saldo tunai <b>bertambah</b>. Saldo bank: <b>${rp(T.bank)}</b> | Saldo tunai: <b>${rp(T.tunai)}</b>`
   :`Belanja <b>mengurangi saldo tunai</b> dan sisa dana masuk. Saldo tunai: <b>${rp(T.tunai)}</b>`;
  const noInp=k?`<input id="f-no" value="${esc(f.noBukti)}" readonly title="Otomatis menurut tanggal lunas bayar" style="background:#f3f4f6;color:#6b7280">`:`<input id="f-no" value="${esc(f.noBukti)}" oninput="fset('noBukti',this.value)">`;
+ const uraian=`<label>📝 Uraian *</label><input value="${esc(f.uraian)}" oninput="fset('uraian',this.value)" placeholder="${f.jenis==='debet'?'Contoh: Penerimaan Dana BOS Tahap 1':f.jenis==='tarik'?'Contoh: Pengambilan dana BOS':'Contoh: Belanja Cetak Soal PAT Kelas 6'}">`;
+ const jumlah=`<label>💵 Jumlah (Rp) *</label>
+  <input id="f-jml" inputmode="numeric" placeholder="0" style="font-size:18px;font-weight:700;color:${k?'#dc2626':f.jenis==='tarik'?'#0369a1':'#16a34a'}" value="${f.jumlah?(+f.jumlah).toLocaleString('id-ID'):''}" oninput="onJml(this)">
+  <div class="tbx" id="f-terb" style="display:${j>0?'block':'none'}">✍️ ${terbilang(j)}</div>${k?`<div class="info" id="f-sum" style="margin:8px 0 0">${sumHtml()}</div>`:''}`;
+ const ket=`<details style="margin-top:12px"${f.ket?' open':''}><summary style="cursor:pointer;font-size:12px;color:#6b7280">📌 Keterangan (opsional)</summary><input value="${esc(f.ket)}" oninput="fset('ket',this.value)" placeholder="Nama toko, bank, dsb."></details>`;
+ const rk=cfg.rekening||[];
+ const kartu=k?`
+  <div class="card"><div class="ct">📋 Data Transaksi</div>
+   <div class="fg3">
+    <div><label>📅 Tgl Transaksi *</label>${dIn(f.tglTrx,"fset('tglTrx',v)",' id="f-trx"')}</div>
+    <div><label>📅 Tgl Lunas Bayar *</label>${dIn(f.tanggal,'fTgl(v)')}</div>
+    <div><label>🔢 No. Bukti (otomatis)</label>${noInp}</div>
+   </div>
+   <label>🔖 Nama Rekening</label>
+   <select onchange="pickRek(this.value)"><option value="">— Pilih nama rekening —</option>${rk.map(x=>`<option value="${x.id}"${(f.rek?f.rek===x.id:f.kode&&rk.find(y=>y.kode===f.kode)===x)?' selected':''}>${esc(x.nama)}</option>`).join('')}</select>
+   <div class="g2"><div><label>🔖 Kode Rekening</label><input id="f-kode" value="${esc(f.kode)}" oninput="fset('kode',this.value);F.rek=''" placeholder="Terisi otomatis"></div>
+   <div><label>🏷️ Komponen BOS</label><select id="f-komp" onchange="fset('komponen',this.value)">${KOMP.map(x=>`<option value="${x.kode}"${f.komponen===x.kode?' selected':''}>${x.kode}. ${x.full}</option>`).join('')}</select></div></div>
+   ${uraian}${jumlah}</div>
+  <div class="card"><div class="ct">🧾 Pajak &amp; Pelaksana</div>
+   <div style="padding:11px;background:#fefce8;border-radius:10px;border:1px solid #fde68a">
+    <div style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="pjcb"${f.pajakOn?' checked':''} onchange="F.pajakOn=this.checked;render()"><label for="pjcb" style="margin:0;font-size:13px;color:#CA8A04;cursor:pointer">🧾 Ada Pajak?</label></div>
+    ${f.pajakOn?`<div class="g2" style="margin-top:7px"><div><label>Jenis Pajak</label><select onchange="F.pajakKode=this.value;upd()">${PAJAK.map(p=>`<option value="${p.kode}"${f.pajakKode===p.kode?' selected':''}>${p.label} (${p.persen}%)</option>`).join('')}</select></div>
+    <div><label>Jumlah Pajak</label><div style="padding:9px 10px;background:#f9fafb;border-radius:8px;color:#dc2626;font-weight:700" id="f-pj">${rp(pj)}</div><div style="font-size:11px;color:#6b7280;margin-top:2px" id="f-net">Net: ${rp(j-pj)}</div></div></div>
+    <label>🔢 NTPN</label><input value="${esc(f.ntpn)}" oninput="fset('ntpn',this.value)" placeholder="Nomor NTPN (bisa diisi nanti lewat Edit)">
+    <div class="g2"><div><label>📅 Tanggal Terima Pajak</label>${dIn(f.tanggal,'',' id="f-trm" disabled')}</div>
+    <div><label>📅 Tanggal Stor Pajak</label>${dIn(f.tglStor,"fset('tglStor',v);upd()",' id="f-stor"')}</div></div>
+    <div style="font-size:11px;color:#6b7280;margin-top:4px">Terima pajak = tanggal lunas bayar. Ubah tanggal stor sesuai hari pajak dibayarkan.</div>`:''}
+   </div>
+   <label>👤 Pelaksana Belanja</label>
+   <select onchange="fset('guruId',this.value)"><option value="">— Pilih Guru/Pelaksana —</option>${(cfg.guruList||[]).map(g=>`<option value="${g.id}"${f.guruId===g.id?' selected':''}>${esc(g.nama)}${g.nip?` (${esc(g.nip)})`:''}</option>`).join('')}</select></div>
+  <div class="card"><div class="ct">📎 Dokumen Tambahan</div>
+   <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px"><input type="checkbox" id="tkcb"${f.tukang?' checked':''} onchange="F.tukang=this.checked"><label for="tkcb" style="margin:0;cursor:pointer;font-size:12px">🔨 Pembayaran tukang — dicetak di menu <b>A2 Tukang</b> (tanda tangan hanya Kepala Sekolah &amp; Bendahara BOS)</label></div>${rapatBlk(f)}${ket}</div>`
+ :`<div class="card"><div class="g2">
+   <div><label>📅 Tanggal *</label>${dIn(f.tanggal,'fTgl(v)')}</div>
+   <div><label>🔢 No. Bukti</label>${noInp}</div></div>${uraian}${jumlah}${ket}</div>`;
  return `<div class="card">
   <div class="ct">${editId?'✏️ Edit Transaksi':'➕ Input Transaksi'}</div>
   <div style="font-size:11px;color:#6b7280;margin:-4px 0 8px">${cur?(cur.dibuat?`🕐 Pertama kali diinput: ${tglJam(cur.dibuat)}`:'🕐 Waktu input data lama tidak tercatat'):'🕐 Tanggal &amp; jam input dicatat otomatis saat disimpan.'}</div>
-  <div class="g3">${jt.map(([v,l,c])=>`<button class="jt" style="border:2px solid ${f.jenis===v?c:'#e5e7eb'};color:${f.jenis===v?c:'#6b7280'};background:${f.jenis===v?c+'11':'#fff'}" onclick="setJ('${v}')">${l}</button>`).join('')}</div>
-  <div class="info">${note}</div>
-  ${k?`<div class="g2">
-   <div><label>📅 Tanggal Transaksi *</label>${dIn(f.tglTrx,"fset('tglTrx',v)",' id="f-trx"')}</div>
-   <div><label>📅 Tanggal Lunas Bayar *</label>${dIn(f.tanggal,'fTgl(v)')}</div>
-  </div>
-  <label>🔢 No. Bukti (otomatis)</label>${noInp}`
-  :`<div class="g2">
-   <div><label>📅 Tanggal *</label>${dIn(f.tanggal,'fTgl(v)')}</div>
-   <div><label>🔢 No. Bukti</label>${noInp}</div>
-  </div>`}
-  <label>📝 Uraian *</label>
-  <input value="${esc(f.uraian)}" oninput="fset('uraian',this.value)" placeholder="${f.jenis==='debet'?'Contoh: Penerimaan Dana BOS Tahap 1':f.jenis==='tarik'?'Contoh: Pengambilan dana BOS':'Contoh: Belanja Cetak Soal PAT Kelas 6'}">
-  ${k?`<label>🏷️ Komponen BOS</label>
-  <select onchange="fset('komponen',this.value)">${KOMP.map(x=>`<option value="${x.kode}"${f.komponen===x.kode?' selected':''}>${x.kode}. ${x.full}</option>`).join('')}</select>
-  <label>🔖 Nama Rekening</label>
-  <select onchange="pickRek(this.value)"><option value="">— Pilih nama rekening —</option>${(cfg.rekening||[]).map(x=>`<option value="${x.id}"${(f.rek?f.rek===x.id:f.kode&&(cfg.rekening||[]).find(y=>y.kode===f.kode)===x)?' selected':''}>${esc(x.nama)}</option>`).join('')}</select>
-  <label>🔖 No. Kode (Kode Rekening)</label>
-  <input id="f-kode" value="${esc(f.kode)}" oninput="fset('kode',this.value);F.rek=''" placeholder="Terisi otomatis saat nama rekening dipilih">
-  <label>👤 Pelaksana Belanja</label>
-  <select onchange="fset('guruId',this.value)"><option value="">— Pilih Guru/Pelaksana —</option>${(cfg.guruList||[]).map(g=>`<option value="${g.id}"${f.guruId===g.id?' selected':''}>${esc(g.nama)}${g.nip?` (${esc(g.nip)})`:''}</option>`).join('')}</select>
-  <div style="display:flex;align-items:center;gap:8px;margin-top:12px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px"><input type="checkbox" id="tkcb"${f.tukang?' checked':''} onchange="F.tukang=this.checked"><label for="tkcb" style="margin:0;cursor:pointer;font-size:12px">🔨 Pembayaran tukang — dicetak di menu <b>A2 Tukang</b> (tanda tangan hanya Kepala Sekolah &amp; Bendahara BOS)</label></div>${rapatBlk(f)}`:''}
-  <label>💵 Jumlah (Rp) *</label>
-  <input id="f-jml" inputmode="numeric" placeholder="0" style="font-size:18px;font-weight:700;color:${k?'#dc2626':f.jenis==='tarik'?'#0369a1':'#16a34a'}" value="${f.jumlah?(+f.jumlah).toLocaleString('id-ID'):''}" oninput="onJml(this)">
-  <div class="tbx" id="f-terb" style="display:${j>0?'block':'none'}">✍️ ${terbilang(j)}</div>
-  ${k?`<div style="margin-top:10px;padding:11px;background:#fefce8;border-radius:10px;border:1px solid #fde68a">
-   <div style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="pjcb"${f.pajakOn?' checked':''} onchange="F.pajakOn=this.checked;render()"><label for="pjcb" style="margin:0;font-size:13px;color:#CA8A04;cursor:pointer">🧾 Ada Pajak?</label></div>
-   ${f.pajakOn?`<div class="g2" style="margin-top:7px"><div><label>Jenis Pajak</label><select onchange="F.pajakKode=this.value;upd()">${PAJAK.map(p=>`<option value="${p.kode}"${f.pajakKode===p.kode?' selected':''}>${p.label} (${p.persen}%)</option>`).join('')}</select></div>
-   <div><label>Jumlah Pajak</label><div style="padding:9px 10px;background:#f9fafb;border-radius:8px;color:#dc2626;font-weight:700" id="f-pj">${rp(pj)}</div><div style="font-size:11px;color:#6b7280;margin-top:2px" id="f-net">Net: ${rp(j-pj)}</div></div></div>
-   <label>🔢 NTPN</label><input value="${esc(f.ntpn)}" oninput="fset('ntpn',this.value)" placeholder="Nomor NTPN (bisa diisi nanti lewat Edit)">
-   <div class="g2"><div><label>📅 Tanggal Terima Pajak</label>${dIn(f.tanggal,'',' id="f-trm" disabled')}</div>
-   <div><label>📅 Tanggal Stor Pajak</label>${dIn(f.tglStor,"fset('tglStor',v)",' id="f-stor"')}</div></div>
-   <div style="font-size:11px;color:#6b7280;margin-top:4px">Terima pajak = tanggal lunas bayar. Ubah tanggal stor sesuai hari pajak dibayarkan.</div>`:''}
-  </div>`:''}
-  <label>📌 Keterangan</label>
-  <input value="${esc(f.ket)}" oninput="fset('ket',this.value)" placeholder="Nama toko, bank, dsb.">
-  <div style="display:flex;gap:8px;margin-top:13px"><button class="btn" style="flex:1" onclick="doSubmit()">${editId?'💾 Perbarui':'💾 Simpan'}</button>${editId?'<button class="btn gray" onclick="cancelEdit()">Batal</button>':''}</div>
- </div>`;
+  <div class="g3" style="margin-bottom:0">${jt.map(([v,l,c])=>`<button class="jt" style="border:2px solid ${f.jenis===v?c:'#e5e7eb'};color:${f.jenis===v?c:'#6b7280'};background:${f.jenis===v?c+'11':'#fff'}" onclick="setJ('${v}')">${l}</button>`).join('')}</div>
+  <div class="info" style="margin-bottom:0">${note}</div></div>
+ <div class="fg">${kartu}</div>
+ <div style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px"><button class="btn" style="flex:1" onclick="doSubmit()">${editId?'💾 Perbarui':'💾 Simpan'}</button>${editId?'<button class="btn gray" onclick="cancelEdit()">Batal</button>':'<button class="btn teal" style="flex:1" onclick="doSubmit(true)">💾➕ Simpan &amp; Tambah Lagi</button>'}</div>`;
 }
 
 /* ─── UNDANGAN RAPAT & DAFTAR HADIR ───
@@ -1182,10 +1209,11 @@ function vSet(){
   <div style="font-size:11px;color:#6b7280;margin-top:4px">Tulis contoh nomor bukti pertama dengan format bebas, mis. <b>15/BOSP/XI/2026</b> atau <b>BKT-007/2026</b>. Angka pertama jadi nomor awal, angka Romawi diganti bulan, tahun diganti tahun aktif, teks lain dipakai apa adanya. Saat input belanja, nomor lanjut urut otomatis. Dengan angka Romawi, nomor mulai lagi dari 1 tiap bulan baru; tanpa Romawi, nomor lanjut terus. Kosongkan untuk format bawaan 1/I/2026. Tekan Simpan Semua Pengaturan.</div></div>
  <div class="card" style="border-left:4px solid #0f766e"><div class="ct">🔖 Daftar Rekening &amp; Kode Rekening</div>
   <div style="font-size:11px;color:#6b7280;margin:-4px 0 8px">Dipakai di Input belanja: pilih nama rekening, kode rekening terisi otomatis.</div>
-  <div style="max-height:340px;overflow:auto;margin-bottom:6px">${(d.rekening||[]).map(x=>`<div class="row" style="padding:6px 10px;background:#f0fdf4;border-radius:8px;margin-bottom:5px"><div style="min-width:0"><div style="font-weight:600;font-size:13px">${esc(x.nama)}</div><div style="font-size:11px;color:#6b7280">${esc(x.kode)}</div></div><div style="flex-shrink:0"><button class="ib" title="Edit" onclick="editRek('${x.id}')">✏️</button><button class="ib" style="color:#dc2626" onclick="rmRek('${x.id}')">🗑️</button></div></div>`).join('')}</div>
+  <div style="max-height:340px;overflow:auto;margin-bottom:6px">${(d.rekening||[]).map(x=>`<div class="row" style="padding:6px 10px;background:#f0fdf4;border-radius:8px;margin-bottom:5px"><div style="min-width:0"><div style="font-weight:600;font-size:13px">${esc(x.nama)}</div><div style="font-size:11px;color:#6b7280">${esc(x.kode)}${rekKomp(x)?` · ${esc(fK(rekKomp(x)).nama)}`:''}</div></div><div style="flex-shrink:0"><button class="ib" title="Edit" onclick="editRek('${x.id}')">✏️</button><button class="ib" style="color:#dc2626" onclick="rmRek('${x.id}')">🗑️</button></div></div>`).join('')}</div>
   ${(d.rekening||[]).length?'':empty('input','Belum ada rekening','Tambahkan nama dan kode rekening agar bisa dipilih saat input belanja.',[],1)}
   ${(()=>{const e=(d.rekening||[]).find(x=>x.id===rekEd)||{};return `<div style="margin-top:9px;padding:11px;background:#f9fafb;border-radius:10px;border:1px dashed ${e.id?'#0f766e':'#d1d5db'}"><b style="font-size:12px;color:#166534">${e.id?'✏️ Edit Rekening':'+ Tambah Rekening'}</b>
    <div class="g2"><div><label>Nama Rekening</label><input id="rk-nama" placeholder="Contoh: ATK" value="${esc(e.nama)}"></div><div><label>Kode Rekening</label><input id="rk-kode" placeholder="5.1.02.01.01.0024" value="${esc(e.kode)}"></div></div>
+   <label>Komponen BOS (terisi otomatis saat rekening dipilih di Input)</label><select id="rk-komp"><option value="">— Tidak diatur —</option>${KOMP.map(y=>`<option value="${y.kode}"${(e.id?rekKomp(e):'')===y.kode?' selected':''}>${y.kode}. ${y.full}</option>`).join('')}</select>
    <div style="display:flex;gap:8px;margin-top:8px"><button class="btn blue" onclick="addRek()">${e.id?'💾 Simpan Perubahan':'+ Tambah'}</button>${e.id?'<button class="btn gray" onclick="cancelRek()">Batal</button>':''}</div></div>`})()}
  </div>
  <div style="display:flex;gap:8px;margin-bottom:11px"><button class="btn" style="flex:1" onclick="saveCfg()">💾 Simpan Semua Pengaturan</button>${cfgD?'<button class="btn gray" onclick="cancelCfg()">Batal</button>':''}</div>`:''}
