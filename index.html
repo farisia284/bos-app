@@ -475,7 +475,7 @@ function importDb(el){
 let yr,cfg,tx=[],sa={bank:0,tunai:0},R={rows:[]};
 let tab='dashboard',editId=null,delId=null,cfgD=null,F;
 const nowM=String(new Date().getMonth()+1);
-let bkuM=nowM,pjM=nowM,pMo=nowM,rkT=+nowM<=6?'1':'2',rkTgl='';
+let rkM=nowM,bkuM=nowM,pjM=nowM,pMo=nowM,rkT=+nowM<=6?'1':'2',rkTgl='';
 
 /* Daftar tahun: tahun lalu, ini, depan + tahun yang sudah ada datanya + tahun yang ditambah operator */
 function yearList(){
@@ -487,7 +487,7 @@ function yearList(){
 const fGuru=id=>(cfg.guruList||[]).find(g=>g.id===id);
 /* tanggal = LUNAS BAYAR (BKU, A2, SP, = tanggal terima pajak). tglTrx = tanggal transaksi (A2). pajak.tglStor = tanggal stor pajak.
    tukang = true -> dicetak di menu A2 Tukang (tanda tangan hanya Kepala Sekolah & Bendahara) */
-function initForm(){return{tanggal:today(),tglTrx:today(),tglStor:today(),ntpn:'',noBukti:'',kode:'',uraian:'',komponen:'2',jenis:'kredit',jumlah:'',ket:'',guruId:'',tukang:false,pajakOn:false,pajakKode:'pph23',rapatOn:false,rp:newRp()}}
+function initForm(){return{tanggal:today(),tglTrx:today(),tglStor:today(),ntpn:'',noBukti:'',kode:'',uraian:'',komponen:'2',jenis:'kredit',jumlah:'',ket:'',guruId:'',tukang:false,pajakOn:false,pajakKode:'pph23',rapatOn:false,rp:newRp(),rek:''}}
 /* No bukti belanja otomatis: 8/XI/2026. Urut per bulan menurut tanggal lunas bayar; tanggal sama -> yang lebih dulu diinput.
    Ganti bulan mulai lagi dari 1; tahun = tahun aktif. Dihitung ulang tiap simpan/hapus/muat, jadi selalu rapat dan berurutan. */
 /* Format bebas dari Pengaturan, mis. "15/BOSP/XI/2026" atau "BKT-007/2026": angka pertama = nomor awal, angka Romawi = bulan,
@@ -603,7 +603,7 @@ function doSubmit(){
   if(sd.slice(0,4)!==yr){toast('⚠️ Tanggal stor pajak harus di tahun '+yr);return}
  }
  const pajak=k&&f.pajakOn&&pi?{kode:pi.kode,persen:pi.persen,jumlah:Math.round(j*pi.persen/100),tglStor:sd,ntpn:f.ntpn.trim()}:null;
- const e={tanggal:f.tanggal,tglTrx:k?(f.tglTrx||f.tanggal):'',noBukti:f.noBukti,kode:k?f.kode.trim():'',uraian:f.uraian.trim(),komponen:k?f.komponen:'0',jenis:f.jenis,jumlah:j,ket:f.ket,guruId:k?f.guruId:'',tukang:k&&!!f.tukang,pajak,rapat:k&&f.rapatOn?{...f.rp}:null};
+ const e={tanggal:f.tanggal,tglTrx:k?(f.tglTrx||f.tanggal):'',noBukti:f.noBukti,kode:k?f.kode.trim():'',uraian:f.uraian.trim(),komponen:k?f.komponen:'0',jenis:f.jenis,jumlah:j,ket:f.ket,guruId:k?f.guruId:'',tukang:k&&!!f.tukang,pajak,rapat:k&&f.rapatOn?{...f.rp}:null,rek:k?f.rek:''};
  /* dibuat = waktu pertama kali disimpan; otomatis, tidak bisa diubah, dipertahankan saat edit */
  const list=editId?tx.map(t=>t.id===editId?{...e,id:editId,dibuat:t.dibuat}:t):[...tx,{...e,id:uid(),dibuat:new Date().toISOString()}];
  if(!commit(list,editId?'✅ Transaksi diperbarui':'✅ Transaksi disimpan'))return;
@@ -611,7 +611,7 @@ function doSubmit(){
 }
 function doEdit(id){
  const t=tx.find(x=>x.id===id);if(!t)return;
- F={tanggal:t.tanggal,tglTrx:t.tglTrx||t.tanggal,tglStor:(t.pajak&&t.pajak.tglStor)||t.tanggal,ntpn:(t.pajak&&t.pajak.ntpn)||'',noBukti:t.noBukti,kode:t.kode||'',uraian:t.uraian,komponen:t.komponen,jenis:t.jenis,jumlah:String(t.jumlah),ket:t.ket||'',guruId:t.guruId||'',tukang:!!t.tukang,pajakOn:!!t.pajak,pajakKode:t.pajak?t.pajak.kode:'pph23',rapatOn:!!t.rapat,rp:{...newRp(),...(t.rapat||{})}};
+ F={tanggal:t.tanggal,tglTrx:t.tglTrx||t.tanggal,tglStor:(t.pajak&&t.pajak.tglStor)||t.tanggal,ntpn:(t.pajak&&t.pajak.ntpn)||'',noBukti:t.noBukti,kode:t.kode||'',uraian:t.uraian,komponen:t.komponen,jenis:t.jenis,jumlah:String(t.jumlah),ket:t.ket||'',guruId:t.guruId||'',tukang:!!t.tukang,pajakOn:!!t.pajak,pajakKode:t.pajak?t.pajak.kode:'pph23',rapatOn:!!t.rapat,rp:{...newRp(),...(t.rapat||{})},rek:t.rek||''};
  editId=id;tab='input';render();scrollTo(0,0);
 }
 function cancelEdit(){editId=null;newForm();render()}
@@ -645,7 +645,7 @@ function editRek(id){rekEd=id;render();$('rk-nama').focus();$('rk-nama').scrollI
 function cancelRek(){rekEd=null;render()}
 function rmRek(id){if(rekEd===id)rekEd=null;cfgD=cfgD||JSON.parse(JSON.stringify(cfg));cfgD.rekening=cfgD.rekening.filter(x=>x.id!==id);render()}
 /* pilih nama rekening di Input -> kode rekening terisi otomatis (tetap bisa diketik manual) */
-function pickRek(id){const x=(cfg.rekening||[]).find(y=>y.id===id);if(!x)return;F.kode=x.kode;$('f-kode').value=x.kode}
+function pickRek(id){const x=(cfg.rekening||[]).find(y=>y.id===id);if(!x)return;F.kode=x.kode;F.rek=x.id;$('f-kode').value=x.kode}
 function rmGuru(id){if(guruEd===id)guruEd=null;cfgD=cfgD||JSON.parse(JSON.stringify(cfg));cfgD.guruList=cfgD.guruList.filter(g=>g.id!==id);render()}
 function setLogo(k,el){
  const f=el.files[0];if(!f)return;
@@ -851,9 +851,9 @@ function vInput(){
   ${k?`<label>🏷️ Komponen BOS</label>
   <select onchange="fset('komponen',this.value)">${KOMP.map(x=>`<option value="${x.kode}"${f.komponen===x.kode?' selected':''}>${x.kode}. ${x.full}</option>`).join('')}</select>
   <label>🔖 Nama Rekening</label>
-  <select onchange="pickRek(this.value)"><option value="">— Pilih nama rekening —</option>${(cfg.rekening||[]).map(x=>`<option value="${x.id}"${(cfg.rekening||[]).find(y=>y.kode===f.kode)===x?' selected':''}>${esc(x.nama)}</option>`).join('')}</select>
+  <select onchange="pickRek(this.value)"><option value="">— Pilih nama rekening —</option>${(cfg.rekening||[]).map(x=>`<option value="${x.id}"${(f.rek?f.rek===x.id:f.kode&&(cfg.rekening||[]).find(y=>y.kode===f.kode)===x)?' selected':''}>${esc(x.nama)}</option>`).join('')}</select>
   <label>🔖 No. Kode (Kode Rekening)</label>
-  <input id="f-kode" value="${esc(f.kode)}" oninput="fset('kode',this.value)" placeholder="Terisi otomatis saat nama rekening dipilih">
+  <input id="f-kode" value="${esc(f.kode)}" oninput="fset('kode',this.value);F.rek=''" placeholder="Terisi otomatis saat nama rekening dipilih">
   <label>👤 Pelaksana Belanja</label>
   <select onchange="fset('guruId',this.value)"><option value="">— Pilih Guru/Pelaksana —</option>${(cfg.guruList||[]).map(g=>`<option value="${g.id}"${f.guruId===g.id?' selected':''}>${esc(g.nama)}${g.nip?` (${esc(g.nip)})`:''}</option>`).join('')}</select>
   <div style="display:flex;align-items:center;gap:8px;margin-top:12px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px"><input type="checkbox" id="tkcb"${f.tukang?' checked':''} onchange="F.tukang=this.checked"><label for="tkcb" style="margin:0;cursor:pointer;font-size:12px">🔨 Pembayaran tukang — dicetak di menu <b>A2 Tukang</b> (tanda tangan hanya Kepala Sekolah &amp; Bendahara BOS)</label></div>${rapatBlk(f)}`:''}
@@ -1030,6 +1030,20 @@ function vBKU(){
  <div class="card wrap"><div style="min-width:720px">${bkuSheet(+bkuM,true)}</div></div>
  ${R.rows.some(r=>getMonth(r.tanggal)===+bkuM)?'':`<div class="card">${empty('bku',`Belum ada transaksi di ${MO[bkuM]}`,'Bulan ini baru ada saldo awal. Catat dana masuk, tarik dana, atau belanja untuk mengisinya.',[['➕ Input transaksi',"go('input')"]],1)}</div>`}`;
 }
+/* ─── REKAPAN BELANJA: seperti BKU tanpa penerimaan & saldo, hanya belanja, per bulan (menurut tanggal lunas bayar) ─── */
+function vRkn(){
+ const m=+rkM,l=sortTx(tx).filter(t=>t.jenis==='kredit'&&getMonth(t.tanggal)===m);
+ const rek=t=>(cfg.rekening||[]).find(x=>x.id===t.rek)||(t.kode&&(cfg.rekening||[]).find(x=>x.kode===t.kode))||null;
+ const pj=(t,k)=>t.pajak&&t.pajak.kode===k?t.pajak.jumlah:0,sum=f=>l.reduce((a,t)=>a+f(t),0);
+ const c=v=>v?`<td class="r">${n2(v)}</td>`:'<td></td>';
+ const rows=l.map(t=>{const r=rek(t),k=fK(t.komponen),g=fGuru(t.guruId);
+  return `<tr><td>${tglN(t.tanggal)}</td><td>${tglN(t.tglTrx||t.tanggal)}</td><td>${r?esc(r.nama):''}</td><td class="b">${esc(t.kode||'')}</td><td>${k?esc(k.nama):''}</td><td class="b">${esc(t.noBukti)}</td><td>${esc(t.uraian)}</td>${c(t.jumlah)}${c(pj(t,'pph21'))}${c(pj(t,'pph23'))}${c(pj(t,'ppn'))}<td>${g?`${esc(g.nama)}<br>NIP. ${esc(g.nip)||'-'}<br>${esc(g.jabatan||'Guru Kelas')}`:''}</td><td style="white-space:nowrap"><button class="ib" title="Edit" onclick="doEdit('${t.id}')">✏️</button><button class="ib" title="Hapus" onclick="delId='${t.id}';render()">🗑️</button></td></tr>`}).join('');
+ return `<div class="card row" style="flex-wrap:wrap"><div style="display:flex;gap:8px;align-items:center"><label style="margin:0">📅 Bulan:</label>${mSel(rkM,'rkM')}</div><div style="font-size:12px;color:#6b7280">${l.length} belanja · menurut tanggal lunas bayar</div></div>
+ <div class="card wrap"><div style="min-width:1280px"><div class="bk"><div class="tt">REKAPAN BELANJA<br>BANTUAN OPERASIONAL SEKOLAH<br>${MO[m].toUpperCase()} ${yr}</div>
+ <table class="t"><thead><tr><th>Tgl Lunas Bayar</th><th>Tgl Transaksi</th><th>Nama Rekening</th><th>Kode Rekening</th><th>Komponen</th><th>No Bukti</th><th>Uraian</th><th>Belanja</th><th>PPh 21</th><th>PPh 23</th><th>PPN</th><th>Guru Pelaksana</th><th></th></tr></thead>
+ <tbody>${rows}<tr class="j"><td colspan="7" style="text-align:center">JUMLAH</td>${['jumlah','pph21','pph23','ppn'].map((k,i)=>`<td class="r">${n2(i?sum(t=>pj(t,k)):sum(t=>t.jumlah))}</td>`).join('')}<td></td><td></td></tr></tbody></table></div></div></div>
+ ${l.length?'':`<div class="card">${empty('rkn',`Belum ada belanja di ${MO[m]}`,'Belanja yang dicatat di menu Input tampil di sini.',[['➕ Input transaksi',"go('input')"]],1)}</div>`}`;
+}
 function vPj(){
  return `<div class="card row" style="flex-wrap:wrap">
   <div style="display:flex;gap:8px;align-items:center"><label style="margin:0">📅 Bulan:</label>${mSel(pjM,'pjM')}</div>
@@ -1172,7 +1186,7 @@ function vSet(){
 
 /* ═════════ RENDER ═════════ */
 /* [id, label, grup]. Ikon = IC[id]. Menambah menu baru: tambah di sini + IC + views di render() */
-const TABS=[['dashboard','Dashboard','Utama'],['input','Input','Utama'],['riwayat','Riwayat','Utama'],['bku','BKU','Buku Kas'],['bkupj','BKU Pajak','Buku Kas'],['rekap','Rekap Pajak','Buku Kas'],['a2','Form A2','Dokumen'],['a2t','A2 Tukang','Dokumen'],['sp','SP','Dokumen'],['und','Undangan','Dokumen'],['hdr','Daftar Hadir','Dokumen'],['log','Riwayat Aktivitas','Sistem'],['set','Pengaturan','Sistem']];
+const TABS=[['dashboard','Dashboard','Utama'],['input','Input','Utama'],['rkn','Rekapan','Utama'],['riwayat','Riwayat','Utama'],['bku','BKU','Buku Kas'],['bkupj','BKU Pajak','Buku Kas'],['rekap','Rekap Pajak','Buku Kas'],['a2','Form A2','Dokumen'],['a2t','A2 Tukang','Dokumen'],['sp','SP','Dokumen'],['und','Undangan','Dokumen'],['hdr','Daftar Hadir','Dokumen'],['log','Riwayat Aktivitas','Sistem'],['set','Pengaturan','Sistem']];
 const IC={
  dashboard:'<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>',
  input:'<circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/>',
@@ -1183,6 +1197,7 @@ const IC={
  a2:'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m9 15 2 2 4-4"/>',
  a2t:'<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
  sp:'<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
+ rkn:'<path d="M12 3v18"/><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/>',
  und:'<path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>',
  hdr:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
  set:'<path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/>',
@@ -1213,7 +1228,7 @@ function sidebar(){
 function render(){
  R=run(tx);const T=tot();
  try{sessionStorage.setItem(VK,JSON.stringify({tab,yr,setT}))}catch(e){}
- const views={dashboard:vDash,input:vInput,riwayat:vRiw,bku:vBKU,bkupj:vPj,rekap:vRk,a2:()=>vList('a2'),a2t:()=>vList('a2t'),sp:()=>vList('sp'),und:()=>vRp('und'),hdr:()=>vRp('hdr'),log:vLog,set:vSet};
+ const views={dashboard:vDash,input:vInput,rkn:vRkn,riwayat:vRiw,bku:vBKU,bkupj:vPj,rekap:vRk,a2:()=>vList('a2'),a2t:()=>vList('a2t'),sp:()=>vList('sp'),und:()=>vRp('und'),hdr:()=>vRp('hdr'),log:vLog,set:vSet};
  $('app').innerHTML=`<div class="shell${sbMini?' mini':''}">${sidebar()}<div class="scrim" onclick="document.querySelector('.shell').classList.remove('open')"></div><div class="mainc"><div class="top">
   <div class="hdr"><button class="mbtn" aria-label="Buka menu" onclick="sbTgl()">${ico('menu')}</button>
    <div style="flex:1"><div style="font-weight:800;font-size:13px">Aplikasi BOS Digital</div><div style="font-size:10px;opacity:.85">${esc(cfg.namaSekolah)} · <span id="sync">${SYN[sync]}</span></div></div>
