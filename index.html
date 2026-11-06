@@ -419,7 +419,6 @@ async function start(){
  await migrateLocal();
  cfg={...DEF_CFG,...(ld(CFGK)||{})};
  loadYear(String(new Date().getFullYear()));
- RP={...DEF_RP,...(ld(RPK)||{}),dU:today(),dR:today()};
  newForm();render();fadeIn();
  if(!window._ev){window._ev=1;
   /* keluar dari tab/aplikasi atau tutup halaman: kirim data yang tertunda sekarang juga, tanpa menunggu jeda 0,6 detik */
@@ -483,7 +482,7 @@ function yearList(){
 const fGuru=id=>(cfg.guruList||[]).find(g=>g.id===id);
 /* tanggal = LUNAS BAYAR (BKU, A2, SP, = tanggal terima pajak). tglTrx = tanggal transaksi (A2). pajak.tglStor = tanggal stor pajak.
    tukang = true -> dicetak di menu A2 Tukang (tanda tangan hanya Kepala Sekolah & Bendahara) */
-function initForm(){return{tanggal:today(),tglTrx:today(),tglStor:today(),ntpn:'',noBukti:'',kode:'',uraian:'',komponen:'2',jenis:'kredit',jumlah:'',ket:'',guruId:'',tukang:false,pajakOn:false,pajakKode:'pph23'}}
+function initForm(){return{tanggal:today(),tglTrx:today(),tglStor:today(),ntpn:'',noBukti:'',kode:'',uraian:'',komponen:'2',jenis:'kredit',jumlah:'',ket:'',guruId:'',tukang:false,pajakOn:false,pajakKode:'pph23',rapatOn:false,rp:newRp()}}
 /* No bukti belanja otomatis: 8/XI/2026. Urut per bulan menurut tanggal lunas bayar; tanggal sama -> yang lebih dulu diinput.
    Ganti bulan mulai lagi dari 1; tahun = tahun aktif. Dihitung ulang tiap simpan/hapus/muat, jadi selalu rapat dan berurutan. */
 /* Format bebas dari Pengaturan, mis. "15/BOSP/XI/2026" atau "BKT-007/2026": angka pertama = nomor awal, angka Romawi = bulan,
@@ -593,12 +592,13 @@ function doSubmit(){
  if(!f.tanggal||!f.uraian.trim()||!f.jumlah){toast('⚠️ Tanggal, uraian, jumlah wajib!');return}
  const j=cleanNum(f.jumlah);if(j<=0){toast('⚠️ Jumlah harus > 0');return}
  const pi=fP(f.pajakKode),k=f.jenis==='kredit',sd=f.tglStor||f.tanggal;
+ if(k&&f.rapatOn&&(!f.rp.dU||!f.rp.dR)){toast('⚠️ Isi tanggal undangan dan tanggal rapat');return}
  if(k&&f.pajakOn){
   if(sd<f.tanggal){toast('⚠️ Tanggal stor pajak tidak boleh sebelum tanggal terima (lunas bayar)');return}
   if(sd.slice(0,4)!==yr){toast('⚠️ Tanggal stor pajak harus di tahun '+yr);return}
  }
  const pajak=k&&f.pajakOn&&pi?{kode:pi.kode,persen:pi.persen,jumlah:Math.round(j*pi.persen/100),tglStor:sd,ntpn:f.ntpn.trim()}:null;
- const e={tanggal:f.tanggal,tglTrx:k?(f.tglTrx||f.tanggal):'',noBukti:f.noBukti,kode:k?f.kode.trim():'',uraian:f.uraian.trim(),komponen:k?f.komponen:'0',jenis:f.jenis,jumlah:j,ket:f.ket,guruId:k?f.guruId:'',tukang:k&&!!f.tukang,pajak};
+ const e={tanggal:f.tanggal,tglTrx:k?(f.tglTrx||f.tanggal):'',noBukti:f.noBukti,kode:k?f.kode.trim():'',uraian:f.uraian.trim(),komponen:k?f.komponen:'0',jenis:f.jenis,jumlah:j,ket:f.ket,guruId:k?f.guruId:'',tukang:k&&!!f.tukang,pajak,rapat:k&&f.rapatOn?{...f.rp}:null};
  /* dibuat = waktu pertama kali disimpan; otomatis, tidak bisa diubah, dipertahankan saat edit */
  const list=editId?tx.map(t=>t.id===editId?{...e,id:editId,dibuat:t.dibuat}:t):[...tx,{...e,id:uid(),dibuat:new Date().toISOString()}];
  if(!commit(list,editId?'✅ Transaksi diperbarui':'✅ Transaksi disimpan'))return;
@@ -606,7 +606,7 @@ function doSubmit(){
 }
 function doEdit(id){
  const t=tx.find(x=>x.id===id);if(!t)return;
- F={tanggal:t.tanggal,tglTrx:t.tglTrx||t.tanggal,tglStor:(t.pajak&&t.pajak.tglStor)||t.tanggal,ntpn:(t.pajak&&t.pajak.ntpn)||'',noBukti:t.noBukti,kode:t.kode||'',uraian:t.uraian,komponen:t.komponen,jenis:t.jenis,jumlah:String(t.jumlah),ket:t.ket||'',guruId:t.guruId||'',tukang:!!t.tukang,pajakOn:!!t.pajak,pajakKode:t.pajak?t.pajak.kode:'pph23'};
+ F={tanggal:t.tanggal,tglTrx:t.tglTrx||t.tanggal,tglStor:(t.pajak&&t.pajak.tglStor)||t.tanggal,ntpn:(t.pajak&&t.pajak.ntpn)||'',noBukti:t.noBukti,kode:t.kode||'',uraian:t.uraian,komponen:t.komponen,jenis:t.jenis,jumlah:String(t.jumlah),ket:t.ket||'',guruId:t.guruId||'',tukang:!!t.tukang,pajakOn:!!t.pajak,pajakKode:t.pajak?t.pajak.kode:'pph23',rapatOn:!!t.rapat,rp:{...newRp(),...(t.rapat||{})}};
  editId=id;tab='input';render();scrollTo(0,0);
 }
 function cancelEdit(){editId=null;newForm();render()}
@@ -824,7 +824,7 @@ function vInput(){
   <input value="${esc(f.kode)}" oninput="fset('kode',this.value)" placeholder="5.1.02.01.01.0026">
   <label>👤 Pelaksana Belanja</label>
   <select onchange="fset('guruId',this.value)"><option value="">— Pilih Guru/Pelaksana —</option>${(cfg.guruList||[]).map(g=>`<option value="${g.id}"${f.guruId===g.id?' selected':''}>${esc(g.nama)}${g.nip?` (${esc(g.nip)})`:''}</option>`).join('')}</select>
-  <div style="display:flex;align-items:center;gap:8px;margin-top:12px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px"><input type="checkbox" id="tkcb"${f.tukang?' checked':''} onchange="F.tukang=this.checked"><label for="tkcb" style="margin:0;cursor:pointer;font-size:12px">🔨 Pembayaran tukang — dicetak di menu <b>A2 Tukang</b> (tanda tangan hanya Kepala Sekolah &amp; Bendahara BOS)</label></div>`:''}
+  <div style="display:flex;align-items:center;gap:8px;margin-top:12px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px"><input type="checkbox" id="tkcb"${f.tukang?' checked':''} onchange="F.tukang=this.checked"><label for="tkcb" style="margin:0;cursor:pointer;font-size:12px">🔨 Pembayaran tukang — dicetak di menu <b>A2 Tukang</b> (tanda tangan hanya Kepala Sekolah &amp; Bendahara BOS)</label></div>${rapatBlk(f)}`:''}
   <label>💵 Jumlah (Rp) *</label>
   <input id="f-jml" inputmode="numeric" placeholder="0" style="font-size:18px;font-weight:700;color:${k?'#dc2626':f.jenis==='tarik'?'#0369a1':'#16a34a'}" value="${f.jumlah?(+f.jumlah).toLocaleString('id-ID'):''}" oninput="onJml(this)">
   <div class="tbx" id="f-terb" style="display:${j>0?'block':'none'}">✍️ ${terbilang(j)}</div>
@@ -840,22 +840,21 @@ function vInput(){
   <label>📌 Keterangan</label>
   <input value="${esc(f.ket)}" oninput="fset('ket',this.value)" placeholder="Nama toko, bank, dsb.">
   <div style="display:flex;gap:8px;margin-top:13px"><button class="btn" style="flex:1" onclick="doSubmit()">${editId?'💾 Perbarui':'💾 Simpan'}</button>${editId?'<button class="btn gray" onclick="cancelEdit()">Batal</button>':''}</div>
- </div>`+vRapat();
+ </div>`;
 }
 
 /* ─── UNDANGAN RAPAT & DAFTAR HADIR ───
-   Teks (waktu, tujuan, tempat, keperluan, keterangan) diingat di server; tanggal selalu mulai dari hari ini. */
-const RPK='bos4-rapat',DEF_RP={waktu:'Pukul 12.30 WIB',tujuan:'Bapak/ Ibu Guru dan Staf SD Negeri Kalisari',tempat:'Ruang Guru SD Negeri Kalisari',perlu:'Rapat Rutin Guru',ket:'Mohon hadir tepat waktu'};
-let RP={...DEF_RP};
-function rpSet(k,v){RP[k]=v;const {dU,dR,...t}=RP;sv(RPK,t)}
-function vRapat(){
- const f=(l,k,t)=>`<div><label>${l}</label><input${t?` type="${t}"`:''} value="${esc(RP[k])}" onchange="rpSet('${k}',this.value)" oninput="rpSet('${k}',this.value)"></div>`;
- return `<div class="card" style="border-left:4px solid #7C3AED"><div class="ct">📣 Undangan Rapat &amp; Daftar Hadir</div>
-  <div class="g2">${f('📅 Tanggal Undangan','dU','date')}${f('📅 Tanggal Rapat','dR','date')}</div>
-  <div class="g2">${f('🕐 Waktu','waktu')}${f('📍 Tempat','tempat')}</div>
-  ${f('👥 Tujuan Undangan','tujuan')}${f('📝 Keperluan / Acara','perlu')}${f('📌 Keterangan','ket')}
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:13px"><button class="btn gold" onclick="printUndangan()">🖨️ Cetak Undangan</button><button class="btn blue" onclick="printHadir()">🖨️ Cetak Daftar Hadir</button></div>
-  <div style="font-size:11px;color:#6b7280;margin-top:6px">Daftar hadir diurutkan dari Daftar Guru di Pengaturan menurut kolom Jabatan: Kepala Sekolah, guru kelas (yang ber-NIP dulu), PJOK, PAI, Staf Administrasi, Penjaga.</div></div>`;
+   Dicatat per belanja (t.rapat), seperti t.tukang: dicentang di Input, dicetak di menu Undangan / Daftar Hadir. */
+function newRp(){return{dU:today(),dR:today(),waktu:'Pukul 12.30 WIB',tujuan:'Bapak/ Ibu Guru dan Staf SD Negeri Kalisari',lain:'',tempat:'Ruang Guru SD Negeri Kalisari',perlu:'Rapat Rutin Guru',ket:'Mohon hadir tepat waktu'}}
+function rapatBlk(f){
+ const r=f.rp,i=(l,k,t)=>`<div><label>${l}</label><input${t?` type="${t}"`:''} value="${esc(r[k])}" oninput="F.rp.${k}=this.value"></div>`;
+ return `<div style="display:flex;align-items:center;gap:8px;margin-top:10px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px"><input type="checkbox" id="rpcb"${f.rapatOn?' checked':''} onchange="F.rapatOn=this.checked;render()"><label for="rpcb" style="margin:0;cursor:pointer;font-size:12px">📣 Ada <b>undangan rapat</b> — dicetak di menu <b>Undangan</b> &amp; <b>Daftar Hadir</b></label></div>`
+ +(f.rapatOn?`<div style="margin-top:8px;padding:11px;background:#faf5ff;border:1px solid #e9d5ff;border-radius:10px">
+  <div class="g2">${i('📅 Tanggal Undangan','dU','date')}${i('📅 Tanggal Rapat','dR','date')}</div>
+  <div class="g2">${i('🕐 Waktu','waktu')}${i('📍 Tempat','tempat')}</div>
+  ${i('📝 Keperluan / Acara','perlu')}${i('👥 Tujuan Undangan','tujuan')}
+  <label>➕ Yang diundang lainnya (opsional, satu baris satu orang)</label><textarea rows="3" style="width:100%;border:1.5px solid #e2e8f0;border-radius:12px;padding:10px 12px;font:inherit;font-size:14px" oninput="F.rp.lain=this.value" placeholder="Contoh: Kepala Desa Kalisari">${esc(r.lain)}</textarea>
+  ${i('📌 Keterangan','ket')}</div>`:'');
 }
 const hariTgl=s=>new Date(s+'T00:00:00').toLocaleDateString('id-ID',{weekday:'long'})+', '+tglN(s);
 const rpFont='font-family:\'Times New Roman\',Times,serif;font-size:14px;color:#000;line-height:1.5';
@@ -864,32 +863,34 @@ const kopHtml=()=>`<div style="display:flex;align-items:center;justify-content:c
   <div style="border-top:3px double #000;margin:6px 0 14px"></div>`;
 const ttdHtml=(tg)=>`<div style="margin:30px 0 0 58%;text-align:center"><div>${esc(cfg.tempat||cfg.kota)}, ${tglN(tg)}</div><div>Kepala Sekolah</div><div style="height:64px"></div><div style="font-weight:700;text-decoration:underline">${esc(cfg.kepsek)||'(___________________)'}</div><div>NIP. ${esc(cfg.nipKepsek)||'………………………………'}</div></div>`;
 const rpKv=(l,v)=>`<tr><td style="width:120px;padding:1px 0">${l}</td><td style="width:14px">:</td><td>${esc(v)}</td></tr>`;
-function printUndangan(){
- if(!RP.dU||!RP.dR){toast('⚠️ Isi tanggal undangan dan tanggal rapat');return}
- doPrint(`<div class="rp" style="${rpFont}">${kopHtml()}
- <div style="text-align:right">${esc(cfg.tempat||cfg.kota)}, ${tglN(RP.dU)}</div>
- <table class="n" style="width:100%;margin-top:10px;border-collapse:collapse"><tr><td style="width:50%;vertical-align:top"><table class="n"><tr><td style="border:0;padding:1px 0;width:80px">Nomor</td><td style="border:0">:</td></tr><tr><td style="border:0;padding:1px 0">Lampiran</td><td style="border:0">:</td></tr><tr><td style="border:0;padding:1px 0">Hal</td><td style="border:0">: <b style="text-decoration:underline">Undangan</b></td></tr></table></td>
-  <td style="vertical-align:top;border:0"><div>Kepada:</div><div>Yth</div><div>${esc(RP.tujuan)}</div><div>Di Tempat</div></td></tr></table>
- <div style="margin-top:22px">Dengan Hormat,</div><div>Dimohon kehadiran ${esc(RP.tujuan)} pada:</div>
- <table class="n" style="margin:6px 0 0 36px;border-collapse:collapse">${rpKv('Hari / Tanggal',hariTgl(RP.dR))}${rpKv('Waktu',RP.waktu)}${rpKv('Tempat',RP.tempat)}${rpKv('Keperluan',RP.perlu)}${rpKv('Keterangan',RP.ket)}</table>
- <div style="margin-top:20px">Atas perhatian dan kehadirannya diucapkan terima kasih.</div>${ttdHtml(RP.dU)}</div>`);
+const lainList=r=>(r.lain||'').split('\n').map(x=>x.trim()).filter(Boolean);
+/* Margin isi surat mengikuti SP (kiri-kanan 45px); font tetap Times New Roman */
+function undHtml(t){
+ const r=t.rapat,ln=lainList(r);
+ return `<div class="rp" style="${rpFont}">${kopHtml()}<div style="padding:0 45px">
+ <div style="text-align:right">${esc(cfg.tempat||cfg.kota)}, ${tglN(r.dU)}</div>
+ <table class="n" style="width:100%;margin-top:10px;border-collapse:collapse"><tr><td style="width:50%;vertical-align:top"><table class="n"><tr><td style="width:80px">Nomor</td><td>:</td></tr><tr><td>Lampiran</td><td>:</td></tr><tr><td>Hal</td><td>: <b style="text-decoration:underline">Undangan</b></td></tr></table></td>
+  <td style="vertical-align:top"><div>Kepada:</div><div>Yth</div><div>${esc(r.tujuan)}</div>${ln.map(x=>`<div>${esc(x)}</div>`).join('')}<div>Di Tempat</div></td></tr></table>
+ <div style="margin-top:22px">Dengan Hormat,</div><div>Dimohon kehadiran ${ln.length?'Bapak/ Ibu':esc(r.tujuan)} pada:</div>
+ <table class="n" style="margin:6px 0 0 36px;border-collapse:collapse">${rpKv('Hari / Tanggal',hariTgl(r.dR))}${rpKv('Waktu',r.waktu)}${rpKv('Tempat',r.tempat)}${rpKv('Keperluan',r.perlu)}${rpKv('Keterangan',r.ket)}</table>
+ <div style="margin-top:20px">Atas perhatian dan kehadirannya diucapkan terima kasih.</div>${ttdHtml(r.dU)}</div></div>`;
 }
 /* Urutan daftar hadir menurut teks jabatan: 0 guru kelas ber-NIP, 1 guru kelas tanpa NIP, 2 PJOK, 3 PAI, 4 staf administrasi, 5 penjaga */
 function hadirRank(g){
  const j=(g.jabatan||'Guru Kelas').toLowerCase();
  return /penjaga/.test(j)?5:/staf|administrasi|tu\b/.test(j)?4:/\bpai\b|agama/.test(j)?3:/pjok|olahraga|penjas/.test(j)?2:g.nip?0:1;
 }
-function printHadir(){
- if(!RP.dR){toast('⚠️ Isi tanggal rapat');return}
- const gs=(cfg.guruList||[]).map((g,i)=>({g,i,r:hadirRank(g)})).sort((a,b)=>a.r-b.r||a.i-b.i).map(x=>x.g);
- const rows=[{nama:cfg.kepsek||'',jab:'Kepala Sekolah'},...gs.map(g=>({nama:g.nama,jab:g.jabatan||'Guru Kelas'}))];
+function hdrHtml(t){
+ const r=t.rapat,gs=(cfg.guruList||[]).map((g,i)=>({g,i,r:hadirRank(g)})).sort((a,b)=>a.r-b.r||a.i-b.i).map(x=>x.g);
+ const rows=[{nama:cfg.kepsek||'',jab:'Kepala Sekolah'},...gs.map(g=>({nama:g.nama,jab:g.jabatan||'Guru Kelas'})),...lainList(r).map(x=>({nama:x,jab:'Undangan'}))];
  const c='border:1px solid #000;padding:8px 8px';
- doPrint(`<div class="rp" style="${rpFont}">${kopHtml()}
+ return `<div class="rp" style="${rpFont}">${kopHtml()}
  <div style="text-align:center;font-weight:700;text-decoration:underline;margin-bottom:12px">DAFTAR HADIR</div>
- <table class="n" style="border-collapse:collapse;margin-bottom:10px">${rpKv('Hari / Tanggal',hariTgl(RP.dR))}${rpKv('Tempat',RP.tempat)}${rpKv('Acara',RP.perlu)}</table>
+ <table class="n" style="border-collapse:collapse;margin-bottom:10px">${rpKv('Hari / Tanggal',hariTgl(r.dR))}${rpKv('Tempat',r.tempat)}${rpKv('Acara',r.perlu)}</table>
  <table style="width:100%;border-collapse:collapse"><thead><tr><th style="${c};width:6%">No</th><th style="${c}">Nama</th><th style="${c};width:24%">Jabatan</th><th style="${c};width:26%">Tanda Tangan</th></tr></thead>
- <tbody>${rows.map((r,i)=>`<tr><td style="${c};text-align:center">${i+1}</td><td style="${c}">${esc(r.nama)}</td><td style="${c}">${esc(r.jab)}</td><td style="${c}">${i+1}.</td></tr>`).join('')}</tbody></table>${ttdHtml(RP.dR)}</div>`);
+ <tbody>${rows.map((x,i)=>`<tr><td style="${c};text-align:center">${i+1}</td><td style="${c}">${esc(x.nama)}</td><td style="${c}">${esc(x.jab)}</td><td style="${c}">${i+1}.</td></tr>`).join('')}</tbody></table>${ttdHtml(r.dR)}</div>`;
 }
+function printRp(kind,id){const t=tx.find(x=>x.id===id);if(t)doPrint(kind==='und'?undHtml(t):hdrHtml(t))}
 
 /* ─── bagian bersama lembar ─── */
 function sigBlock(tglEnd){return `<div class="sg">
@@ -1018,7 +1019,8 @@ function vRk(){
 
 /* kind: 'a2' = belanja biasa, 'a2t' = belanja tukang, 'sp' = semua belanja */
 function monthList(kind){
- const bm={};sortTx(tx).filter(t=>t.jenis==='kredit'&&(kind==='sp'||!!t.tukang===(kind==='a2t'))).forEach(t=>{const m=getMonth(t.tanggal);(bm[m]=bm[m]||[]).push(t)});
+ const rp=kind==='und'||kind==='hdr'; /* undangan/daftar hadir dikelompokkan menurut tanggal rapat */
+ const bm={};sortTx(tx).filter(t=>rp?t.rapat:t.jenis==='kredit'&&(kind==='sp'||!!t.tukang===(kind==='a2t'))).forEach(t=>{const m=getMonth(rp?t.rapat.dR:t.tanggal);(bm[m]=bm[m]||[]).push(t)});
  const av=Object.keys(bm).map(Number).sort((a,b)=>a-b);
  const m=av.includes(+pMo)?+pMo:av[0];
  return{bm,av,m,list:m?bm[m]:[]};
@@ -1040,6 +1042,21 @@ function vList(kind){
    <div style="text-align:right;flex-shrink:0"><div style="font-weight:800;color:#dc2626;font-size:15px">${rp(t.jumlah)}</div>
    <button class="btn ${sp?'blue':'gold'}" style="margin-top:7px;padding:7px 14px;font-size:12px" onclick="${sp?'printSP':'printA2'}('${t.id}')">🖨️ Cetak ${sp?'SP':'A2'}</button></div></div></div>`}).join('')
  :`<div class="card">${empty(tk?'a2t':sp?'sp':'a2',tk?'Belum ada pembayaran tukang':'Belum ada belanja untuk dicetak',tk?'Centang <b>Pembayaran tukang</b> saat mencatat belanja, lalu cetak formulirnya dari sini.':'Formulir dan surat dibuat otomatis dari belanja yang Anda catat.',[['➕ Catat belanja',"go('input')"]])}</div>`}`;
+}
+
+function vRp(kind){
+ const {bm,av,m,list}=monthList(kind),u=kind==='und';
+ return `<div class="card row" style="flex-wrap:wrap"><div class="ct" style="margin:0">${u?'📣 Undangan Rapat':'📝 Daftar Hadir'} — per Rapat</div>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label style="margin:0">📅 Bulan:</label>
+  <select class="auto" onchange="pMo=this.value;render()">${av.length?av.map(x=>`<option value="${x}"${x===m?' selected':''}>${MO[x]} (${bm[x].length})</option>`).join(''):'<option>— Belum ada rapat —</option>'}</select>
+  <button class="btn" onclick="printAll('${kind}')"${list.length?'':' disabled'}>🖨️ Cetak Semua (${list.length})</button></div></div>
+ ${list.length?list.map((t,i)=>{const r=t.rapat;
+  return `<div class="card" style="border-left:4px solid #7C3AED"><div class="row" style="align-items:flex-start">
+   <div><div style="font-weight:700;font-size:13px">${i+1}. ${esc(r.perlu)}</div>
+   <div style="font-size:11px;color:#6b7280;margin-top:2px">Rapat ${hariTgl(r.dR)} · ${esc(r.waktu)} · Undangan ${tgl(r.dU)}</div>
+   <div style="font-size:11px;color:#6b7280;margin-top:2px">📍 ${esc(r.tempat)} · dari belanja: ${esc(t.uraian)}</div></div>
+   <button class="btn ${u?'gold':'blue'}" style="flex-shrink:0;padding:7px 14px;font-size:12px" onclick="printRp('${kind}','${t.id}')">🖨️ Cetak ${u?'Undangan':'Daftar Hadir'}</button></div></div>`}).join('')
+ :`<div class="card">${empty(kind,'Belum ada rapat','Centang <b>Ada undangan rapat</b> saat mencatat belanja, lalu cetak dari sini.',[['➕ Catat belanja',"go('input')"]])}</div>`}`;
 }
 
 let logF='';
@@ -1110,7 +1127,7 @@ function vSet(){
 
 /* ═════════ RENDER ═════════ */
 /* [id, label, grup]. Ikon = IC[id]. Menambah menu baru: tambah di sini + IC + views di render() */
-const TABS=[['dashboard','Dashboard','Utama'],['input','Input','Utama'],['riwayat','Riwayat','Utama'],['bku','BKU','Buku Kas'],['bkupj','BKU Pajak','Buku Kas'],['rekap','Rekap Pajak','Buku Kas'],['a2','Form A2','Dokumen'],['a2t','A2 Tukang','Dokumen'],['sp','SP','Dokumen'],['log','Riwayat Aktivitas','Sistem'],['set','Pengaturan','Sistem']];
+const TABS=[['dashboard','Dashboard','Utama'],['input','Input','Utama'],['riwayat','Riwayat','Utama'],['bku','BKU','Buku Kas'],['bkupj','BKU Pajak','Buku Kas'],['rekap','Rekap Pajak','Buku Kas'],['a2','Form A2','Dokumen'],['a2t','A2 Tukang','Dokumen'],['sp','SP','Dokumen'],['und','Undangan','Dokumen'],['hdr','Daftar Hadir','Dokumen'],['log','Riwayat Aktivitas','Sistem'],['set','Pengaturan','Sistem']];
 const IC={
  dashboard:'<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>',
  input:'<circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/>',
@@ -1121,6 +1138,8 @@ const IC={
  a2:'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m9 15 2 2 4-4"/>',
  a2t:'<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
  sp:'<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
+ und:'<path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>',
+ hdr:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
  set:'<path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/>',
  log:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/>',
@@ -1148,7 +1167,7 @@ function sidebar(){
 }
 function render(){
  R=run(tx);const T=tot();
- const views={dashboard:vDash,input:vInput,riwayat:vRiw,bku:vBKU,bkupj:vPj,rekap:vRk,a2:()=>vList('a2'),a2t:()=>vList('a2t'),sp:()=>vList('sp'),log:vLog,set:vSet};
+ const views={dashboard:vDash,input:vInput,riwayat:vRiw,bku:vBKU,bkupj:vPj,rekap:vRk,a2:()=>vList('a2'),a2t:()=>vList('a2t'),sp:()=>vList('sp'),und:()=>vRp('und'),hdr:()=>vRp('hdr'),log:vLog,set:vSet};
  $('app').innerHTML=`<div class="shell${sbMini?' mini':''}">${sidebar()}<div class="scrim" onclick="document.querySelector('.shell').classList.remove('open')"></div><div class="mainc"><div class="top">
   <div class="hdr"><button class="mbtn" aria-label="Buka menu" onclick="sbTgl()">${ico('menu')}</button>
    <div style="flex:1"><div style="font-weight:800;font-size:13px">Aplikasi BOS Digital</div><div style="font-size:10px;opacity:.85">${esc(cfg.namaSekolah)} · <span id="sync">${SYN[sync]}</span></div></div>
@@ -1175,7 +1194,7 @@ function printSP(id){const t=tx.find(x=>x.id===id);if(t)doPrint(spHtml(t))}
 /* Cetak semua A2 / A2 Tukang / SP bulan terpilih: satu lembar per transaksi */
 function printAll(kind){
  const {list}=monthList(kind);if(!list.length){toast('Tidak ada transaksi');return}
- doPrint(list.map((t,i)=>`<div style="${i<list.length-1?'break-after:page;page-break-after:always':''}">${kind==='sp'?spHtml(t):a2Html(t)}</div>`).join(''));
+ doPrint(list.map((t,i)=>`<div style="${i<list.length-1?'break-after:page;page-break-after:always':''}">${kind==='sp'?spHtml(t):kind==='und'||kind==='hdr'?(kind==='und'?undHtml(t):hdrHtml(t)):a2Html(t)}</div>`).join(''));
 }
 
 /* A2: Arial 11 seluruhnya (diatur lewat class .a2), nama kepala / bendahara / yang membayar sejajar,
