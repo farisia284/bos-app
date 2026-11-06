@@ -148,6 +148,8 @@ input[type=file]::file-selector-button{border:0;background:#ccfbf1;color:var(--t
 .sbi.on{background:#fff;color:#0f766e;box-shadow:0 6px 14px -6px #0006}
 .ic{width:20px;height:20px;flex-shrink:0}
 .sbf{padding:10px 12px;border-top:1px solid #ffffff1f}
+.sbo{padding:0 12px 12px}
+.sbi.out{color:#fecaca}.sbi.out:hover{background:#dc262666;color:#fff}
 .sbf .ic{transition:transform .25s}
 .mini .sbf .ic{transform:rotate(180deg)}
 .mini .sbh>div:last-child,.mini .sbi span,.mini .sbg{opacity:0}
@@ -343,7 +345,15 @@ function showLogin(msg,email){
   ${msg?`<div class="info" style="background:#fef2f2;border-color:#fecaca;color:#991b1b">${esc(msg)}</div>`:''}
   <label>Email</label><input id="lg-e" type="email" autocomplete="username" value="${esc(email||'')}">
   <label>Password</label><input id="lg-p" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
-  <button class="btn" style="width:100%;margin-top:14px" onclick="doLogin()">Masuk</button></div></div>`;
+  <button class="btn" style="width:100%;margin-top:14px" onclick="doLogin()">Masuk</button>
+  <button class="btn gray" style="width:100%;margin-top:8px" onclick="lupaPass()">Lupa password?</button></div></div>`;
+}
+/* Kirim link reset ke email; pesan sengaja sama apa pun hasilnya supaya email yang terdaftar tidak bisa ditebak */
+async function lupaPass(){
+ const e=$('lg-e').value.trim();
+ if(!e){showLogin('Isi email dulu, lalu klik Lupa password',e);return}
+ await sb.auth.resetPasswordForEmail(e,{redirectTo:location.origin+location.pathname});
+ showLogin('Jika email terdaftar, link reset password sudah dikirim. Cek kotak masuk dan folder spam.',e);
 }
 async function doLogin(){
  const email=$('lg-e').value.trim(),password=$('lg-p').value;
@@ -410,7 +420,9 @@ async function start(){
  loadYear(String(new Date().getFullYear()));
  newForm();render();fadeIn();
  if(!window._ev){window._ev=1;
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});
+  /* keluar dari tab/aplikasi atau tutup halaman: kirim data yang tertunda sekarang juga, tanpa menunggu jeda 0,6 detik */
+  document.addEventListener('visibilitychange',()=>{document.hidden?flush():refresh()});
+  addEventListener('pagehide',flush);
   addEventListener('beforeunload',e=>{if(Object.keys(pend).length){e.preventDefault();e.returnValue=''}});
  }
 }
@@ -650,6 +662,22 @@ function carry(){
  if(!pt&&!ps){toast('⚠️ Tidak ada data tahun sebelumnya');return}
  const r=run(pt||[],ps||{bank:0,tunai:0});
  if(setSa({bank:r.bank,tunai:r.tunai}))toast(`✅ Saldo awal ${yr}: Bank ${rp(r.bank)}, Tunai ${rp(r.tunai)}`);
+}
+async function gantiPass(){
+ const a=$('pw-1').value,b=$('pw-2').value;
+ if(a.length<8){toast('⚠️ Password minimal 8 karakter');return}
+ if(a!==b){toast('⚠️ Pengulangan password tidak sama');return}
+ const {error}=await sb.auth.updateUser({password:a});
+ if(error){toast('⚠️ '+error.message,5000);return}
+ addLog('akun','Password diganti');$('pw-1').value=$('pw-2').value='';toast('✅ Password diganti');
+}
+async function gantiEmail(){
+ const e=$('em-n').value.trim();
+ if(!/^\S+@\S+\.\S+$/.test(e)){toast('⚠️ Email tidak valid');return}
+ if(e===user.email){toast('⚠️ Email sama dengan yang sekarang');return}
+ const {error}=await sb.auth.updateUser({email:e},{emailRedirectTo:location.origin+location.pathname});
+ if(error){toast('⚠️ '+error.message,5000);return}
+ addLog('akun','Minta ganti email ke '+e);$('em-n').value='';toast('📧 Link konfirmasi dikirim. Email baru berlaku setelah link diklik.',7000);
 }
 function pindahTahun(){
  const v=$('yr-inp').value;
@@ -966,7 +994,7 @@ function vList(kind){
 
 let logF='';
 function vLog(){
- const all=ld(LOGK)||[],l=all.slice().reverse().filter(x=>!logF||x.a===logF),I={login:'🔑',logout:'🚪',tambah:'➕',ubah:'✏️',hapus:'🗑️',pengaturan:'⚙️','saldo awal':'💰',pulihkan:'♻️',cadangan:'⬇️'};
+ const all=ld(LOGK)||[],l=all.slice().reverse().filter(x=>!logF||x.a===logF),I={login:'🔑',logout:'🚪',tambah:'➕',ubah:'✏️',hapus:'🗑️',pengaturan:'⚙️','saldo awal':'💰',pulihkan:'♻️',cadangan:'⬇️',akun:'🔐'};
  return `<div class="card"><div class="ct">🕘 Riwayat Aktivitas</div>
   <div style="font-size:11px;color:#6b7280;margin:-4px 0 8px">Menyimpan ${LOGMAX} aktivitas terakhir (sekarang ${all.length}). Catatan terlama terhapus otomatis saat ada yang baru; catatan tidak bisa dihapus manual.</div>
   <select aria-label="Filter jenis" onchange="logF=this.value;render()"><option value="">Semua jenis</option>${Object.keys(I).map(a=>`<option value="${a}"${logF===a?' selected':''}>${I[a]} ${a}</option>`).join('')}</select>
@@ -982,9 +1010,16 @@ function vSet(){
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn teal" onclick="exportDb()">⬇️ Unduh Cadangan</button>
    <label class="btn blue" style="margin:0;display:inline-block;font-size:13px">⬆️ Pulihkan Cadangan<input type="file" accept=".json,application/json" style="display:none" onchange="importDb(this)"></label></div>
   <div style="font-size:11px;color:#6b7280;margin-top:6px">Data tersimpan online di Supabase. Unduh cadangan secara berkala sebagai pengaman tambahan. <b id="lbk">${lbkTxt()}</b></div></div>
+ <div class="card"><div class="ct">🔐 Ganti Email &amp; Password</div>
+  <div class="g2"><div><label>Password baru (min. 8 karakter)</label><input id="pw-1" type="password" autocomplete="new-password"></div>
+  <div><label>Ulangi password baru</label><input id="pw-2" type="password" autocomplete="new-password"></div></div>
+  <button class="btn" style="margin-top:8px" onclick="gantiPass()">Ganti Password</button>
+  <div style="margin-top:12px"><label>Email baru (sekarang: ${esc(user&&user.email)})</label><input id="em-n" type="email" autocomplete="off" placeholder="email@baru.com"></div>
+  <button class="btn blue" style="margin-top:8px" onclick="gantiEmail()">Ganti Email</button>
+  <div style="font-size:11px;color:#6b7280;margin-top:6px">Ganti email mengirim link konfirmasi; email lama tetap dipakai login sampai link diklik.</div></div>
  <div class="card"><div class="ct">🔢 Nomor Bukti Pembayaran</div>
   ${inp('No. bukti awal (boleh kosong)','noAwal','contoh: 15/BOSP/XI/2026')}
-  <div style="font-size:11px;color:#6b7280;margin-top:4px">Tulis contoh nomor bukti pertama dengan format bebas, mis. <b>15/BOSP/XI/2026</b> atau <b>BKT-007/2026</b>. Angka pertama jadi nomor awal, angka Romawi diganti bulan, tahun diganti tahun aktif, teks lain dipakai apa adanya. Saat input belanja, nomor lanjut urut otomatis. Dengan angka Romawi, nomor mulai lagi dari 1 tiap bulan baru; tanpa Romawi, nomor lanjut terus. Kosongkan untuk format bawaan 1/I/2026. tekan Simpan Semua Pengaturan.</div></div>
+  <div style="font-size:11px;color:#6b7280;margin-top:4px">Tulis contoh nomor bukti pertama dengan format bebas, mis. <b>15/BOSP/XI/2026</b> atau <b>BKT-007/2026</b>. Angka pertama jadi nomor awal, angka Romawi diganti bulan, tahun diganti tahun aktif, teks lain dipakai apa adanya. Saat input belanja, nomor lanjut urut otomatis. Dengan angka Romawi, nomor mulai lagi dari 1 tiap bulan baru; tanpa Romawi, nomor lanjut terus. Kosongkan untuk format bawaan 1/I/2026. Tekan Simpan Semua Pengaturan.</div></div>
  <div class="card"><div class="ct">📅 Manajemen Tahun Anggaran</div>
   <div class="g2"><div><label>Tahun Aktif</label><div style="font-weight:800;font-size:22px;color:#166534">${yr}</div></div>
   <div><label>Tambah / Pindah ke Tahun</label><div style="display:flex;gap:7px"><input id="yr-inp" style="width:90px" inputmode="numeric" placeholder="${+yr+1}"><button class="btn blue" onclick="pindahTahun()">Tambah / Pindah</button></div>
@@ -1040,7 +1075,8 @@ const IC={
  log:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/>',
  menu:'<path d="M4 6h16M4 12h16M4 18h16"/>',
- fold:'<path d="m11 17-5-5 5-5"/><path d="m18 17-5-5 5-5"/>'};
+ fold:'<path d="m11 17-5-5 5-5"/><path d="m18 17-5-5 5-5"/>',
+ out:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>'};
 const ico=k=>`<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[k]}</svg>`;
 /* Empty state: ikon (kunci IC) di tengah ilustrasi, judul, teks (boleh HTML), tombol [[label,js]]. sm = versi kecil di dalam kartu */
 const empty=(k,t,d,acts,sm)=>`<div class="em${sm?' sm':''}"><div class="emi"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="52" fill="#ccfbf1"/><circle cx="60" cy="60" r="52" fill="none" stroke="#5eead4" stroke-width="2" stroke-dasharray="3 7" stroke-linecap="round"/><circle cx="14" cy="38" r="4" fill="#fcd34d"/><circle cx="108" cy="82" r="5" fill="#99f6e4"/><path d="M100 20v10M95 25h10" stroke="#f59e0b" stroke-width="3" stroke-linecap="round"/></svg><div class="emt">${ico(k)}</div></div><div class="emh">${t}</div><p>${d}</p>${acts.length?`<div class="ema">${acts.map(([l,js],i)=>`<button class="btn${i?' gray':''}" onclick="${js}">${l}</button>`).join('')}</div>`:''}</div>`;
@@ -1057,7 +1093,8 @@ function sidebar(){
  return `<aside class="sb"><div class="sbh"><div class="logo">📒</div><div><b>BOS Digital</b><small>${esc(cfg.namaSekolah)}</small></div></div>
   <nav class="sbn">${TABS.map(([id,l,gr])=>{const h=gr!==g?`<div class="sbg">${gr}</div>`:'';g=gr;
    return h+`<button class="sbi${tab===id?' on':''}" title="${l}"${tab===id?' aria-current="page"':''} onclick="go('${id}')">${ico(id)}<span>${l}</span></button>`}).join('')}</nav>
-  <div class="sbf"><button class="sbi" title="Ciutkan / lebarkan menu" aria-label="Ciutkan atau lebarkan menu" onclick="sbTgl()">${ico('fold')}<span>Ciutkan menu</span></button></div></aside>`;
+  <div class="sbf"><button class="sbi" title="Ciutkan / lebarkan menu" aria-label="Ciutkan atau lebarkan menu" onclick="sbTgl()">${ico('fold')}<span>Ciutkan menu</span></button></div>
+  <div class="sbo"><button class="sbi out" title="Keluar" onclick="logout()">${ico('out')}<span>Keluar</span></button></div></aside>`;
 }
 function render(){
  R=run(tx);const T=tot();
@@ -1189,9 +1226,11 @@ function spHtml(t){
   $('app').innerHTML='<div style="max-width:420px;margin:60px auto;padding:0 14px"><div class="card"><div class="ct">⚠️ Tidak bisa terhubung</div>Pustaka Supabase gagal dimuat. Periksa koneksi internet lalu muat ulang halaman. (Aplikasi ini harus dibuka dari alamat GitHub Pages, bukan dari pratinjau.)</div></div>';
   return;
  }
- sb=supabase.createClient(SB_URL,SB_KEY);
+ /* sessionStorage: login otomatis hilang saat tab/browser ditutup (refresh tetap masuk) */
+ sb=supabase.createClient(SB_URL,SB_KEY,{auth:{storage:sessionStorage}});
+ let recov=false;sb.auth.onAuthStateChange(ev=>{if(ev==='PASSWORD_RECOVERY')recov=true}); /* masuk lewat link reset password */
  const {data}=await sb.auth.getSession();
- if(data.session){user=data.session.user;await start()}else showLogin();
+ if(data.session){user=data.session.user;await start();if(recov){tab='set';render();toast('🔑 Isi password baru di kartu Ganti Email & Password',7000)}}else showLogin();
 })();
 
 /* Tooltip grafik: hover di PC, ketuk di tablet. Isi dari atribut data-tip, "|" = baris baru */
