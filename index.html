@@ -4,7 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Aplikasi BOS Digital</title>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script>/* tema dipasang sebelum halaman digambar supaya tidak berkedip; default mengikuti pengaturan perangkat */try{var t=localStorage.getItem('bos-tema');if(!t&&matchMedia('(prefers-color-scheme:dark)').matches)t='dark';if(t==='dark')document.documentElement.dataset.theme='dark'}catch(e){}</script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style id="pg">@page{margin:1cm;size:A4 portrait}</style>
 <style>
@@ -257,6 +258,119 @@ button.sbg{display:flex;align-items:center;justify-content:space-between;width:1
  body>*:not(#print-layer){display:none!important}
  #print-layer.show{position:static;overflow:visible;padding:0}
  .no-print{display:none!important}
+}
+
+/* ===== TEMA ZAMRUD & EMAS — hanya layar; lembar cetak (.bk .a2 .rp #print-layer) tidak tersentuh ===== */
+@media screen{
+:root{--g9:#052e26;--g8:#064e3b;--g7:#047857;--gold:#d4a017;--gold2:#f5c451;--cream:#fbf8f1;--ink:#10231d;--mut:#5b6b64;--line:#e4ece7;--ser:'Fraunces',Georgia,'Times New Roman',serif}
+body{color:var(--ink);background:var(--cream);background-image:radial-gradient(1100px 520px at 100% -8%,#a7f3d055,transparent 62%),radial-gradient(800px 480px at -8% 14%,#fde68a44,transparent 60%),radial-gradient(700px 500px at 50% 112%,#99f6e433,transparent 60%);font-feature-settings:"tnum" 1}
+/* header: gradien zamrud + pola bintang delapan halus */
+.top{position:sticky;overflow:hidden;background:linear-gradient(120deg,#052e26 0%,#064e3b 45%,#0f766e 100%);border-radius:0 0 28px 28px;box-shadow:0 18px 36px -18px #052e26e6}
+.top::before{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 10% -20%,#f5c45138,transparent 45%),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='44' viewBox='0 0 44 44'%3E%3Cg fill='none' stroke='%23fff' stroke-opacity='.09'%3E%3Crect x='9' y='9' width='26' height='26'/%3E%3Crect x='9' y='9' width='26' height='26' transform='rotate(45 22 22)'/%3E%3C/g%3E%3C/svg%3E")}
+.hdr{position:relative}
+.yr{background:#ffffff1f;border:1px solid #f5c45159}
+.yr select{color:var(--gold2)}
+/* sidebar */
+.sb{background:radial-gradient(420px 280px at 0 0,#10b9812e,transparent 70%),linear-gradient(190deg,#031f1a,#064e3b 72%,#053f33);border-right:1px solid #ffffff12}
+.sbh{padding:20px 16px 14px}
+.sb .logo{background:linear-gradient(135deg,var(--gold2),var(--gold));color:#3b2a00;border:0;box-shadow:0 10px 20px -8px #f5c451aa}
+.sbg{color:#f5c451b3}
+.sbi{min-height:44px;border-radius:14px;color:#c4ebdc}
+.sbi:hover{background:#ffffff17;color:#fff}
+.sbi.on{background:linear-gradient(135deg,#fff,#ecfdf5);color:#065f46;box-shadow:0 10px 20px -10px #000b}
+.sbi.on::before{background:var(--gold2)}
+/* judul halaman */
+main{padding:20px 14px 56px}
+.pgh{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 2px 18px}
+.pgh h1{margin:0;font-family:var(--ser);font-size:clamp(22px,3.4vw,30px);font-weight:700;letter-spacing:-.5px;line-height:1.15;color:var(--g8)}
+.pgh p{margin:5px 0 0;font-size:13px;color:var(--mut)}
+.chip{display:inline-flex;align-items:center;padding:6px 14px;border-radius:99px;font-size:12px;font-weight:800;color:#6b4a00;background:linear-gradient(135deg,#fff3c4,var(--gold2));box-shadow:0 8px 16px -10px #d4a017}
+/* kartu */
+.card{padding:16px;border-radius:20px;background:#fffffff2;box-shadow:0 1px 2px #10231d0d,0 20px 36px -22px #064e3b66}
+.ct{font-family:var(--ser);font-size:16px;font-weight:700;letter-spacing:-.2px;color:var(--g8)}
+.ct::before{background:linear-gradient(var(--gold2),var(--gold))}
+/* kartu ringkasan: tiap kartu punya warna sendiri; kartu merah (sisa pagu tipis) tetap merah */
+.stats{gap:12px}
+.sc{border-radius:20px;padding:18px 18px 16px;box-shadow:0 22px 32px -20px #064e3bb3}
+.sc b{font-family:var(--ser);font-size:22px;font-weight:700;letter-spacing:-.3px}
+.stats .sc:nth-child(1){background:linear-gradient(135deg,#065f46,#10b981)!important}
+.stats .sc:nth-child(2){background:linear-gradient(135deg,#075985,#0ea5e9)!important}
+.stats .sc:nth-child(3){background:linear-gradient(135deg,#92400e,#d97706)!important}
+.stats .sc:nth-child(4){background:linear-gradient(135deg,#4c1d95,#8b5cf6)!important}
+.stats .sc[style*="#dc2626"]{background:linear-gradient(135deg,#991b1b,#ef4444)!important}
+/* tombol & isian */
+.btn{min-height:42px;border-radius:14px}
+.ib{min-width:34px;min-height:34px}
+input,select{border-radius:14px;background:#fbfdfc}
+input:focus,select:focus{border-color:#10b981;box-shadow:0 0 0 4px #10b98126}
+.jt{border-radius:16px;padding:14px 8px;box-shadow:0 1px 2px #0001}
+.mb i,.mq i{border-radius:7px 7px 2px 2px;background-image:linear-gradient(180deg,#ffffff59,#0000 75%)!important}
+.al{border-radius:14px;background:linear-gradient(135deg,#fffbeb,#fef3c7)}
+/* halaman masuk */
+.login{padding-top:12vh}
+.login .card{border-top:5px solid var(--gold2);box-shadow:0 30px 60px -28px #064e3b99}
+.login .ct{font-family:var(--ser);font-size:24px!important;color:var(--g8)}
+/* header: saldo jadi pil yang terbaca (12px), bukan teks 10px */
+.top .hdr>div:last-child{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;font-size:12px!important;line-height:1.3!important}
+.top .hdr>div:last-child>div{background:#ffffff1c;border:1px solid #ffffff2e;border-radius:99px;padding:5px 12px;white-space:nowrap}
+.top .hdr>div:last-child b{color:var(--gold2)}
+/* fokus keyboard jelas di semua kontrol */
+.btn:focus-visible,.jt:focus-visible,.ib:focus-visible,.yr select:focus-visible,.al:focus-visible,.mc:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+/* layar sentuh (tablet/HP): target minimal 44px */
+@media(pointer:coarse){.btn{min-height:44px}.jt{min-height:44px}.ib{min-width:44px;min-height:44px}input,select{min-height:44px}input[type=checkbox]{min-height:0;width:22px;height:22px}}
+@media(hover:hover){.sc:hover{transform:translateY(-3px)}.sc{transition:transform .2s}}
+@media(max-width:700px){.top .hdr{flex-wrap:wrap}.top .hdr>div:last-child{flex:1 0 100%;justify-content:space-between;gap:8px}.top .hdr>div:last-child>div{flex:1;text-align:center;padding:4px 8px;font-size:11px}}
+@media(max-width:480px){main{padding:16px 10px 56px}.pgh h1{font-size:22px}}
+}
+
+/* ===== MODE GELAP — layar saja; lembar kertas (.bk .a2 .rp #print-layer) tetap putih seperti hasil cetak ===== */
+.tm .ic:nth-of-type(2),.tm .td{display:none}.tm b{font-weight:inherit}
+@media screen{
+html[data-theme=dark]{color-scheme:dark;--ink:#e6f2ec;--mut:#9db3a9;--line:#24403a;--g8:#6ee7b7;--cream:#0a1411}
+html[data-theme=dark] .tm .ic:nth-of-type(1),html[data-theme=dark] .tm .tl{display:none}
+html[data-theme=dark] .tm .ic:nth-of-type(2){display:block}html[data-theme=dark] .tm .td{display:inline}
+html[data-theme=dark] body{background:#0a1411;background-image:radial-gradient(1000px 500px at 100% -10%,#10b98122,transparent 60%),radial-gradient(800px 480px at -8% 20%,#d4a01714,transparent 60%)}
+html[data-theme=dark] .card,html[data-theme=dark] .modal>div,html[data-theme=dark] .jt{background:#12211c;color:var(--ink);box-shadow:0 1px 2px #0006,0 18px 32px -20px #000c;border-color:#1e3a32}
+html[data-theme=dark] .ct,html[data-theme=dark] .pgh h1{color:#a7f3d0}
+html[data-theme=dark] .pgh p,html[data-theme=dark] .em p,html[data-theme=dark] .mc span,html[data-theme=dark] .dc small{color:var(--mut)}
+html[data-theme=dark] .emh{color:var(--ink)}
+html[data-theme=dark] label{color:#b6cbc1}
+html[data-theme=dark] input,html[data-theme=dark] select,html[data-theme=dark] textarea{background:#0d1a16;border-color:#2a4a42;color:var(--ink)}
+html[data-theme=dark] input:disabled{background:#0a1411;color:#6f857b}
+html[data-theme=dark] input::placeholder{color:#6f857b}
+html[data-theme=dark] input:focus,html[data-theme=dark] select:focus{background:#10201b;border-color:#34d399;box-shadow:0 0 0 4px #34d3992e}
+html[data-theme=dark] .yr option{background:#064e3b}
+html[data-theme=dark] .info{background:#10241d;border-color:#1f4a3b;color:#a7f3d0}
+html[data-theme=dark] .tbx,html[data-theme=dark] .al{background:#2a2410;border-color:#5b4a14;color:#fcd34d}
+html[data-theme=dark] .al b{color:#fbbf24}
+html[data-theme=dark] .btn.gray{background:#1b2f29;color:#cfe3da}
+html[data-theme=dark] .bar,html[data-theme=dark] .sk{background:#1b2f29}
+html[data-theme=dark] .lg:hover,html[data-theme=dark] .mc:hover{background:#ffffff0f}
+html[data-theme=dark] .stk{background:linear-gradient(transparent,#0a1411 35%)}
+html[data-theme=dark] .emi circle:first-child{fill:#0f3d34}
+html[data-theme=dark] input[type=file]::file-selector-button{background:#134e44;color:#99f6e4}
+html[data-theme=dark] hr{border-color:#24403a}
+html[data-theme=dark] .login .ct{color:#a7f3d0}
+/* warna yang tertulis langsung di kode (style="...") dipetakan ke padanan gelap; isi kertas tidak ikut */
+html[data-theme=dark] :is([style*="background:#f8fafc"],[style*="background:#f9fafb"],[style*="background:#f3f4f6"]):not(.bk *,.a2 *,.rp *,#print-layer *){background:#0f1d19!important}
+html[data-theme=dark] :is([style*="background:#f0fdf4"]):not(.bk *,.a2 *,.rp *,#print-layer *){background:#10241d!important}
+html[data-theme=dark] :is([style*="background:#fefce8"],[style*="background:#fef3c7"]):not(.bk *,.a2 *,.rp *,#print-layer *){background:#2a2410!important}
+html[data-theme=dark] :is([style*="background:#fef2f2"]):not(.bk *,.a2 *,.rp *,#print-layer *){background:#2a1416!important}
+html[data-theme=dark] :is([style*="background:#faf5ff"]):not(.bk *,.a2 *,.rp *,#print-layer *){background:#1f1830!important}
+html[data-theme=dark] :is([style*="border-color:#fecaca"]):not(.bk *,.a2 *,.rp *,#print-layer *){border-color:#5b2428!important}
+html[data-theme=dark] :is([style*="border-color:#e9d5ff"]):not(.bk *,.a2 *,.rp *,#print-layer *){border-color:#4c3a72!important}
+html[data-theme=dark] :is([style*="solid #f0fdf4"],[style*="solid #f1f5f9"],[style*="solid #e5e7eb"]):not(.bk *,.a2 *,.rp *,#print-layer *){border-color:#1e3a32!important}
+html[data-theme=dark] :is([style*="color:#6b7280"],[style*="color:#64748b"],[style*="color:#9ca3af"]):not(.bk *,.a2 *,.rp *,#print-layer *){color:#9db3a9!important}
+html[data-theme=dark] :is([style*="color:#374151"],[style*="color:#1a2e1a"]):not(.bk *,.a2 *,.rp *,#print-layer *){color:#cfe3da!important}
+html[data-theme=dark] :is([style*="color:#166534"],[style*="color:#15803d"],[style*="color:#065f46"],[style*="color:#0f766e"]):not(.bk *,.a2 *,.rp *,#print-layer *){color:#6ee7b7!important}
+html[data-theme=dark] :is([style*="color:#dc2626"],[style*="color:#991b1b"]):not(.bk *,.a2 *,.rp *,#print-layer *){color:#fca5a5!important}
+html[data-theme=dark] :is([style*="color:#b45309"],[style*="color:#92400e"],[style*="color:#CA8A04"]):not(.bk *,.a2 *,.rp *,#print-layer *){color:#fbbf24!important}
+html[data-theme=dark] :is([style*="color:#581c87"]):not(.bk *,.a2 *,.rp *,#print-layer *){color:#d8b4fe!important}
+html[data-theme=dark] :is([style*="color:#0563c1"]):not(.bk *,.a2 *,.rp *,#print-layer *){color:#7dd3fc!important}
+html[data-theme=dark] :is([style*="background:#fff;"],[style$="background:#fff"],[style*="background:white"]):not(.bk *,.a2 *,.rp *,#print-layer *,.sc,.sc *,.btn){background:#12211c!important}
+html[data-theme=dark] .bd{filter:brightness(1.7) saturate(1.15)}
+html[data-theme=dark] label.btn{color:#fff}html[data-theme=dark] label.btn.gray{color:#cfe3da}
+html[data-theme=dark] .a2,html[data-theme=dark] .rp,html[data-theme=dark] .bk{background:#fff;color:#111;border-radius:6px}
 }
 </style>
 </head>
@@ -1527,6 +1641,8 @@ const IC={
  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/>',
  menu:'<path d="M4 6h16M4 12h16M4 18h16"/>',
  fold:'<path d="m11 17-5-5 5-5"/><path d="m18 17-5-5 5-5"/>',
+ moon:'<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
+ sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
  out:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>'};
 const ico=k=>`<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[k]}</svg>`;
 /* Empty state: ikon (kunci IC) di tengah ilustrasi, judul, teks (boleh HTML), tombol [[label,js]]. sm = versi kecil di dalam kartu */
@@ -1546,6 +1662,11 @@ function sbGrp(el){
  const c=el.parentElement,sh=c.classList.toggle('shut');el.setAttribute('aria-expanded',!sh);
  try{const o=JSON.parse(localStorage.getItem('bos-grup'))||{};o[c.dataset.g]=sh?1:0;localStorage.setItem('bos-grup',JSON.stringify(o))}catch(e){}
 }
+function temaTgl(){
+ const d=document.documentElement,dk=d.dataset.theme!=='dark';
+ if(dk)d.dataset.theme='dark';else delete d.dataset.theme;
+ try{localStorage.setItem('bos-tema',dk?'dark':'light')}catch(e){}
+}
 function sidebar(){
  let sv0={};try{sv0=JSON.parse(localStorage.getItem('bos-grup'))||{}}catch(e){}
  const tp=today(),bd={bkupj:tx.filter(t=>t.pajak&&t.pajak.tglStor>tp).length,rekap:tx.filter(t=>t.pajak&&!t.pajak.ntpn).length};
@@ -1556,9 +1677,17 @@ function sidebar(){
  return `<aside class="sb"><div class="sbh"><div class="logo">📒</div><div><b>BOS Digital</b><small>${esc(cfg.namaSekolah)}</small></div></div>
   <nav class="sbn">${nav}</nav>
   <div class="sbf"><button class="sbi" title="Ciutkan / lebarkan menu" aria-label="Ciutkan atau lebarkan menu" onclick="sbTgl()">${ico('fold')}<span>Ciutkan menu</span></button></div>
-  <div class="sbo"><div class="sbu" title="${esc(user&&user.email)}">${esc(user&&user.email)}</div><button class="sbi out" title="Keluar" onclick="logout()">${ico('out')}<span>Keluar</span></button></div></aside>`;
+  <div class="sbo"><button class="sbi tm" title="Ganti mode terang/gelap" aria-label="Ganti mode terang atau gelap" onclick="temaTgl()">${ico('moon')}${ico('sun')}<span><b class="tl">Mode gelap</b><b class="td">Mode terang</b></span></button><div class="sbu" title="${esc(user&&user.email)}">${esc(user&&user.email)}</div><button class="sbi out" title="Keluar" onclick="logout()">${ico('out')}<span>Keluar</span></button></div></aside>`;
+}
+/* Judul halaman di atas isi: Dashboard = sapaan menurut jam, menu lain = nama menu + grup */
+function pgHead(){
+ const h=new Date().getHours(),s=h<11?'pagi':h<15?'siang':h<18?'sore':'malam',c=TABS.find(t=>t[0]===tab)||TABS[0];
+ const nm=((cfg.bendahara||'').replace(/^(Drs?|Hj?|H)\.\s*/,'').split(/[ ,]/)[0])||'Bendahara';
+ const [t,p]=tab==='dashboard'?[`Selamat ${s}, ${esc(nm)} 👋`,new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+' · ringkasan dana BOS']:[c[1],`${c[2]} · ${esc(cfg.namaSekolah)}`];
+ return `<div class="pgh"><div><h1>${t}</h1><p>${p}</p></div></div>`;
 }
 function render(){
+ const sbS=document.querySelector('.sbn')?.scrollTop||0; /* innerHTML ganti sidebar: simpan posisi scroll menu */
  R=run(tx);const T=tot();
  try{sessionStorage.setItem(VK,JSON.stringify({tab,yr,setT}))}catch(e){}
  const views={dashboard:vDash,input:vInput,rkn:vRkn,riwayat:vRiw,bku:vBKU,bkupj:vPj,rekap:vRk,a2:()=>vList('a2'),a2t:()=>vList('a2t'),sp:()=>vList('sp'),und:()=>vRp('und'),hdr:()=>vRp('hdr'),dok:vDok,log:vLog,set:vSet};
@@ -1568,12 +1697,13 @@ function render(){
    <div class="yr"><span>TA</span><select onchange="switchYr(this.value)">${yearList().map(y=>`<option value="${y}"${String(y)===yr?' selected':''}>${y}</option>`).join('')}</select></div>
    <div style="text-align:right;font-size:10px;line-height:1.4"><div>Bank <b>${rp(T.bank)}</b></div><div>Tunai <b>${rp(T.tunai)}</b></div></div></div>
   </div>
- <main>${views[tab]()}</main></div></div>
+ <main>${pgHead()}${views[tab]()}</main></div></div>
  ${wipeAsk?`<div class="modal"><div><div style="font-size:22px;text-align:center">⚠️</div><div style="font-weight:700;text-align:center;margin:6px 0">Hapus SEMUA data ${yr}?</div><div style="font-size:12px;color:#6b7280;text-align:center;margin-bottom:10px">${tx.length} transaksi tahun ${yr} akan dihapus dan tidak bisa dibatalkan. Masukkan password akun untuk melanjutkan.</div>
  <input id="wp-pw" type="password" autocomplete="current-password" placeholder="Password" onkeydown="if(event.key==='Enter')doWipe()">
  ${wipeErr?`<div style="color:#dc2626;font-size:12px;font-weight:600;margin-top:6px">${esc(wipeErr)}</div>`:''}
  <div style="display:flex;gap:8px;margin-top:14px"><button class="btn gray" style="flex:1" onclick="wipeNo()">Batal</button><button class="btn red" style="flex:1" id="wp-ok" onclick="doWipe()">Hapus</button></div></div></div>`:''}
  ${delId?`<div class="modal"><div><div style="font-size:22px;text-align:center">🗑️</div><div style="font-weight:700;text-align:center;margin:6px 0">Hapus Transaksi?</div><div style="font-size:12px;color:#6b7280;text-align:center;margin-bottom:17px">Tidak dapat dibatalkan.</div><div style="display:flex;gap:8px"><button class="btn gray" style="flex:1" onclick="delId=null;render()">Batal</button><button class="btn red" style="flex:1" onclick="doDel('${delId}')">Hapus</button></div></div></div>`:''}`;
+ const nv=document.querySelector('.sbn');if(nv)nv.scrollTop=sbS;
 }
 
 /* ═════════ CETAK (CSS print browser, orientasi per dokumen) ═════════ */
