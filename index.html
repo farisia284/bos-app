@@ -215,6 +215,8 @@ button.sbg{display:flex;align-items:center;justify-content:space-between;width:1
 .rg{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:9px}
 
 
+.stk{position:sticky;bottom:0;z-index:50;padding:10px 0 4px;background:linear-gradient(transparent,#eef4f2 35%)}
+
 /* ===== LEMBAR (BKU, BKU Pajak, Rekap Pajak) — font cetak Arial ===== */
 .bk{font-family:Arial,Helvetica,sans-serif;color:#000;font-size:12px;background:#fff}
 .bk .tt{text-align:center;font-weight:700;font-size:14px;line-height:1.4}
@@ -468,7 +470,7 @@ function bkParse(txt){
  const o=JSON.parse(txt);
  if(o.app&&(o.app!=='bos-digital'||o.versi>1))throw 0; /* dari aplikasi lain / versi lebih baru */
  const d=o.app?o.data:o,ks=Object.keys(d).filter(k=>k.startsWith('bos4-'));
- if(!ks.length||ks.some(k=>k.startsWith('bos4-tx-')&&!Array.isArray(d[k])))throw 0;
+ if(!ks.length||ks.some(k=>/^bos4-(tx|dok)-/.test(k)&&!Array.isArray(d[k])))throw 0;
  return{d,ks,tgl:o.tanggal};
 }
 function exportDb(pre){
@@ -516,7 +518,7 @@ function lastGuru(){try{const g=localStorage.getItem(GK);return cfg&&(cfg.guruLi
 function saveDraft(){if(F&&!editId)try{sessionStorage.setItem(DK,JSON.stringify(F))}catch(e){}}
 function clearDraft(){try{sessionStorage.removeItem(DK)}catch(e){}}
 document.addEventListener('input',saveDraft);document.addEventListener('change',saveDraft);
-function initForm(){return{tanggal:today(),tglTrx:today(),tglStor:today(),ntpn:'',noBukti:'',kode:'',uraian:'',komponen:'2',jenis:'kredit',jumlah:'',ket:'',guruId:lastGuru(),tukang:false,pajakOn:false,pajakKode:'pph23',rapatOn:false,rp:newRp(),rek:''};}
+function initForm(){return{tid:uid(),tanggal:today(),tglTrx:today(),tglStor:today(),ntpn:'',noBukti:'',kode:'',uraian:'',komponen:'2',jenis:'kredit',jumlah:'',ket:'',guruId:lastGuru(),tukang:false,pajakOn:false,pajakKode:'pph23',rapatOn:false,rp:newRp(),rek:''};}
 /* No bukti belanja otomatis: 8/XI/2026. Urut per bulan menurut tanggal lunas bayar; tanggal sama -> yang lebih dulu diinput.
    Ganti bulan mulai lagi dari 1; tahun = tahun aktif. Dihitung ulang tiap simpan/hapus/muat, jadi selalu rapat dan berurutan. */
 /* Format bebas dari Pengaturan, mis. "15/BOSP/XI/2026" atau "BKT-007/2026": angka pertama = nomor awal, angka Romawi = bulan,
@@ -642,7 +644,7 @@ function doSubmit(again){
  const pajak=k&&f.pajakOn&&pi?{kode:pi.kode,persen:pi.persen,jumlah:Math.round(j*pi.persen/100),tglStor:sd,ntpn:f.ntpn.trim()}:null;
  const e={tanggal:f.tanggal,tglTrx:k?(f.tglTrx||f.tanggal):'',noBukti:f.noBukti,kode:k?f.kode.trim():'',uraian:f.uraian.trim(),komponen:k?f.komponen:'0',jenis:f.jenis,jumlah:j,ket:f.ket,guruId:k?f.guruId:'',tukang:k&&!!f.tukang,pajak,rapat:k&&f.rapatOn?{...f.rp}:null,rek:k?f.rek:''};
  /* dibuat = waktu pertama kali disimpan; otomatis, tidak bisa diubah, dipertahankan saat edit */
- const list=editId?tx.map(t=>t.id===editId?{...e,id:editId,dibuat:t.dibuat}:t):[...tx,{...e,id:uid(),dibuat:new Date().toISOString()}];
+ const list=editId?tx.map(t=>t.id===editId?{...e,id:editId,dibuat:t.dibuat}:t):[...tx,{...e,id:f.tid||uid(),dibuat:new Date().toISOString()}];
  if(!commit(list,editId?'✅ Transaksi diperbarui':'✅ Transaksi disimpan'))return;
  if(k&&f.guruId)try{localStorage.setItem(GK,f.guruId)}catch(e){}
  const keep=again===true&&!editId?{jenis:f.jenis,tanggal:f.tanggal,tglTrx:f.tglTrx,tglStor:f.tglStor,komponen:f.komponen,guruId:f.guruId,kode:f.kode,rek:f.rek}:null;
@@ -837,7 +839,7 @@ function vRiw(){
  const di=t=>t.dibuat||''; /* data lama tanpa waktu input diurutkan paling akhir */
  l.sort(rwS==='input'?(a,b)=>di(b).localeCompare(di(a))||b.tanggal.localeCompare(a.tanggal):(a,b)=>b.tanggal.localeCompare(a.tanggal)||di(b).localeCompare(di(a))||b.id.localeCompare(a.id));
  const s=j=>l.filter(t=>t.jenis===j).reduce((a,t)=>a+t.jumlah,0);
- const o=(v,cur,lb)=>`<option value="${v}"${v===cur?' selected':''}>${lb}</option>`;
+ const dk=dokSaved(),o=(v,cur,lb)=>`<option value="${v}"${v===cur?' selected':''}>${lb}</option>`;
  return `<div class="card"><div class="ct">🕐 Riwayat Transaksi ${yr}</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
    <select class="auto" onchange="rwJ=this.value;render()">${o('all',rwJ,'Semua jenis')}${o('debet',rwJ,'💰 Dana Masuk')}${o('tarik',rwJ,'🏧 Tarik Dana')}${o('kredit',rwJ,'💸 Belanja')}</select>
@@ -848,7 +850,7 @@ function vRiw(){
   return `<div class="card" style="border-left:4px solid ${c}"><div class="row" style="align-items:flex-start">
    <div style="min-width:0;flex:1"><div style="font-weight:700;font-size:13px">${esc(t.uraian)}</div>
     <div style="font-size:11px;color:#6b7280;margin-top:3px;line-height:1.6">📅 ${t.jenis==='kredit'?'Lunas bayar':'Tanggal'} <b>${tglS(t.tanggal)}</b> · ${t.dibuat?`🕐 Diinput <b>${tglJam(t.dibuat)}</b>`:'<span style="color:#9ca3af">🕐 Diinput: tidak tercatat (data lama)</span>'}${t.noBukti?` · ${esc(t.noBukti)}`:''}</div>
-    <div style="margin-top:4px"><span class="bd" style="background:${c}1a;color:${c}">${ic} ${lb}</span>${k?` <span class="bd" style="background:${k.color}22;color:${k.color}">${k.nama}</span>`:''}</div></div>
+    <div style="margin-top:4px"><span class="bd" style="background:${c}1a;color:${c}">${ic} ${lb}</span>${k?` <span class="bd" style="background:${k.color}22;color:${k.color}">${k.nama}</span>`:''}${dk.filter(x=>x.trx===t.id).map(x=>` <span class="bd" style="cursor:pointer;background:${DKC[x.t]}22;color:${DKC[x.t]}" onclick="dokOpenId('${x.id}')">📎 ${DOKN[x.t]}</span>`).join('')}</div></div>
    <div style="text-align:right;flex-shrink:0"><div style="font-weight:800;font-size:15px;color:${c}">${sg}${rp(t.jumlah)}</div>
     <div style="margin-top:6px"><button class="ib" title="Edit" onclick="doEdit('${t.id}')">✏️</button><button class="ib" title="Hapus" onclick="delId='${t.id}';render()">🗑️</button></div></div></div></div>`}).join('')
  :`<div class="card">${tx.length?empty('riwayat','Tidak ada transaksi yang cocok','Coba ganti filter jenis atau bulan.',[['Tampilkan semua',"rwJ='all';rwM='0';render()"]]):empty('riwayat','Belum ada transaksi','Dana masuk, tarik dana, dan belanja yang Anda catat akan tampil di sini beserta waktu inputnya.',[['➕ Catat transaksi',"go('input')"]])}</div>`}`;
@@ -901,7 +903,7 @@ function vInput(){
    <label>👤 Pelaksana Belanja</label>
    <select onchange="fset('guruId',this.value)"><option value="">— Pilih Guru/Pelaksana —</option>${(cfg.guruList||[]).map(g=>`<option value="${g.id}"${f.guruId===g.id?' selected':''}>${esc(g.nama)}${g.nip?` (${esc(g.nip)})`:''}</option>`).join('')}</select></div>
   <div class="card"><div class="ct">📎 Dokumen Tambahan</div>
-   <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px"><input type="checkbox" id="tkcb"${f.tukang?' checked':''} onchange="F.tukang=this.checked"><label for="tkcb" style="margin:0;cursor:pointer;font-size:12px">🔨 Pembayaran tukang — dicetak di menu <b>A2 Tukang</b> (tanda tangan hanya Kepala Sekolah &amp; Bendahara BOS)</label></div>${rapatBlk(f)}${ket}</div>`
+   <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px"><input type="checkbox" id="tkcb"${f.tukang?' checked':''} onchange="F.tukang=this.checked"><label for="tkcb" style="margin:0;cursor:pointer;font-size:12px">🔨 Pembayaran tukang — dicetak di menu <b>A2 Tukang</b> (tanda tangan hanya Kepala Sekolah &amp; Bendahara BOS)</label></div>${rapatBlk(f)}${dkBlk(f)}${ket}</div>`
  :`<div class="card"><div class="g2">
    <div><label>📅 Tanggal *</label>${dIn(f.tanggal,'fTgl(v)')}</div>
    <div><label>🔢 No. Bukti</label>${noInp}</div></div>${uraian}${jumlah}${ket}</div>`;
@@ -911,7 +913,7 @@ function vInput(){
   <div class="g3" style="margin-bottom:0">${jt.map(([v,l,c])=>`<button class="jt" style="border:2px solid ${f.jenis===v?c:'#e5e7eb'};color:${f.jenis===v?c:'#6b7280'};background:${f.jenis===v?c+'11':'#fff'}" onclick="setJ('${v}')">${l}</button>`).join('')}</div>
   <div class="info" style="margin-bottom:0">${note}</div></div>
  <div class="fg">${kartu}</div>
- <div style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px"><button class="btn" style="flex:1" onclick="doSubmit()">${editId?'💾 Perbarui':'💾 Simpan'}</button>${editId?'<button class="btn gray" onclick="cancelEdit()">Batal</button>':'<button class="btn teal" style="flex:1" onclick="doSubmit(true)">💾➕ Simpan &amp; Tambah Lagi</button>'}</div>`;
+ <div class="stk" style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px"><button class="btn" style="flex:1" onclick="doSubmit()">${editId?'💾 Perbarui':'💾 Simpan'}</button>${editId?'<button class="btn gray" onclick="cancelEdit()">Batal</button>':'<button class="btn teal" style="flex:1" onclick="doSubmit(true)">💾➕ Simpan &amp; Tambah Lagi</button>'}</div>`;
 }
 
 /* ─── UNDANGAN RAPAT & DAFTAR HADIR ───
@@ -1145,47 +1147,59 @@ function vRp(kind){
 }
 
 /* ─── DOKUMEN LAIN: daftar hadir, tanda terima honor, daftar upah. Kop gaya SP, huruf Times New Roman.
-   Isian tidak dikirim ke server (sekali cetak); hanya diingat per tab lewat sessionStorage.
-   Data = D.rows: tiap baris array teks, urutan sama dengan kolom di dokCols(). ─── */
-const DKK='bos-dok',DOKJ=['hadir','honor','upah'],DOKT=/^(ttd|tanda tangan)$/i;
-const DOKC={honor:['Nama','NIP','Jabatan','Jumlah (Rp)'],upah:['Nama','Volume','Satuan','Harga satuan (Rp)']};
-const DOKM={honor:[3],upah:[3]}; /* kolom rupiah: tampil dengan titik ribuan */
-const dokNew=t=>{const s=cfg.namaSekolah.toUpperCase();return{t,tgl:today(),n:'20',kolom:'TTD',pph:'5',rows:[[]],...{
+   Dokumen yang disimpan ada di kunci bos4-dok-<tahun> (ikut cadangan). Dokumen yang sedang dikerjakan = D,
+   diingat per tab lewat sessionStorage. D.rows = baris, tiap baris array teks; urutan sel = urutan kolom
+   (hadir: sel 0 = nama, sel i+1 = kolom ke-i). D._s = potret isi saat terakhir disimpan/dibuka, untuk deteksi
+   perubahan yang belum disimpan. ─── */
+const DKK='bos-dok',DOKS=y=>'bos4-dok-'+y,DOKJ=['hadir','honor','upah'],DOKT=/^(ttd|tanda tangan)$/i;
+const DOKN={hadir:'Daftar Hadir',honor:'Tanda Terima Honor',upah:'Daftar Upah'};
+const DOKC={honor:['Nama','Jabatan','Volume','Satuan','Honor sebelum pajak (Rp)','PPh 21 (%)'],upah:['Nama','Volume','Satuan','Harga satuan (Rp)']};
+const DOKM={honor:[4],upah:[3]};   /* kolom rupiah: tampil dengan titik ribuan */
+const DOKD={honor:[2,5],upah:[1]}; /* kolom angka desimal */
+const dokRow=(t,p)=>t==='honor'?['','','','','',String(p||'')]:[];
+const dokNew=t=>{const s=cfg.namaSekolah.toUpperCase();return{v:2,t,id:'',nama:'',dibuat:'',diubah:'',tgl:today(),n:'20',cols:['TTD'],pph:'5',rows:[dokRow(t,'5')],...{
  hadir:{judul:'DAFTAR HADIR PESERTA',sub:`${s} TAHUN ${yr}`},
  honor:{judul:'TANDA TERIMA HONOR KEGIATAN',sub:s},
  upah:{judul:'DAFTAR UPAH',sub:`${s} TAHUN ${yr}`}}[t]}};
 let D=null;
-/* hadir: kolom TTD tidak perlu diisi (nomor otomatis), jadi tidak punya kotak isian */
-const dokCols=d=>d.t==='hadir'?['Nama',...d.kolom.split(',').map(x=>x.trim()).filter(x=>x&&!DOKT.test(x))]:DOKC[d.t];
-const dokFilled=r=>r.some(x=>x&&String(x).trim());
+function dokSnap(){const{_s,...x}=D;return canon(x)}
+const dokDirty=()=>D._s!==dokSnap();
+function dokReset(t){D=dokNew(t);D._s=dokSnap()}
+const dokAsk=()=>!D||!dokDirty()||confirm('Dokumen ini punya perubahan yang belum disimpan. Lanjut tanpa menyimpan?');
+/* id dipakai di atribut onclick, jadi hanya huruf/angka yang diterima (cadangan dari luar bisa berisi apa saja) */
+const dokSaved=()=>{const l=ld(DOKS(yr));return Array.isArray(l)?l.filter(x=>x&&/^\w+$/.test(x.id)&&DOKN[x.t]&&Array.isArray(x.rows)&&Array.isArray(x.cols)):[]};
+/* kolom desimal (persen, volume): koma atau titik dianggap desimal; cleanNum menganggap titik sebagai ribuan sehingga "2.5" jadi 25 */
+const pc=s=>parseFloat(String(s).replace(',','.'))||0;
+/* kolom pajak honor (sel 5) berisi bawaan, jadi tidak dihitung sebagai "baris terisi" */
+const dokFilled=r=>r.some((x,j)=>x&&String(x).trim()&&!(D.t==='honor'&&j===5));
 const DC='border:1px solid #000;padding:6px 8px';
 const dTd=(v,a,x)=>`<td style="${DC};${a?'text-align:'+a:''}"${x||''}>${v}</td>`;
 function dokHtml(){
  const d=D,tg=d.tgl||today(),L=d.rows.filter(dokFilled).map(r=>r.map(y=>(y||'').trim()));
- const R=L.length?L:[[]],p=+d.pph||0,tr=c=>`<tr style="break-inside:avoid">${c}</tr>`;
- let head,rows;
+ const R=L.length?L:[[]],tr=c=>`<tr style="break-inside:avoid">${c}</tr>`;
+ let head,rows,cw,fs=13;
  if(d.t==='hadir'){
-  const cols=d.kolom.split(',').map(x=>x.trim()).filter(Boolean),n=L.length||Math.min(200,Math.max(1,+d.n||1));
-  head=['NO','NAMA',...cols];
-  rows=Array.from({length:n},(_,i)=>{const r=L[i]||[];let k=0;
-   return `<tr style="height:32px;break-inside:avoid">${dTd(i+1,'center')}${dTd(esc(r[0]))}${cols.map(h=>dTd(DOKT.test(h)?`${i+1}.`:esc(r[++k]))).join('')}</tr>`}).join('');
+  const cols=d.cols.map(x=>x.trim()),n=L.length||Math.min(200,Math.max(1,+d.n||1)),w=Math.min(22,Math.floor(60/Math.max(1,cols.length)));
+  head=['NO','NAMA',...cols];cw=[6,0,...cols.map(()=>w)];
+  rows=Array.from({length:n},(_,i)=>{const r=L[i]||[];
+   return `<tr style="height:32px;break-inside:avoid">${dTd(i+1,'center')}${dTd(esc(r[0]))}${cols.map((h,k)=>dTd(DOKT.test(h)?`${i+1}.`:esc(r[k+1]))).join('')}</tr>`}).join('');
  }else if(d.t==='honor'){
-  let a=0,b=0;
-  head=['NO','NAMA / NIP','JABATAN','JUMLAH',...(p?[`PPH 21 (${p}%)`]:[]),'JUMLAH TERIMA BERSIH','TANDA TANGAN'];
-  rows=R.map((r,i)=>{const j=cleanNum(r[3]),x=Math.round(j*p/100);a+=j;b+=x;
-   return tr(dTd(i+1,'center')+dTd(esc(r[0])+(r[1]?`<br>NIP. ${esc(r[1])}`:''))+dTd(esc(r[2]),'center')+dTd(num(j),'right')+(p?dTd(num(x),'right'):'')+dTd(num(j-x),'right')+dTd(''))}).join('')
-   +tr(dTd('JUMLAH','center',' colspan="3"')+dTd(num(a),'right')+(p?dTd(num(b),'right'):'')+dTd(num(a-b),'right')+dTd(''));
+  let a=0,b=0;fs=12;
+  head=['NO','NAMA','JABATAN','VOLUME','SATUAN','HONOR (SEBELUM PAJAK)','PPH 21 (%)','PAJAK','JUMLAH BERSIH','TANDA TANGAN'];cw=[4,0,10,9,8,12,6,10,11,11];
+  rows=R.map((r,i)=>{const j=cleanNum(r[4]),p=pc(r[5]),x=Math.round(j*p/100);a+=j;b+=x;
+   return tr(dTd(i+1,'center')+dTd(esc(r[0]))+dTd(esc(r[1]),'center')+dTd(esc(r[2]),'center')+dTd(esc(r[3]),'center')+dTd(num(j),'right')+dTd(p.toLocaleString('id-ID')+'%','center')+dTd(num(x),'right')+dTd(num(j-x),'right')+dTd(''))}).join('')
+   +tr(dTd('JUMLAH','center',' colspan="5"')+dTd(num(a),'right')+dTd('')+dTd(num(b),'right')+dTd(num(a-b),'right')+dTd(''));
  }else{
   let s=0;
-  head=['NO','NAMA','VOLUME','SATUAN','HARGA SATUAN','JUMLAH BERSIH','TTD'];
-  rows=R.map((r,i)=>{const h=cleanNum(r[3]),j=Math.round(cleanNum(r[1])*h);s+=j;
+  head=['NO','NAMA','VOLUME','SATUAN','HARGA SATUAN','JUMLAH BERSIH','TTD'];cw=[5,0,9,9,16,17,12];
+  rows=R.map((r,i)=>{const h=cleanNum(r[3]),j=Math.round(pc(r[1])*h);s+=j;
    return tr(dTd(i+1,'center')+dTd(esc(r[0]))+dTd(esc(r[1]),'center')+dTd(esc(r[2]),'center')+dTd(num(h),'right')+dTd(num(j),'right')+dTd(`${i+1}.`))}).join('')
    +tr(dTd('JUMLAH','center',' colspan="5"')+dTd(num(s),'right')+dTd(''));
  }
  const nm=(n,i)=>`<div style="font-weight:700;text-decoration:underline">${esc(n)||'(___________________)'}</div><div>NIP. ${esc(i)||'………………………………'}</div>`;
  const ttd=d.t==='hadir'?ttdHtml(tg):`<div style="display:flex;justify-content:space-between;text-align:center;margin:30px 8% 0;break-inside:avoid"><div><div>Mengetahui,</div><div>Kepala Sekolah</div><div style="height:64px"></div>${nm(cfg.kepsek,cfg.nipKepsek)}</div><div><div>${esc(cfg.tempat||cfg.kota)}, ${tglN(tg)}</div><div>Bendahara BOS</div><div style="height:64px"></div>${nm(cfg.bendahara,cfg.nipBendahara)}</div></div>`;
  return `<div class="rp" style="${rpFont};line-height:1.4">${kopSp()}<div style="text-align:center;margin-top:24px;font-weight:700"><div style="text-decoration:underline">${esc(d.judul)}</div><div>${esc(d.sub)}</div></div>
- <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:14px"><thead><tr>${head.map(h=>`<th style="${DC}">${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>${ttd}</div>`;
+ ${d.t==='honor'?'<style>.dk td,.dk th{padding:6px 3px!important}</style>':''}<table class="dk" style="width:100%;table-layout:fixed;border-collapse:collapse;font-size:${fs}px;margin-top:14px"><colgroup>${cw.map(w=>`<col${w?` style="width:${w}%"`:''}>`).join('')}</colgroup><thead><tr>${head.map(h=>`<th style="${DC}">${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>${ttd}</div>`;
 }
 /* hasil hitung + peringatan per baris; baris yang masih kosong semua tidak diberi peringatan */
 function dokCalc(i){
@@ -1193,59 +1207,133 @@ function dokCalc(i){
  if(!dokFilled(r))return '';
  if(!(r[0]||'').trim())return w('nama belum diisi');
  if(d.t==='honor'){
-  const j=cleanNum(r[3]),p=+d.pph||0,x=Math.round(j*p/100);
-  return j?`Diterima bersih <b>${rp(j-x)}</b>${p?` (PPh ${rp(x)})`:''}`:w('jumlah belum diisi');
+  const j=cleanNum(r[4]),p=pc(r[5]),x=Math.round(j*p/100);
+  return j?`Diterima bersih <b>${rp(j-x)}</b> (pajak ${rp(x)})`:w('honor belum diisi');
  }
  if(d.t==='upah'){
-  const v=cleanNum(r[1]),h=cleanNum(r[3]);
+  const v=pc(r[1]),h=cleanNum(r[3]);
   return v&&h?`Jumlah <b>${rp(Math.round(v*h))}</b>`:w('volume / harga belum diisi');
  }
  return '';
 }
 function dokRowsHtml(){
- const d=D,cs=dokCols(d),mo=DOKM[d.t]||[];
+ const d=D,mo=DOKM[d.t]||[],dc=DOKD[d.t]||[];
+ const F=d.t==='hadir'?[['Nama',0],...d.cols.map((c,i)=>[c||'(kolom '+(i+1)+')',i+1]).filter((x,i)=>!DOKT.test(d.cols[i]))]:DOKC[d.t].map((c,j)=>[c,j]);
  return d.rows.map((r,i)=>`<div style="border:1.5px solid #e2e8f0;border-radius:14px;padding:8px 10px 10px;margin-bottom:8px;background:#f8fafc">
   <div class="row" style="margin-bottom:2px"><b style="font-size:12px">${i+1}.</b><span id="dk-c${i}" style="font-size:12px;flex:1;text-align:right">${dokCalc(i)}</span><button class="ib" title="Hapus baris" aria-label="Hapus baris ${i+1}" onclick="dokDel(${i})">🗑️</button></div>
-  <div class="fg3">${cs.map((c,j)=>{const m=mo.includes(j),v=r[j]||'';
-   return `<div><label style="margin-top:2px">${esc(c)}</label><input value="${esc(m&&v?(+v).toLocaleString('id-ID'):v)}"${m?' inputmode="numeric"':d.t==='upah'&&j===1?' inputmode="decimal"':''} oninput="dokSet(${i},${j},this,${m})"></div>`}).join('')}</div></div>`).join('');
+  <div class="fg3">${F.map(([c,j])=>{const m=mo.includes(j),v=r[j]||'';
+   return `<div><label style="margin-top:2px">${esc(c)}</label><input value="${esc(m&&v?(+v).toLocaleString('id-ID'):v)}"${m?' inputmode="numeric"':dc.includes(j)?' inputmode="decimal"':''} oninput="dokSet(${i},${j},this,${m})"></div>`}).join('')}</div></div>`).join('');
 }
 function dokSet(i,j,el,m){(D.rows[i]=D.rows[i]||[])[j]=m?String(fmt(el)||''):el.value;dokUpd()}
 function dokRowsUpd(){const e=$('dk-rows');if(e)e.innerHTML=dokRowsHtml()}
 function dokAdd(){
- D.rows.push([]);dokRowsUpd();dokUpd();
+ D.rows.push(dokRow(D.t,D.pph));dokRowsUpd();dokUpd();
  const b=document.querySelectorAll('#dk-rows .fg3');b[b.length-1].querySelector('input').focus();
 }
-function dokDel(i){D.rows.splice(i,1);if(!D.rows.length)D.rows.push([]);dokRowsUpd();dokUpd()}
+function dokDel(i){D.rows.splice(i,1);if(!D.rows.length)D.rows.push(dokRow(D.t,D.pph));dokRowsUpd();dokUpd()}
+/* kolom daftar hadir: tambah / ganti nama / hapus (sel baris ikut terhapus) */
+const dokColsHtml=()=>D.cols.map((c,i)=>`<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px"><input value="${esc(c)}" aria-label="Nama kolom ${i+1}" oninput="dokColSet(${i},this.value)"><button class="ib" title="Hapus kolom" aria-label="Hapus kolom ${i+1}" onclick="dokColDel(${i})">🗑️</button></div>`).join('');
+const dokColsUpd=()=>{const e=$('dk-cols');if(e)e.innerHTML=dokColsHtml()};
+function dokColSet(i,v){D.cols[i]=v;dokRowsUpd();dokUpd()}
+function dokColAdd(){
+ if(D.cols.length>=8){toast('⚠️ Maksimal 8 kolom supaya tabel tetap terbaca');return}
+ D.cols.push('Kolom '+(D.cols.length+1));dokColsUpd();dokRowsUpd();dokUpd();
+}
+function dokColDel(i){D.cols.splice(i,1);D.rows.forEach(r=>r.splice(i+1,1));dokColsUpd();dokRowsUpd();dokUpd()}
 /* tempel banyak nama sekaligus (hadir): satu nama per baris, baris kosong lama dibuang */
 function dokPaste(){
  const e=$('dk-ps'),a=e.value.split('\n').map(x=>x.trim()).filter(Boolean);if(!a.length)return;
  D.rows=[...D.rows.filter(dokFilled),...a.map(x=>[x])];e.value='';dokRowsUpd();dokUpd();
 }
+const dokStat=()=>D.id?(dokDirty()?'<span style="color:#b45309;font-weight:700">⚠️ Ada perubahan yang belum disimpan</span>':'<span style="color:#15803d;font-weight:700">✅ Tersimpan online</span>'):'<span style="color:#6b7280">🆕 Dokumen baru, belum disimpan</span>';
 function dokUpd(){
  try{sessionStorage.setItem(DKK,JSON.stringify(D))}catch(e){}
  const e=$('dk-pv');if(e)e.innerHTML=dokHtml();
+ const s=$('dk-st');if(s)s.innerHTML=dokStat();
  D.rows.forEach((_,i)=>{const c=$('dk-c'+i);if(c)c.innerHTML=dokCalc(i)});
 }
-function dokType(t){D={...dokNew(t)};dokUpd();render()}
+/* ── simpan / buka / duplikat / hapus ── */
+function dokSave(){
+ const d=D,l=dokSaved(),now=new Date().toISOString(),has=l.some(x=>x.id===d.id);
+ d.nama=(d.nama||'').trim()||d.judul;
+ const it={...clone(d),id:has?d.id:uid(),dibuat:has?d.dibuat:now,diubah:now};delete it._s;
+ sv(DOKS(yr),has?l.map(x=>x.id===it.id?it:x):[...l,it]);
+ addLog(has?'ubah':'tambah',`Dokumen ${DOKN[d.t]}: ${d.nama}`);
+ D={...it};D._s=dokSnap();dokUpd();render();toast('✅ Dokumen disimpan');
+}
+function dokOpenId(id){
+ const x=dokSaved().find(y=>y.id===id);if(!x||!dokAsk())return;
+ D={...clone(x)};D._s=dokSnap();dokUpd();tab='dok';render();scrollTo(0,0);
+}
+function dokDup(id){
+ const x=dokSaved().find(y=>y.id===id);if(!x||!dokAsk())return;
+ D={...clone(x),id:'',dibuat:'',diubah:'',nama:x.nama+' (salinan)'};D._s='';dokUpd();render();scrollTo(0,0);
+ toast('📄 Salinan dibuka. Ubah isinya lalu tekan Simpan');
+}
+function dokDelDoc(id){
+ const x=dokSaved().find(y=>y.id===id);if(!x||!confirm(`Hapus dokumen "${x.nama}"? Tidak bisa dibatalkan.`))return;
+ sv(DOKS(yr),dokSaved().filter(y=>y.id!==id));addLog('hapus',`Dokumen ${DOKN[x.t]}: ${x.nama}`);
+ if(D.id===id){D.id='';D.dibuat='';D.diubah='';D._s=''} /* isi tetap ada di layar, tapi kini belum tersimpan */
+ dokUpd();render();
+}
+/* Daftar nama (hadir / honor / upah) terhubung ke satu belanja: doc.trx = id belanja.
+   shortcut: belanja dihapus -> dokumen tetap ada (terlihat di Dokumen Lain), tidak ikut terhapus. */
+const DKC={hadir:'#0369a1',honor:'#CA8A04',upah:'#ea580c'};
+const dokTot=x=>x.rows.reduce((s,r)=>s+(x.t==='honor'?cleanNum(r[4]):x.t==='upah'?Math.round(pc(r[1])*cleanNum(r[3])):0),0);
+function dokFor(tp){
+ if(!dokAsk())return;
+ dokReset(tp);Object.assign(D,{trx:editId||F.tid,nama:F.uraian.trim(),tgl:F.tanggal});D._s=dokSnap();
+ dokUpd();tab='dok';render();scrollTo(0,0);
+}
+function dokPakai(id){
+ const x=dokSaved().find(y=>y.id===id),n=x?dokTot(x):0;
+ if(!n){toast('⚠️ Total daftar masih 0');return}
+ F.jumlah=String(n);if(x.t==='honor'){F.pajakOn=true;F.pajakKode='pph21'}
+ render();toast('✅ Jumlah belanja diisi dari daftar');
+}
+/* Panel di kartu Dokumen Tambahan (Input): daftar yang sudah terhubung + tombol tambah */
+function dkBlk(f){
+ const id=editId||f.tid,l=dokSaved().filter(x=>x.trx===id),j=cleanNum(f.jumlah),pp=fP('pph21').persen;
+ const row=x=>{
+  const n=x.rows.filter(r=>r.some(y=>y&&String(y).trim())).length,t=dokTot(x),c=DKC[x.t],d=j-t;
+  const w=m=>`<span style="color:#dc2626">⚠️ ${m}</span>`;
+  const ok=x.t==='hadir'?'':!t?w('total daftar masih 0'):!j?`Total daftar <b>${rp(t)}</b>`:d===0?'<span style="color:#15803d">✅ Total sama dengan jumlah belanja</span>':w(`Total daftar ${rp(t)}, selisih ${rp(Math.abs(d))} ${d>0?'di bawah':'di atas'} jumlah belanja`);
+  const pj=x.t==='honor'&&x.rows.some(r=>cleanNum(r[4])&&pc(r[5])!==pp)?'<br>'+w(`ada PPh 21 selain ${pp}%, pajak belanja memakai ${pp}%`):'';
+  return `<div class="row" style="padding:8px 10px;margin-top:6px;border:1px solid ${c}55;border-left:4px solid ${c};border-radius:10px;background:${c}0d;align-items:flex-start"><div style="min-width:0;flex:1"><div style="font-weight:700;font-size:12px;word-break:break-word">${esc(x.nama)}</div><div style="font-size:11px;color:#6b7280">${DOKN[x.t]} · ${n} baris</div><div style="font-size:11px;margin-top:2px">${ok}${pj}</div></div><div style="flex-shrink:0;display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end"><button class="btn gray" style="padding:6px 10px;font-size:12px" onclick="dokOpenId('${x.id}')">Buka</button>${x.t!=='hadir'&&t?`<button class="btn teal" style="padding:6px 10px;font-size:12px" onclick="dokPakai('${x.id}')">Pakai total</button>`:''}</div></div>`;
+ };
+ const add=(tp,ic)=>`<button class="btn" style="padding:7px 12px;font-size:12px;background:${DKC[tp]}" onclick="dokFor('${tp}')">${ic} ${DOKN[tp]}</button>`;
+ return `<div style="margin-top:10px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px"><div style="font-size:12px;font-weight:700;margin-bottom:6px">📋 Daftar nama untuk belanja ini</div>${l.length?l.map(row).join(''):'<div style="font-size:11px;color:#6b7280">Belum ada. Judul dan tanggal terisi otomatis dari belanja ini.</div>'}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${add('hadir','📝')}${add('honor','💵')}${add('upah','🔨')}</div><div style="font-size:11px;color:#6b7280;margin-top:6px">Isi daftar, tekan Simpan di editor, lalu ↩ Kembali ke Input. Belanja tidak perlu disimpan dulu.</div></div>`;
+}
+function dokBaru(){if(dokAsk()){dokReset(D.t);dokUpd();render()}}
+function dokType(t){if(dokAsk()){dokReset(t);dokUpd()}render()}
 function vDok(){
- if(!D){try{D=JSON.parse(sessionStorage.getItem(DKK))}catch(e){}if(!D||!DOKJ.includes(D.t)||!Array.isArray(D.rows))D=dokNew('hadir')}
- const d=D,t=d.t,o=(v,l)=>`<option value="${v}"${t===v?' selected':''}>${l}</option>`;
+ if(!D){try{D=JSON.parse(sessionStorage.getItem(DKK))}catch(e){}
+  if(!D||D.v!==2||!DOKJ.includes(D.t)||!Array.isArray(D.rows)||!Array.isArray(D.cols))dokReset('hadir')}
+ const d=D,t=d.t,sv0=dokSaved(),o=(v,l)=>`<option value="${v}"${t===v?' selected':''}>${l}</option>`;
  const f=(l,k,x)=>`<label>${l}</label><input value="${esc(d[k])}" oninput="D.${k}=this.value;dokUpd()"${x||''}>`;
- return `<div class="card"><div class="ct">📄 Dokumen Lain</div>
-  <div class="info">Kop mengikuti SP, huruf Times New Roman. Isi kotak di bawah; hasil cetak tampil paling bawah.</div>
-  <label>Jenis dokumen</label><select onchange="dokType(this.value)">${o('hadir','Daftar Hadir (peserta / guru / lomba)')}${o('honor','Tanda Terima Honor')}${o('upah','Daftar Upah (buruh / tukang)')}</select>
+ const jml=x=>x.rows.filter(r=>r.some(y=>y&&String(y).trim())).length;
+ return `<div class="card"><div class="ct">📁 Dokumen Tersimpan ${yr}</div>
+  ${sv0.length?[...sv0].sort((a,b)=>(b.diubah||'').localeCompare(a.diubah||'')).map(x=>`<div class="row" style="padding:8px 0;border-bottom:1px solid #f0fdf4;align-items:flex-start"><div style="min-width:0;flex:1"><div style="font-weight:700;font-size:13px;word-break:break-word">${esc(x.nama)}${x.id===d.id?' <span class="bd" style="background:#ccfbf1;color:#0f766e">dibuka</span>':''}</div><div style="font-size:11px;color:#6b7280">${DOKN[x.t]} · ${jml(x)} baris · diubah ${tglJam(x.diubah)}${x.trx?` · 🔗 ${esc((tx.find(b=>b.id===x.trx)||{uraian:'belanja belum disimpan / sudah dihapus'}).uraian)}`:''}</div></div>
+   <div style="flex-shrink:0;display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end"><button class="btn gray" style="padding:6px 10px;font-size:12px" onclick="dokOpenId('${x.id}')">Buka</button><button class="btn gray" style="padding:6px 10px;font-size:12px" onclick="dokDup('${x.id}')">Duplikat</button><button class="ib" title="Hapus dokumen" aria-label="Hapus dokumen ${esc(x.nama)}" onclick="dokDelDoc('${x.id}')">🗑️</button></div></div>`).join('')
+  :empty('dok','Belum ada dokumen tersimpan','Isi dokumen di bawah, beri nama, lalu tekan Simpan. Dokumen tersimpan bisa dibuka, diduplikat, dan dicetak lagi kapan saja.',[],1)}</div>
+ <div class="card"><div class="ct">📄 Dokumen Lain</div>
+  <div class="info">Kop mengikuti SP, huruf Times New Roman. <span id="dk-st">${dokStat()}</span></div>
+  ${d.trx?(()=>{const b=tx.find(x=>x.id===d.trx),cur=d.trx===(editId||F.tid);return `<div class="info" style="background:#faf5ff;border-color:#e9d5ff;color:#581c87">🔗 Terkait belanja: <b>${esc(b?b.uraian:cur?(F.uraian||'(uraian belum diisi)')+' (belum disimpan)':'(belanja sudah dihapus)')}</b>${cur?' <button class="btn gray" style="padding:5px 10px;font-size:12px;margin-left:6px" onclick="go('+"'input'"+')">↩ Kembali ke Input</button>':''}</div>`})():''}
+  <label>Jenis dokumen</label><select onchange="dokType(this.value)"${d.trx?' disabled':''}>${o('hadir','Daftar Hadir (peserta / pendamping / guru)')}${o('honor','Tanda Terima Honor')}${o('upah','Daftar Upah (buruh / tukang)')}</select>
+  ${f('Nama dokumen (untuk daftar tersimpan)','nama')}
   <div class="g2"><div>${f('Judul','judul')}</div><div>${f('Baris kedua (kegiatan / tahun)','sub')}</div></div>
   <label>📅 Tanggal tanda tangan</label>${dIn(d.tgl,"D.tgl=v;dokUpd()")}
-  ${t==='hadir'?`<div class="g2"><div><label>Kolom setelah nama (pisahkan koma)</label><input value="${esc(d.kolom)}" oninput="D.kolom=this.value;dokUpd();dokRowsUpd()"></div><div>${f('Jumlah baris jika daftar kosong','n',' inputmode="numeric"')}</div></div>
-   <div style="font-size:11px;color:#6b7280;margin-top:4px">Kolom bernama TTD / Tanda Tangan terisi nomor otomatis. Contoh: <b>Jabatan, TTD</b> atau <b>Sesi 1, Sesi 2</b>. Daftar dibiarkan kosong = lembar kosong.</div>`:''}
-  ${t==='honor'?f('PPh 21 (%), isi 0 jika tanpa pajak','pph',' inputmode="decimal"'):''}</div>
+  ${t==='hadir'?`<label>Kolom setelah Nama</label><div id="dk-cols">${dokColsHtml()}</div>
+   <button class="btn blue" style="padding:7px 12px;font-size:12px" onclick="dokColAdd()">+ Tambah kolom</button>
+   <div style="font-size:11px;color:#6b7280;margin:6px 0 8px">Kolom bernama TTD / Tanda Tangan terisi nomor otomatis. Contoh: Jabatan, Kelas, Cabang Lomba, Sesi 1.</div>${f('Jumlah baris jika daftar kosong (lembar kosong)','n',' inputmode="numeric"')}`:''}
+  ${t==='honor'?f('PPh 21 bawaan untuk baris baru (%), bisa diubah per baris','pph',' inputmode="decimal"'):''}</div>
  <div class="card"><div class="ct">${t==='hadir'?'👥 Daftar Nama':t==='honor'?'💵 Penerima Honor':'🔨 Daftar Pekerja'}</div>
   <div id="dk-rows">${dokRowsHtml()}</div>
   <button class="btn blue" onclick="dokAdd()">+ Tambah baris</button>
   ${t==='hadir'?`<details style="margin-top:12px"><summary style="cursor:pointer;font-size:12px;color:#6b7280">📋 Tempel banyak nama sekaligus</summary>
    <textarea id="dk-ps" rows="5" style="width:100%;border:1.5px solid #e2e8f0;border-radius:12px;padding:10px 12px;font:inherit;font-size:14px" placeholder="Satu nama per baris"></textarea>
    <button class="btn teal" style="margin-top:6px" onclick="dokPaste()">Tambahkan ke daftar</button></details>`:''}
-  <div style="margin-top:14px"><button class="btn" onclick="doPrint(dokHtml())">🖨️ Cetak</button></div></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><button class="btn" style="flex:1" onclick="dokSave()">💾 Simpan</button><button class="btn gold" onclick="doPrint(dokHtml())">🖨️ Cetak</button><button class="btn gray" onclick="dokBaru()">📄 Dokumen baru</button></div></div>
  <div class="card wrap"><div id="dk-pv" style="min-width:680px">${dokHtml()}</div></div>`;
 }
 
