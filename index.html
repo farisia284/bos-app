@@ -629,6 +629,7 @@ function upd(){
  const j=cleanNum(F.jumlah),pi=fP(F.pajakKode),pj=F.jenis==='kredit'&&F.pajakOn&&pi?Math.round(j*pi.persen/100):0;
  if($('f-pj'))$('f-pj').textContent=rp(pj);
  if($('f-net'))$('f-net').textContent='Net: '+rp(j-pj);
+ if($('dk-blk'))$('dk-blk').innerHTML=dkBody(F);
  if($('f-sum'))$('f-sum').innerHTML=sumHtml();
 }
 function doSubmit(again){
@@ -1250,6 +1251,7 @@ function dokUpd(){
  try{sessionStorage.setItem(DKK,JSON.stringify(D))}catch(e){}
  const e=$('dk-pv');if(e)e.innerHTML=dokHtml();
  const s=$('dk-st');if(s)s.innerHTML=dokStat();
+ const l=$('dk-lk');if(l)l.innerHTML=dokLink();
  D.rows.forEach((_,i)=>{const c=$('dk-c'+i);if(c)c.innerHTML=dokCalc(i)});
 }
 /* ── simpan / buka / duplikat / hapus ── */
@@ -1259,31 +1261,75 @@ function dokSave(){
  const it={...clone(d),id:has?d.id:uid(),dibuat:has?d.dibuat:now,diubah:now};delete it._s;
  sv(DOKS(yr),has?l.map(x=>x.id===it.id?it:x):[...l,it]);
  addLog(has?'ubah':'tambah',`Dokumen ${DOKN[d.t]}: ${d.nama}`);
- D={...it};D._s=dokSnap();dokUpd();render();toast('✅ Dokumen disimpan');
+ D={...it};D._s=dokSnap();dkM=String(dokMo(D));dokUpd();render();toast('✅ Dokumen disimpan');
 }
 function dokOpenId(id){
  const x=dokSaved().find(y=>y.id===id);if(!x||!dokAsk())return;
- D={...clone(x)};D._s=dokSnap();dokUpd();tab='dok';render();scrollTo(0,0);
+ D={...clone(x)};D._s=dokSnap();dkV='e';dkM=String(dokMo(D));
+ const b=bkuOf(D.trx); /* honor satu penerima: ikut angka BKU terbaru, tinggal Simpan */
+ if(D.t==='honor'&&b&&b.j&&D.rows.filter(dokFilled).length<2&&dokMsg(D).length){dokSama();toast('🔗 Honor disamakan dengan BKU. Tekan Simpan.',4000)}
+ dokUpd();tab='dok';render();scrollTo(0,0);
 }
 function dokDup(id){
  const x=dokSaved().find(y=>y.id===id);if(!x||!dokAsk())return;
- D={...clone(x),id:'',dibuat:'',diubah:'',nama:x.nama+' (salinan)'};D._s='';dokUpd();render();scrollTo(0,0);
+ D={...clone(x),id:'',trx:'',dibuat:'',diubah:'',nama:x.nama+' (salinan)'};D._s='';dkV='e';dkM=String(dokMo(D));dokUpd();render();scrollTo(0,0);
  toast('📄 Salinan dibuka. Ubah isinya lalu tekan Simpan');
 }
 function dokDelDoc(id){
  const x=dokSaved().find(y=>y.id===id);if(!x||!confirm(`Hapus dokumen "${x.nama}"? Tidak bisa dibatalkan.`))return;
  sv(DOKS(yr),dokSaved().filter(y=>y.id!==id));addLog('hapus',`Dokumen ${DOKN[x.t]}: ${x.nama}`);
- if(D.id===id){D.id='';D.dibuat='';D.diubah='';D._s=''} /* isi tetap ada di layar, tapi kini belum tersimpan */
- dokUpd();render();
+ if(D&&D.id===id){D.id='';D.dibuat='';D.diubah='';D._s='';dokUpd()} /* isi tetap ada di editor, tapi kini belum tersimpan */
+ render();
 }
-/* Daftar nama (hadir / honor / upah) terhubung ke satu belanja: doc.trx = id belanja.
-   shortcut: belanja dihapus -> dokumen tetap ada (terlihat di Dokumen Lain), tidak ikut terhapus. */
-const DKC={hadir:'#0369a1',honor:'#CA8A04',upah:'#ea580c'};
+/* Daftar nama (hadir / honor / upah) terhubung ke satu belanja BKU: doc.trx = id belanja.
+   Honor sebelum pajak di daftar = jumlah belanja BKU; pajak daftar = pajak BKU. Nilai BKU diambil langsung (bkuOf),
+   jadi tidak ada salinan angka yang bisa basi.
+   shortcut: belanja dihapus -> dokumen tetap ada, tampil dengan peringatan. */
+const DKC={hadir:'#0369a1',honor:'#CA8A04',upah:'#ea580c'},DOKI={hadir:'📝',honor:'💵',upah:'🔨'};
+let dkM=nowM,dkV='l'; /* bulan terpilih di daftar; 'l' = tampilan daftar, 'e' = editor */
 const dokTot=x=>x.rows.reduce((s,r)=>s+(x.t==='honor'?cleanNum(r[4]):x.t==='upah'?Math.round(pc(r[1])*cleanNum(r[3])):0),0);
+const dokMo=x=>+getMonth((x.tgl||'').slice(0,10))||+nowM;
+/* nilai BKU dari belanja terhubung; belanja yang sedang diisi di Input (F) lebih baru daripada yang tersimpan */
+function bkuOf(id){
+ if(!id)return null;
+ const t=tx.find(x=>x.id===id);
+ if(id===editId||id===F.tid){const pi=F.pajakOn&&fP(F.pajakKode);return{nama:F.uraian,j:cleanNum(F.jumlah),pp:pi?pi.persen:0,baru:!t}}
+ return t?{nama:t.uraian,j:t.jumlah,pp:t.pajak?t.pajak.persen:0}:null;
+}
+/* daftar selisih antara dokumen dan BKU; kosong = sama */
+function dokMsg(x){
+ const b=bkuOf(x.trx);if(!b||x.t==='hadir')return[];
+ if(!b.j)return['jumlah belanja di BKU belum diisi'];
+ const t=dokTot(x),m=[];
+ if(!t)return['total daftar masih 0'];
+ if(t!==b.j)m.push(`total daftar ${rp(t)}, BKU ${rp(b.j)} (selisih ${rp(Math.abs(b.j-t))})`);
+ if(x.t==='honor'){
+  const p=x.rows.reduce((s,r)=>s+Math.round(cleanNum(r[4])*pc(r[5])/100),0),q=Math.round(b.j*b.pp/100);
+  if(p!==q)m.push(`pajak daftar ${rp(p)}, pajak BKU ${rp(q)}${b.pp?'':' (belanja belum dicentang Ada Pajak)'}`);
+ }
+ return m;
+}
+function dokCek(x){
+ if(x.t==='hadir'||!bkuOf(x.trx))return '';
+ const m=dokMsg(x);
+ return m.length?m.map(y=>`<span style="color:#dc2626">⚠️ ${y}</span>`).join('<br>'):'<span style="color:#15803d">✅ Sama dengan BKU</span>';
+}
+/* honor: isi penerima tunggal dari BKU (honor sebelum pajak + PPh %). Banyak penerima: diatur manual, total dicek. */
+function dokSama(){
+ const b=bkuOf(D.trx),f=D.rows.filter(dokFilled);
+ if(!b||!b.j||D.t!=='honor')return;
+ if(f.length>1){toast('⚠️ Penerima lebih dari satu: atur honor tiap orang sampai total sama dengan BKU',5000);return}
+ const r=f[0]||D.rows[0];r[4]=String(b.j);r[5]=String(b.pp||D.pph);
+ dokRowsUpd();dokUpd();
+}
 function dokFor(tp){
+ if(!editId&&!F.tid)F.tid=uid(); /* draft lama belum punya id */
  if(!dokAsk())return;
- dokReset(tp);Object.assign(D,{trx:editId||F.tid,nama:F.uraian.trim(),tgl:F.tanggal});D._s=dokSnap();
- dokUpd();tab='dok';render();scrollTo(0,0);
+ const id=editId||F.tid,b=bkuOf(id);
+ dokReset(tp);Object.assign(D,{trx:id,nama:F.uraian.trim(),tgl:F.tanggal,pph:String((b&&b.pp)||5)});
+ D.rows=[dokRow(tp,D.pph)];
+ if(tp==='honor')dokSama();
+ D._s=dokSnap();dkV='e';dkM=String(dokMo(D));dokUpd();tab='dok';render();scrollTo(0,0);
 }
 function dokPakai(id){
  const x=dokSaved().find(y=>y.id===id),n=x?dokTot(x):0;
@@ -1291,38 +1337,80 @@ function dokPakai(id){
  F.jumlah=String(n);if(x.t==='honor'){F.pajakOn=true;F.pajakKode='pph21'}
  render();toast('✅ Jumlah belanja diisi dari daftar');
 }
-/* Panel di kartu Dokumen Tambahan (Input): daftar yang sudah terhubung + tombol tambah */
-function dkBlk(f){
- const id=editId||f.tid,l=dokSaved().filter(x=>x.trx===id),j=cleanNum(f.jumlah),pp=fP('pph21').persen;
+/* Panel di kartu Dokumen Tambahan (Input): daftar yang sudah terhubung + tombol tambah. Isi diperbarui langsung saat jumlah diubah (upd). */
+function dkBody(f){
+ const id=editId||f.tid,l=dokSaved().filter(x=>x.trx===id);
  const row=x=>{
-  const n=x.rows.filter(r=>r.some(y=>y&&String(y).trim())).length,t=dokTot(x),c=DKC[x.t],d=j-t;
-  const w=m=>`<span style="color:#dc2626">⚠️ ${m}</span>`;
-  const ok=x.t==='hadir'?'':!t?w('total daftar masih 0'):!j?`Total daftar <b>${rp(t)}</b>`:d===0?'<span style="color:#15803d">✅ Total sama dengan jumlah belanja</span>':w(`Total daftar ${rp(t)}, selisih ${rp(Math.abs(d))} ${d>0?'di bawah':'di atas'} jumlah belanja`);
-  const pj=x.t==='honor'&&x.rows.some(r=>cleanNum(r[4])&&pc(r[5])!==pp)?'<br>'+w(`ada PPh 21 selain ${pp}%, pajak belanja memakai ${pp}%`):'';
-  return `<div class="row" style="padding:8px 10px;margin-top:6px;border:1px solid ${c}55;border-left:4px solid ${c};border-radius:10px;background:${c}0d;align-items:flex-start"><div style="min-width:0;flex:1"><div style="font-weight:700;font-size:12px;word-break:break-word">${esc(x.nama)}</div><div style="font-size:11px;color:#6b7280">${DOKN[x.t]} · ${n} baris</div><div style="font-size:11px;margin-top:2px">${ok}${pj}</div></div><div style="flex-shrink:0;display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end"><button class="btn gray" style="padding:6px 10px;font-size:12px" onclick="dokOpenId('${x.id}')">Buka</button>${x.t!=='hadir'&&t?`<button class="btn teal" style="padding:6px 10px;font-size:12px" onclick="dokPakai('${x.id}')">Pakai total</button>`:''}</div></div>`;
+  const n=x.rows.filter(r=>r.some(y=>y&&String(y).trim())).length,c=DKC[x.t];
+  return `<div class="row" style="padding:8px 10px;margin-top:6px;border:1px solid ${c}55;border-left:4px solid ${c};border-radius:10px;background:${c}0d;align-items:flex-start"><div style="min-width:0;flex:1"><div style="font-weight:700;font-size:12px;word-break:break-word">${esc(x.nama)}</div><div style="font-size:11px;color:#6b7280">${DOKN[x.t]} · ${n} baris</div><div style="font-size:11px;margin-top:2px">${dokCek(x)}</div></div><div style="flex-shrink:0;display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end"><button class="btn gray" style="padding:6px 10px;font-size:12px" onclick="dokOpenId('${x.id}')">Buka</button>${dokTot(x)&&dokMsg(x).length?`<button class="btn teal" style="padding:6px 10px;font-size:12px" onclick="dokPakai('${x.id}')">Pakai total</button>`:''}</div></div>`;
  };
- const add=(tp,ic)=>`<button class="btn" style="padding:7px 12px;font-size:12px;background:${DKC[tp]}" onclick="dokFor('${tp}')">${ic} ${DOKN[tp]}</button>`;
- return `<div style="margin-top:10px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px"><div style="font-size:12px;font-weight:700;margin-bottom:6px">📋 Daftar nama untuk belanja ini</div>${l.length?l.map(row).join(''):'<div style="font-size:11px;color:#6b7280">Belum ada. Judul dan tanggal terisi otomatis dari belanja ini.</div>'}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${add('hadir','📝')}${add('honor','💵')}${add('upah','🔨')}</div><div style="font-size:11px;color:#6b7280;margin-top:6px">Isi daftar, tekan Simpan di editor, lalu ↩ Kembali ke Input. Belanja tidak perlu disimpan dulu.</div></div>`;
+ const add=tp=>`<button class="btn" style="padding:7px 12px;font-size:12px;background:${DKC[tp]}" onclick="dokFor('${tp}')">${DOKI[tp]} ${DOKN[tp]}</button>`;
+ return `<div style="font-size:12px;font-weight:700;margin-bottom:6px">📋 Daftar nama untuk belanja ini</div>${l.length?l.map(row).join(''):'<div style="font-size:11px;color:#6b7280">Belum ada. Honor sebelum pajak dan PPh terisi otomatis dari jumlah dan pajak belanja ini.</div>'}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${add('hadir')}${add('honor')}${add('upah')}</div><div style="font-size:11px;color:#6b7280;margin-top:6px">Isi daftar, tekan Simpan di editor, lalu ↩ Kembali ke Input. Belanja tidak perlu disimpan dulu.</div>`;
+}
+const dkBlk=f=>`<div id="dk-blk" style="margin-top:10px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px">${dkBody(f)}</div>`;
+
+/* ── tampilan daftar, per bulan seperti A2 / SP ── */
+function dokMonth(){
+ const bm={};
+ dokSaved().sort((a,b)=>(a.tgl||'').localeCompare(b.tgl||'')||(a.dibuat||'').localeCompare(b.dibuat||'')).forEach(x=>{const m=dokMo(x);(bm[m]=bm[m]||[]).push(x)});
+ const av=Object.keys(bm).map(Number).sort((a,b)=>a-b),m=av.includes(+dkM)?+dkM:av[av.length-1];
+ return{bm,av,m,list:m?bm[m]:[]};
+}
+const dokHtmlOf=x=>{const o=D;D=x;try{return dokHtml()}finally{D=o}}; /* dokHtml membaca D global */
+function dokCetak(id){const x=dokSaved().find(y=>y.id===id);if(x)doPrint(dokHtmlOf(x))}
+function dokCetakSemua(){
+ const l=dokMonth().list;if(!l.length){toast('Tidak ada dokumen');return}
+ doPrint(l.map((x,i)=>`<div style="${i<l.length-1?'break-after:page;page-break-after:always':''}">${dokHtmlOf(x)}</div>`).join(''));
+}
+function dokList(){dkV='l';render();scrollTo(0,0)}
+function dokBuat(tp){if(!dokAsk())return;dokReset(tp);dkV='e';render();scrollTo(0,0)}
+function dokCard(x,i){
+ const c=DKC[x.t],n=x.rows.filter(r=>r.some(y=>y&&String(y).trim())).length,t=dokTot(x),b=x.trx?bkuOf(x.trx):null;
+ const st=x.t==='hadir'||!x.trx?'':b?dokCek(x):'<span style="color:#dc2626">⚠️ belanja terhubung sudah dihapus</span>';
+ const bt='padding:7px 12px;font-size:12px';
+ return `<div class="card" style="border-left:4px solid ${c}"><div class="row" style="align-items:flex-start">
+  <div style="min-width:0;flex:1"><div style="font-weight:700;font-size:13px;word-break:break-word">${i+1}. ${esc(x.nama)}</div>
+   <div style="font-size:11px;color:#6b7280;margin-top:2px">${DOKI[x.t]} ${DOKN[x.t]} · ${n} baris · TTD ${x.tgl?tgl(x.tgl):'-'}${t?` · total ${rp(t)}`:''}</div>
+   ${b?`<div style="font-size:11px;margin-top:2px">🔗 BKU: ${esc(b.nama)}</div>`:''}${st?`<div style="font-size:11px;margin-top:2px">${st}</div>`:''}</div>
+  <div style="flex-shrink:0;display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;max-width:210px"><button class="btn gold" style="${bt}" onclick="dokCetak('${x.id}')">🖨️ Cetak</button><button class="btn gray" style="${bt}" onclick="dokOpenId('${x.id}')">Buka</button><button class="btn gray" style="${bt}" onclick="dokDup('${x.id}')">Duplikat</button><button class="ib" title="Hapus dokumen" aria-label="Hapus dokumen ${esc(x.nama)}" onclick="dokDelDoc('${x.id}')">🗑️</button></div></div></div>`;
+}
+function vDokList(){
+ const {bm,av,m,list}=dokMonth();
+ const nb=tp=>`<button class="btn" style="padding:8px 14px;font-size:13px;background:${DKC[tp]}" onclick="dokBuat('${tp}')">${DOKI[tp]} ${DOKN[tp]}</button>`;
+ return `<div class="card row" style="flex-wrap:wrap"><div class="ct" style="margin:0">📄 Dokumen Lain — per Dokumen</div>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label style="margin:0">📅 Bulan:</label>
+  <select class="auto" onchange="dkM=this.value;render()">${av.length?av.map(x=>`<option value="${x}"${x===m?' selected':''}>${MO[x]} (${bm[x].length} dok)</option>`).join(''):'<option>— Belum ada dokumen —</option>'}</select>
+  <button class="btn" onclick="dokCetakSemua()"${list.length?'':' disabled'}>🖨️ Cetak Semua (${list.length})</button></div></div>
+ <div class="card"><div class="ct">➕ Buat dokumen baru</div><div style="display:flex;gap:8px;flex-wrap:wrap">${nb('hadir')}${nb('honor')}${nb('upah')}</div>
+  <div style="font-size:11px;color:#6b7280;margin-top:8px">Honor atau upah yang ada belanjanya: buat dari menu <b>Input</b> (kartu Dokumen Tambahan). Honor dan pajak terisi otomatis dari BKU.</div></div>
+ ${list.length?list.map(dokCard).join(''):`<div class="card">${empty('dok',av.length?'Tidak ada dokumen di bulan ini':'Belum ada dokumen tersimpan','Daftar hadir, tanda terima honor, dan daftar upah yang disimpan tampil di sini per bulan, bisa dibuka, diduplikat, dan dicetak lagi.',[],1)}</div>`}`;
+}
+/* kotak "terhubung ke BKU" di editor; diperbarui tiap perubahan lewat dokUpd */
+function dokLink(){
+ if(!D.trx)return '';
+ const b=bkuOf(D.trx),cur=D.trx===(editId||F.tid);
+ if(!b)return `<div class="info" style="background:#fef2f2;border-color:#fecaca;color:#991b1b">🔗 Belanja terhubung sudah dihapus. Dokumen tetap bisa dicetak.</div>`;
+ const pj=Math.round(b.j*b.pp/100),bt='padding:6px 10px;font-size:12px';
+ return `<div class="info" style="background:#faf5ff;border-color:#e9d5ff;color:#581c87">🔗 <b>Terhubung ke BKU:</b> ${esc(b.nama||'(uraian belum diisi)')}${b.baru?' (belanja belum disimpan)':''}
+  <div style="margin-top:4px">Jumlah belanja <b>${rp(b.j)}</b>${D.t==='honor'?(b.pp?` · PPh ${b.pp}% = <b>${rp(pj)}</b> · bersih <b>${rp(b.j-pj)}</b>`:' · belum ada pajak di BKU'):''}</div>
+  <div style="margin-top:4px">${dokCek(D)}</div>
+  <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${D.t==='honor'?`<button class="btn blue" style="${bt}" onclick="dokSama()">🔄 Samakan dengan BKU</button>`:''}${cur?`<button class="btn gray" style="${bt}" onclick="go('input')">↩ Kembali ke Input</button>`:''}</div></div>`;
 }
 function dokBaru(){if(dokAsk()){dokReset(D.t);dokUpd();render()}}
 function dokType(t){if(dokAsk()){dokReset(t);dokUpd()}render()}
-function vDok(){
+function vDok(){return dkV==='e'?vDokEd():vDokList()}
+function vDokEd(){
  if(!D){try{D=JSON.parse(sessionStorage.getItem(DKK))}catch(e){}
   if(!D||D.v!==2||!DOKJ.includes(D.t)||!Array.isArray(D.rows)||!Array.isArray(D.cols))dokReset('hadir')}
- const d=D,t=d.t,sv0=dokSaved(),o=(v,l)=>`<option value="${v}"${t===v?' selected':''}>${l}</option>`;
+ const d=D,t=d.t,o=(v,l)=>`<option value="${v}"${t===v?' selected':''}>${l}</option>`;
  const f=(l,k,x)=>`<label>${l}</label><input value="${esc(d[k])}" oninput="D.${k}=this.value;dokUpd()"${x||''}>`;
- const jml=x=>x.rows.filter(r=>r.some(y=>y&&String(y).trim())).length;
- return `<div class="card"><div class="ct">📁 Dokumen Tersimpan ${yr}</div>
-  ${sv0.length?[...sv0].sort((a,b)=>(b.diubah||'').localeCompare(a.diubah||'')).map(x=>`<div class="row" style="padding:8px 0;border-bottom:1px solid #f0fdf4;align-items:flex-start"><div style="min-width:0;flex:1"><div style="font-weight:700;font-size:13px;word-break:break-word">${esc(x.nama)}${x.id===d.id?' <span class="bd" style="background:#ccfbf1;color:#0f766e">dibuka</span>':''}</div><div style="font-size:11px;color:#6b7280">${DOKN[x.t]} · ${jml(x)} baris · diubah ${tglJam(x.diubah)}${x.trx?` · 🔗 ${esc((tx.find(b=>b.id===x.trx)||{uraian:'belanja belum disimpan / sudah dihapus'}).uraian)}`:''}</div></div>
-   <div style="flex-shrink:0;display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end"><button class="btn gray" style="padding:6px 10px;font-size:12px" onclick="dokOpenId('${x.id}')">Buka</button><button class="btn gray" style="padding:6px 10px;font-size:12px" onclick="dokDup('${x.id}')">Duplikat</button><button class="ib" title="Hapus dokumen" aria-label="Hapus dokumen ${esc(x.nama)}" onclick="dokDelDoc('${x.id}')">🗑️</button></div></div>`).join('')
-  :empty('dok','Belum ada dokumen tersimpan','Isi dokumen di bawah, beri nama, lalu tekan Simpan. Dokumen tersimpan bisa dibuka, diduplikat, dan dicetak lagi kapan saja.',[],1)}</div>
- <div class="card"><div class="ct">📄 Dokumen Lain</div>
-  <div class="info">Kop mengikuti SP, huruf Times New Roman. <span id="dk-st">${dokStat()}</span></div>
-  ${d.trx?(()=>{const b=tx.find(x=>x.id===d.trx),cur=d.trx===(editId||F.tid);return `<div class="info" style="background:#faf5ff;border-color:#e9d5ff;color:#581c87">🔗 Terkait belanja: <b>${esc(b?b.uraian:cur?(F.uraian||'(uraian belum diisi)')+' (belum disimpan)':'(belanja sudah dihapus)')}</b>${cur?' <button class="btn gray" style="padding:5px 10px;font-size:12px;margin-left:6px" onclick="go('+"'input'"+')">↩ Kembali ke Input</button>':''}</div>`})():''}
+ return `<div class="card row" style="flex-wrap:wrap"><button class="btn gray" style="padding:8px 14px;font-size:13px" onclick="dokList()">← Daftar Dokumen</button><span id="dk-st" style="font-size:12px">${dokStat()}</span></div>
+ <div class="card"><div class="ct">${DOKI[t]} ${DOKN[t]}</div>
+  <div id="dk-lk">${dokLink()}</div>
   <label>Jenis dokumen</label><select onchange="dokType(this.value)"${d.trx?' disabled':''}>${o('hadir','Daftar Hadir (peserta / pendamping / guru)')}${o('honor','Tanda Terima Honor')}${o('upah','Daftar Upah (buruh / tukang)')}</select>
   ${f('Nama dokumen (untuk daftar tersimpan)','nama')}
   <div class="g2"><div>${f('Judul','judul')}</div><div>${f('Baris kedua (kegiatan / tahun)','sub')}</div></div>
-  <label>📅 Tanggal tanda tangan</label>${dIn(d.tgl,"D.tgl=v;dokUpd()")}
+  <label>📅 Tanggal tanda tangan (menentukan bulan di daftar)</label>${dIn(d.tgl,"D.tgl=v;dokUpd()")}
   ${t==='hadir'?`<label>Kolom setelah Nama</label><div id="dk-cols">${dokColsHtml()}</div>
    <button class="btn blue" style="padding:7px 12px;font-size:12px" onclick="dokColAdd()">+ Tambah kolom</button>
    <div style="font-size:11px;color:#6b7280;margin:6px 0 8px">Kolom bernama TTD / Tanda Tangan terisi nomor otomatis. Contoh: Jabatan, Kelas, Cabang Lomba, Sesi 1.</div>${f('Jumlah baris jika daftar kosong (lembar kosong)','n',' inputmode="numeric"')}`:''}
@@ -1333,7 +1421,7 @@ function vDok(){
   ${t==='hadir'?`<details style="margin-top:12px"><summary style="cursor:pointer;font-size:12px;color:#6b7280">📋 Tempel banyak nama sekaligus</summary>
    <textarea id="dk-ps" rows="5" style="width:100%;border:1.5px solid #e2e8f0;border-radius:12px;padding:10px 12px;font:inherit;font-size:14px" placeholder="Satu nama per baris"></textarea>
    <button class="btn teal" style="margin-top:6px" onclick="dokPaste()">Tambahkan ke daftar</button></details>`:''}
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><button class="btn" style="flex:1" onclick="dokSave()">💾 Simpan</button><button class="btn gold" onclick="doPrint(dokHtml())">🖨️ Cetak</button><button class="btn gray" onclick="dokBaru()">📄 Dokumen baru</button></div></div>
+  <div class="stk" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;background:linear-gradient(transparent,#fff 35%)"><button class="btn" style="flex:1" onclick="dokSave()">💾 Simpan</button><button class="btn gold" onclick="doPrint(dokHtml())">🖨️ Cetak</button><button class="btn gray" onclick="dokBaru()">📄 Dokumen baru</button></div></div>
  <div class="card wrap"><div id="dk-pv" style="min-width:680px">${dokHtml()}</div></div>`;
 }
 
