@@ -803,7 +803,7 @@ function vDash(){
  const pt=pc(T.real);
  const serap=`<div class="card"><div class="row" style="font-size:13px;margin-bottom:7px;flex-wrap:wrap"><span>🎯 Pagu terpakai</span><b>${cfg.pagu>0?`${rp(T.real)} dari ${rp(cfg.pagu)} (${pt.toFixed(1)}%)`:'Pagu belum diisi — isi di Pengaturan → Manajemen BOS'}</b></div>
   <div class="bar"><i style="width:${pt}%;background:${pt>90?'#dc2626':'#0f766e'}"></i></div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn" onclick="go('input')">➕ Input Belanja</button><button class="btn blue" onclick="go('a2')">📄 Cetak A2</button></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn" onclick="go('input')">➕ Input Belanja</button></div>
   <div style="font-size:11px;color:#64748b;margin-top:8px">Saldo awal bank <b>${rp(sa.bank)}</b>, tunai <b>${rp(sa.tunai)}</b></div></div>`;
  const tabs=[['bulan','📈 Per Bulan',`  <div class="card"><div class="ct">📈 Dana Masuk vs Belanja ${yr}</div>
    <div class="mchart">${mm.map(x=>`<div class="mc" data-tip="${MO[x.m]} ${yr}|Dana masuk ${rp(x.i)}|Belanja ${rp(x.o)}"><div class="mb"><i style="height:${h(x.i)};background:#0369a1;--i:${x.m}"></i><i style="height:${h(x.o)};background:#f59e0b;--i:${x.m}"></i></div><span>${MO[x.m].slice(0,3)}</span></div>`).join('')}</div>
