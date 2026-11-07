@@ -1145,28 +1145,30 @@ function vRp(kind){
 }
 
 /* ─── DOKUMEN LAIN: daftar hadir, tanda terima honor, daftar upah. Kop gaya SP, huruf Times New Roman.
-   Isian tidak dikirim ke server (sekali cetak); hanya diingat per tab lewat sessionStorage. ─── */
-const DKK='bos-dok';
-const DOKP={
- hadir:{h:'Nama | isi kolom 1 | isi kolom 2 … (kolom TTD terisi nomor otomatis; kosongkan untuk lembar kosong)',x:'Budi Siswantoro, S.Pd | Guru Kelas'},
- honor:{h:'Nama | NIP | Jabatan | Jumlah (Rp)',x:'Budi Siswantoro, S.Pd | 19930918 202221 1 005 | Proktor | 100000'},
- upah:{h:'Nama | Volume | Satuan | Harga satuan (Rp)',x:'Budi | 4 | OH | 105000'}};
-const dokNew=t=>{const s=cfg.namaSekolah.toUpperCase();return{t,tgl:today(),n:'20',baris:'',kolom:'TTD',pph:'5',...{
+   Isian tidak dikirim ke server (sekali cetak); hanya diingat per tab lewat sessionStorage.
+   Data = D.rows: tiap baris array teks, urutan sama dengan kolom di dokCols(). ─── */
+const DKK='bos-dok',DOKJ=['hadir','honor','upah'],DOKT=/^(ttd|tanda tangan)$/i;
+const DOKC={honor:['Nama','NIP','Jabatan','Jumlah (Rp)'],upah:['Nama','Volume','Satuan','Harga satuan (Rp)']};
+const DOKM={honor:[3],upah:[3]}; /* kolom rupiah: tampil dengan titik ribuan */
+const dokNew=t=>{const s=cfg.namaSekolah.toUpperCase();return{t,tgl:today(),n:'20',kolom:'TTD',pph:'5',rows:[[]],...{
  hadir:{judul:'DAFTAR HADIR PESERTA',sub:`${s} TAHUN ${yr}`},
  honor:{judul:'TANDA TERIMA HONOR KEGIATAN',sub:s},
  upah:{judul:'DAFTAR UPAH',sub:`${s} TAHUN ${yr}`}}[t]}};
 let D=null;
+/* hadir: kolom TTD tidak perlu diisi (nomor otomatis), jadi tidak punya kotak isian */
+const dokCols=d=>d.t==='hadir'?['Nama',...d.kolom.split(',').map(x=>x.trim()).filter(x=>x&&!DOKT.test(x))]:DOKC[d.t];
+const dokFilled=r=>r.some(x=>x&&String(x).trim());
 const DC='border:1px solid #000;padding:6px 8px';
 const dTd=(v,a,x)=>`<td style="${DC};${a?'text-align:'+a:''}"${x||''}>${v}</td>`;
 function dokHtml(){
- const d=D,tg=d.tgl||today(),L=d.baris.split('\n').map(x=>x.trim()).filter(Boolean).map(x=>x.split('|').map(y=>y.trim()));
+ const d=D,tg=d.tgl||today(),L=d.rows.filter(dokFilled).map(r=>r.map(y=>(y||'').trim()));
  const R=L.length?L:[[]],p=+d.pph||0,tr=c=>`<tr style="break-inside:avoid">${c}</tr>`;
  let head,rows;
  if(d.t==='hadir'){
   const cols=d.kolom.split(',').map(x=>x.trim()).filter(Boolean),n=L.length||Math.min(200,Math.max(1,+d.n||1));
   head=['NO','NAMA',...cols];
-  rows=Array.from({length:n},(_,i)=>{const r=L[i]||[];
-   return `<tr style="height:32px;break-inside:avoid">${dTd(i+1,'center')}${dTd(esc(r[0]))}${cols.map((h,j)=>dTd(/^(ttd|tanda tangan)$/i.test(h)?`${i+1}.`:esc(r[j+1]))).join('')}</tr>`}).join('');
+  rows=Array.from({length:n},(_,i)=>{const r=L[i]||[];let k=0;
+   return `<tr style="height:32px;break-inside:avoid">${dTd(i+1,'center')}${dTd(esc(r[0]))}${cols.map(h=>dTd(DOKT.test(h)?`${i+1}.`:esc(r[++k]))).join('')}</tr>`}).join('');
  }else if(d.t==='honor'){
   let a=0,b=0;
   head=['NO','NAMA / NIP','JABATAN','JUMLAH',...(p?[`PPH 21 (${p}%)`]:[]),'JUMLAH TERIMA BERSIH','TANDA TANGAN'];
@@ -1185,22 +1187,65 @@ function dokHtml(){
  return `<div class="rp" style="${rpFont};line-height:1.4">${kopSp()}<div style="text-align:center;margin-top:24px;font-weight:700"><div style="text-decoration:underline">${esc(d.judul)}</div><div>${esc(d.sub)}</div></div>
  <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:14px"><thead><tr>${head.map(h=>`<th style="${DC}">${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>${ttd}</div>`;
 }
-function dokUpd(){try{sessionStorage.setItem(DKK,JSON.stringify(D))}catch(e){}const e=$('dk-pv');if(e)e.innerHTML=dokHtml()}
-function dokType(t){D={...dokNew(t),baris:''};dokUpd();render()}
+/* hasil hitung + peringatan per baris; baris yang masih kosong semua tidak diberi peringatan */
+function dokCalc(i){
+ const d=D,r=d.rows[i]||[],w=m=>`<span style="color:#dc2626;font-weight:700">⚠️ ${m}</span>`;
+ if(!dokFilled(r))return '';
+ if(!(r[0]||'').trim())return w('nama belum diisi');
+ if(d.t==='honor'){
+  const j=cleanNum(r[3]),p=+d.pph||0,x=Math.round(j*p/100);
+  return j?`Diterima bersih <b>${rp(j-x)}</b>${p?` (PPh ${rp(x)})`:''}`:w('jumlah belum diisi');
+ }
+ if(d.t==='upah'){
+  const v=cleanNum(r[1]),h=cleanNum(r[3]);
+  return v&&h?`Jumlah <b>${rp(Math.round(v*h))}</b>`:w('volume / harga belum diisi');
+ }
+ return '';
+}
+function dokRowsHtml(){
+ const d=D,cs=dokCols(d),mo=DOKM[d.t]||[];
+ return d.rows.map((r,i)=>`<div style="border:1.5px solid #e2e8f0;border-radius:14px;padding:8px 10px 10px;margin-bottom:8px;background:#f8fafc">
+  <div class="row" style="margin-bottom:2px"><b style="font-size:12px">${i+1}.</b><span id="dk-c${i}" style="font-size:12px;flex:1;text-align:right">${dokCalc(i)}</span><button class="ib" title="Hapus baris" aria-label="Hapus baris ${i+1}" onclick="dokDel(${i})">🗑️</button></div>
+  <div class="fg3">${cs.map((c,j)=>{const m=mo.includes(j),v=r[j]||'';
+   return `<div><label style="margin-top:2px">${esc(c)}</label><input value="${esc(m&&v?(+v).toLocaleString('id-ID'):v)}"${m?' inputmode="numeric"':d.t==='upah'&&j===1?' inputmode="decimal"':''} oninput="dokSet(${i},${j},this,${m})"></div>`}).join('')}</div></div>`).join('');
+}
+function dokSet(i,j,el,m){(D.rows[i]=D.rows[i]||[])[j]=m?String(fmt(el)||''):el.value;dokUpd()}
+function dokRowsUpd(){const e=$('dk-rows');if(e)e.innerHTML=dokRowsHtml()}
+function dokAdd(){
+ D.rows.push([]);dokRowsUpd();dokUpd();
+ const b=document.querySelectorAll('#dk-rows .fg3');b[b.length-1].querySelector('input').focus();
+}
+function dokDel(i){D.rows.splice(i,1);if(!D.rows.length)D.rows.push([]);dokRowsUpd();dokUpd()}
+/* tempel banyak nama sekaligus (hadir): satu nama per baris, baris kosong lama dibuang */
+function dokPaste(){
+ const e=$('dk-ps'),a=e.value.split('\n').map(x=>x.trim()).filter(Boolean);if(!a.length)return;
+ D.rows=[...D.rows.filter(dokFilled),...a.map(x=>[x])];e.value='';dokRowsUpd();dokUpd();
+}
+function dokUpd(){
+ try{sessionStorage.setItem(DKK,JSON.stringify(D))}catch(e){}
+ const e=$('dk-pv');if(e)e.innerHTML=dokHtml();
+ D.rows.forEach((_,i)=>{const c=$('dk-c'+i);if(c)c.innerHTML=dokCalc(i)});
+}
+function dokType(t){D={...dokNew(t)};dokUpd();render()}
 function vDok(){
- if(!D){try{D=JSON.parse(sessionStorage.getItem(DKK))}catch(e){}if(!D||!DOKP[D.t])D=dokNew('hadir')}
+ if(!D){try{D=JSON.parse(sessionStorage.getItem(DKK))}catch(e){}if(!D||!DOKJ.includes(D.t)||!Array.isArray(D.rows))D=dokNew('hadir')}
  const d=D,t=d.t,o=(v,l)=>`<option value="${v}"${t===v?' selected':''}>${l}</option>`;
  const f=(l,k,x)=>`<label>${l}</label><input value="${esc(d[k])}" oninput="D.${k}=this.value;dokUpd()"${x||''}>`;
  return `<div class="card"><div class="ct">📄 Dokumen Lain</div>
-  <div class="info">Kop mengikuti SP, huruf Times New Roman. Isi data di bawah; hasilnya tampil di bawah dan siap dicetak.</div>
+  <div class="info">Kop mengikuti SP, huruf Times New Roman. Isi kotak di bawah; hasil cetak tampil paling bawah.</div>
   <label>Jenis dokumen</label><select onchange="dokType(this.value)">${o('hadir','Daftar Hadir (peserta / guru / lomba)')}${o('honor','Tanda Terima Honor')}${o('upah','Daftar Upah (buruh / tukang)')}</select>
   <div class="g2"><div>${f('Judul','judul')}</div><div>${f('Baris kedua (kegiatan / tahun)','sub')}</div></div>
   <label>📅 Tanggal tanda tangan</label>${dIn(d.tgl,"D.tgl=v;dokUpd()")}
-  ${t==='hadir'?`<div class="g2"><div>${f('Kolom (pisahkan koma)','kolom')}</div><div>${f('Baris kosong jika nama tidak diisi','n',' inputmode="numeric"')}</div></div>`:''}
-  ${t==='honor'?f('PPh 21 (%), isi 0 jika tanpa pajak','pph',' inputmode="decimal"'):''}
-  <label>Daftar, satu baris satu orang: ${DOKP[t].h}</label>
-  <textarea rows="7" style="width:100%;border:1.5px solid #e2e8f0;border-radius:12px;padding:10px 12px;font:inherit;font-size:14px" placeholder="${esc(DOKP[t].x)}" oninput="D.baris=this.value;dokUpd()">${esc(d.baris)}</textarea>
-  <div style="margin-top:12px"><button class="btn" onclick="doPrint(dokHtml())">🖨️ Cetak</button></div></div>
+  ${t==='hadir'?`<div class="g2"><div><label>Kolom setelah nama (pisahkan koma)</label><input value="${esc(d.kolom)}" oninput="D.kolom=this.value;dokUpd();dokRowsUpd()"></div><div>${f('Jumlah baris jika daftar kosong','n',' inputmode="numeric"')}</div></div>
+   <div style="font-size:11px;color:#6b7280;margin-top:4px">Kolom bernama TTD / Tanda Tangan terisi nomor otomatis. Contoh: <b>Jabatan, TTD</b> atau <b>Sesi 1, Sesi 2</b>. Daftar dibiarkan kosong = lembar kosong.</div>`:''}
+  ${t==='honor'?f('PPh 21 (%), isi 0 jika tanpa pajak','pph',' inputmode="decimal"'):''}</div>
+ <div class="card"><div class="ct">${t==='hadir'?'👥 Daftar Nama':t==='honor'?'💵 Penerima Honor':'🔨 Daftar Pekerja'}</div>
+  <div id="dk-rows">${dokRowsHtml()}</div>
+  <button class="btn blue" onclick="dokAdd()">+ Tambah baris</button>
+  ${t==='hadir'?`<details style="margin-top:12px"><summary style="cursor:pointer;font-size:12px;color:#6b7280">📋 Tempel banyak nama sekaligus</summary>
+   <textarea id="dk-ps" rows="5" style="width:100%;border:1.5px solid #e2e8f0;border-radius:12px;padding:10px 12px;font:inherit;font-size:14px" placeholder="Satu nama per baris"></textarea>
+   <button class="btn teal" style="margin-top:6px" onclick="dokPaste()">Tambahkan ke daftar</button></details>`:''}
+  <div style="margin-top:14px"><button class="btn" onclick="doPrint(dokHtml())">🖨️ Cetak</button></div></div>
  <div class="card wrap"><div id="dk-pv" style="min-width:680px">${dokHtml()}</div></div>`;
 }
 
