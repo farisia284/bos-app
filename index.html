@@ -314,6 +314,17 @@ input:focus,select:focus{border-color:#10b981;box-shadow:0 0 0 4px #10b98126}
 .login{padding-top:12vh}
 .login .card{border-top:5px solid var(--gold2);box-shadow:0 30px 60px -28px #064e3b99}
 .login .ct{font-family:var(--ser);font-size:24px!important;color:var(--g8)}
+/* jam digital di kanan judul halaman */
+@keyframes bl{50%{opacity:.35;transform:scale(.8)}}
+.clk{display:flex;align-items:center;gap:12px;padding:10px 18px 10px 14px;border-radius:18px;background:linear-gradient(135deg,#052e26,#064e3b 60%,#0f766e);color:#fff;box-shadow:0 16px 28px -16px #052e26cc,inset 0 0 0 1px #f5c4512e;position:relative;overflow:hidden}
+.clk::after{content:'';position:absolute;right:-22px;top:-22px;width:74px;height:74px;border-radius:50%;background:#f5c45126}
+.clk-dot{width:10px;height:10px;border-radius:50%;background:var(--gold2);box-shadow:0 0 0 4px #f5c45135;animation:bl 2s ease-in-out infinite;flex-shrink:0}
+.clk-t{font-size:26px;font-weight:800;line-height:1.05;letter-spacing:.5px;font-variant-numeric:tabular-nums}
+.clk-t small{font-size:15px;font-weight:700;color:var(--gold2);letter-spacing:0}
+.clk-d{margin-top:3px;font-size:12px;color:#c4ebdc;white-space:nowrap}
+.clk-d b{color:var(--gold2);font-weight:800}
+@media(prefers-reduced-motion:reduce){.clk-dot{animation:none}}
+@media(max-width:560px){.clk{width:100%;justify-content:flex-start}.clk-t{font-size:24px}}
 /* header: saldo jadi pil yang terbaca (12px), bukan teks 10px */
 .top .hdr>div:last-child{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;font-size:12px!important;line-height:1.3!important}
 .top .hdr>div:last-child>div{background:#ffffff1c;border:1px solid #ffffff2e;border-radius:99px;padding:5px 12px;white-space:nowrap}
@@ -1687,9 +1698,21 @@ function sidebar(){
 function pgHead(){
  const h=new Date().getHours(),s=h<11?'pagi':h<15?'siang':h<18?'sore':'malam',c=TABS.find(t=>t[0]===tab)||TABS[0];
  const nm=((cfg.bendahara||'').replace(/^(Drs?|Hj?|H)\.\s*/,'').split(/[ ,]/)[0])||'Bendahara';
- const [t,p]=tab==='dashboard'?[`Selamat ${s}, ${esc(nm)} 👋`,new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+' · ringkasan dana BOS']:[c[1],`${c[2]} · ${esc(cfg.namaSekolah)}`];
- return `<div class="pgh"><div><h1>${t}</h1><p>${p}</p></div></div>`;
+ const [t,p]=tab==='dashboard'?[`Selamat ${s}, ${esc(nm)} 👋`,'Ringkasan dana BOS tahun anggaran '+esc(yr)]:[c[1],`${c[2]} · ${esc(cfg.namaSekolah)}`];
+ const k=clk();
+ return `<div class="pgh"><div><h1>${t}</h1><p>${p}</p></div><div class="clk" role="timer" aria-label="Jam dan tanggal sekarang"><i class="clk-dot" aria-hidden="true"></i><div><div class="clk-t" id="clk-t">${k.t}</div><div class="clk-d"><span id="clk-d">${k.d}</span> · <b id="clk-z">${k.z}</b></div></div></div></div>`;
 }
+/* Jam mengikuti waktu perangkat. Hanya teks yang diganti tiap detik (tanpa render ulang), jadi isian tidak terganggu. */
+function clk(){
+ const n=new Date(),hm=n.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',hour12:false}).replace('.',':'),ss=String(n.getSeconds()).padStart(2,'0');
+ const z=(new Intl.DateTimeFormat('id-ID',{timeZoneName:'short'}).formatToParts(n).find(x=>x.type==='timeZoneName')||{}).value||'';
+ return{t:`${hm}<small>:${ss}</small>`,d:n.toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'}),z};
+}
+function tickClock(){
+ const a=document.getElementById('clk-t');if(!a)return;
+ const k=clk();a.innerHTML=k.t;document.getElementById('clk-d').textContent=k.d;document.getElementById('clk-z').textContent=k.z;
+}
+setInterval(tickClock,1000);
 function render(){
  const sbS=document.querySelector('.sbn')?.scrollTop||0; /* innerHTML ganti sidebar: simpan posisi scroll menu */
  R=run(tx);const T=tot();
