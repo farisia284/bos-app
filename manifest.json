@@ -1,7 +1,7 @@
 {
-  "name": "Aplikasi BOS Digital",
-  "short_name": "BOS Digital",
-  "description": "Pengelolaan dana BOS reguler SDN Kalisari",
+  "name": "BOSku — Keuangan Sekolah",
+  "short_name": "BOSku",
+  "description": "Catat rapi, kelola pasti. Pengelolaan dana BOS reguler SDN Kalisari",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
@@ -12,6 +12,6 @@
   "icons": [
     { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

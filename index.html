@@ -3,11 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Aplikasi BOS Digital</title>
+<title>BOSku · Keuangan Sekolah</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#064e3b">
-<link rel="icon" href="icon-192.png">
-<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <script>/* tema dipasang sebelum halaman digambar supaya tidak berkedip; default mengikuti pengaturan perangkat */try{var t=localStorage.getItem('bos-tema');if(!t&&matchMedia('(prefers-color-scheme:dark)').matches)t='dark';if(t==='dark')document.documentElement.dataset.theme='dark'}catch(e){}</script>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -101,7 +102,6 @@ input[type=file]::file-selector-button{border:0;background:#ccfbf1;color:var(--t
 .ib:hover{transform:scale(1.2)}
 .login{max-width:400px;margin:0 auto;padding:60px 16px}
 .login .card{padding:34px 24px 24px;border-radius:26px;margin-top:20px}
-.login .card>div:first-child{display:flex;align-items:center;justify-content:center;width:72px;height:72px;margin:-70px auto 14px;border-radius:22px;background:linear-gradient(135deg,#0f766e,#14b8a6);box-shadow:0 14px 26px -10px #0f766e;font-size:34px}
 .login .ct::before{display:none}
 @media print{body{background:#fff!important}}
 /* ===== DASHBOARD BARU ===== */
@@ -277,7 +277,16 @@ body{color:var(--ink);background:var(--cream);background-image:radial-gradient(1
 /* sidebar */
 .sb{background:radial-gradient(420px 280px at 0 0,#10b9812e,transparent 70%),linear-gradient(190deg,#031f1a,#064e3b 72%,#053f33);border-right:1px solid #ffffff12}
 .sbh{padding:20px 16px 14px}
-.sb .logo{background:linear-gradient(135deg,var(--gold2),var(--gold));color:#3b2a00;border:0;box-shadow:0 10px 20px -8px #f5c451aa}
+.sb .logo{background:none;border:0;box-shadow:none;width:44px;height:44px;padding:0;backdrop-filter:none;filter:drop-shadow(0 8px 10px #0006)}
+.sb .logo svg{display:block}
+/* logo halaman masuk */
+.bk-brand{text-align:center;margin:2px 0 24px}
+.bk-ic{display:inline-block;filter:drop-shadow(0 16px 18px #064e3b66)}.bk-ic svg{display:block}
+.bk-name{margin-top:10px;font-size:40px;font-weight:800;letter-spacing:-1.5px;line-height:1;color:#064e3b}
+.bk-name span{color:#047857}
+.bk-tag{margin-top:7px;font-size:14px;font-weight:600;color:var(--mut)}
+.bk-sub{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:12px;font-size:11px;font-weight:700;letter-spacing:2px;color:#7c8a84}
+.bk-sub i{width:26px;height:3px;border-radius:3px;background:var(--gold2)}
 .sbg{color:#f5c451b3}
 .sbi{min-height:44px;border-radius:14px;color:#c4ebdc}
 .sbi:hover{background:#ffffff17;color:#fff}
@@ -366,6 +375,7 @@ html[data-theme=dark] .emi circle:first-child{fill:#0f3d34}
 html[data-theme=dark] input[type=file]::file-selector-button{background:#134e44;color:#99f6e4}
 html[data-theme=dark] hr{border-color:#24403a}
 html[data-theme=dark] .login .ct{color:#a7f3d0}
+html[data-theme=dark] .bk-name{color:#a7f3d0}html[data-theme=dark] .bk-name span{color:#34d399}html[data-theme=dark] .bk-sub{color:#8aa196}
 /* warna yang tertulis langsung di kode (style="...") dipetakan ke padanan gelap; isi kertas tidak ikut */
 html[data-theme=dark] :is([style*="background:#f8fafc"],[style*="background:#f9fafb"],[style*="background:#f3f4f6"]):not(.bk *,.a2 *,.rp *,#print-layer *){background:#0f1d19!important}
 html[data-theme=dark] :is([style*="background:#f0fdf4"]):not(.bk *,.a2 *,.rp *,#print-layer *){background:#10241d!important}
@@ -491,10 +501,12 @@ async function flush(){
 }
 const TXK=y=>'bos4-tx-'+y, SAK=y=>'bos4-sa-'+y, CFGK='bos4-cfg', YK='bos4-years', LBK='bos-lastbk'; /* LBK sengaja tanpa awalan bos4- supaya tidak ikut masuk file cadangan */
 
+/* ─── LOGO BOSku (dipakai di login & sidebar; sama dengan icon.svg) ─── */
+const boskuIcon=s=>`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="${s}" height="${s}" role="img" aria-label="Logo BOSku"><defs><linearGradient id="bkg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#10b981"/><stop offset="1" stop-color="#064e3b"/></linearGradient></defs><rect x="24" y="24" width="464" height="464" rx="126" fill="url(#bkg)"/><path d="M137 370V240a17 17 0 0 1 17-17h31a17 17 0 0 1 17 17v130zm82 0V187a17 17 0 0 1 17-17h31a17 17 0 0 1 17 17v183zm82 0V137a17 17 0 0 1 17-17h31a17 17 0 0 1 17 17v233z" fill="#fff" opacity=".96"/><path d="m146 208 86-52 67 28 78-69" fill="none" stroke="#fbbf24" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/><circle cx="377" cy="115" r="13" fill="#fbbf24" stroke="#fff" stroke-width="7"/><path d="M128 389h256" stroke="#a7f3d0" stroke-width="12" stroke-linecap="round" opacity=".9"/></svg>`;
 /* ─── LOGIN ─── */
 function showLogin(msg,email){
  $('app').innerHTML=`<div class="login"><div class="card">
-  <div style="text-align:center;font-size:36px">📒</div><div class="ct" style="text-align:center;font-size:16px">Aplikasi BOS Digital</div>
+  <div class="bk-brand"><div class="bk-ic">${boskuIcon(92)}</div><div class="bk-name">BOS<span>ku</span></div><div class="bk-tag">Catat rapi, kelola pasti</div><div class="bk-sub"><i></i>KEUANGAN SEKOLAH<i></i></div></div>
   ${msg?`<div class="info" style="background:#fef2f2;border-color:#fecaca;color:#991b1b">${esc(msg)}</div>`:''}
   <label>Email</label><input id="lg-e" type="email" autocomplete="username" value="${esc(email||'')}">
   <label>Password</label><input id="lg-p" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
@@ -1689,7 +1701,7 @@ function sidebar(){
   const its=TABS.filter(t=>t[2]===g),shut=!its.some(t=>t[0]===tab)&&!!(g in sv0?sv0[g]:GRP_TUTUP[g]);
   return `<div class="sbc${shut?' shut':''}" data-g="${g}"><button class="sbg" aria-expanded="${!shut}" onclick="sbGrp(this)">${g}<i>▾</i></button><div class="sbl">${its.map(([id,l])=>
    `<button class="sbi${tab===id?' on':''}" title="${l}${bd[id]?` — ${bd[id]} perlu ditindak`:''}"${tab===id?' aria-current="page"':''} onclick="go('${id}')">${ico(id)}<span>${l}</span>${bd[id]?`<i class="bdg">${bd[id]}</i>`:''}</button>`).join('')}</div></div>`}).join('');
- return `<aside class="sb"><div class="sbh"><div class="logo">📒</div><div><b>BOS Digital</b><small>${esc(cfg.namaSekolah)}</small><small class="sbs" id="sync">${SYN[sync]}</small></div></div>
+ return `<aside class="sb"><div class="sbh"><div class="logo">${boskuIcon(44)}</div><div><b>BOSku</b><small>${esc(cfg.namaSekolah)}</small><small class="sbs" id="sync">${SYN[sync]}</small></div></div>
   <nav class="sbn">${nav}</nav>
   <div class="sbf"><button class="sbi" title="Ciutkan / lebarkan menu" aria-label="Ciutkan atau lebarkan menu" onclick="sbTgl()">${ico('fold')}<span>Ciutkan menu</span></button></div>
   <div class="sbo"><button class="sbi tm" title="Ganti mode terang/gelap" aria-label="Ganti mode terang atau gelap" onclick="temaTgl()">${ico('moon')}${ico('sun')}<span><b class="tl">Mode gelap</b><b class="td">Mode terang</b></span></button><div class="sbu" title="${esc(user&&user.email)}">${esc(user&&user.email)}</div><button class="sbi out" title="Keluar" onclick="logout()">${ico('out')}<span>Keluar</span></button></div></aside>`;
