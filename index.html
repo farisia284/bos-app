@@ -188,6 +188,12 @@ button.sbg{display:flex;align-items:center;justify-content:space-between;width:1
  .sbf{display:none}
 }
 @media(prefers-reduced-motion:reduce){.sb,.scrim,.sbi,.sbf .ic{transition:none}}
+/* tombol muat ulang di header: target sentuh 44px, berputar saat memuat */
+@keyframes spin{to{transform:rotate(360deg)}}
+.rfb{display:flex;width:44px;height:44px;flex-shrink:0;align-items:center;justify-content:center;border-radius:12px;border:1px solid #ffffff40;background:#ffffff22;color:#fff;cursor:pointer}
+.rfb:hover{background:#ffffff38}.rfb:focus-visible{outline:3px solid #f5c451;outline-offset:2px}
+.rfb.spin .ic{animation:spin .8s linear infinite}
+@media(prefers-reduced-motion:reduce){.rfb.spin .ic{animation:none;opacity:.5}}
 
 /* ===== EMPTY STATE ===== */
 @keyframes up{from{opacity:0;transform:translateY(8px)}}
@@ -441,6 +447,7 @@ const KOMP=[
  {kode:"1",nama:"Honorarium Non-PNS",full:"Honorarium NON PNS",color:"#7C3AED"},
  {kode:"2",nama:"Alat Tulis Kantor",full:"Belanja Alat Tulis Kantor",color:"#2563EB"},
  {kode:"3",nama:"Cetak & Penggandaan",full:"Belanja Cetak dan Penggandaan",color:"#0891B2"},
+ {kode:"9",nama:"Obat-obatan",full:"Belanja Obat-obatan",color:"#4F46E5"}, /* kode "9" dipertahankan agar data lama (kode 4-8) tidak berubah; nomor tampilan mengikuti urutan */
  {kode:"4",nama:"Jaskom",full:"Belanja Jasa Komunikasi (Jaskom)",color:"#65A30D"},
  {kode:"5",nama:"Pemeliharaan",full:"Belanja Pemeliharaan",color:"#D97706"},
  {kode:"6",nama:"Perjalanan Dinas",full:"Belanja Perjalanan Dinas",color:"#EA580C"},
@@ -449,7 +456,7 @@ const KOMP=[
 ];
 const fK=k=>KOMP.find(x=>x.kode===k);
 /* komponen bawaan tiap rekening (bisa diubah di Pengaturan > Manajemen BOS > Daftar Rekening) */
-const REKKOMP={"ATK":"2","BAHAN KOMPUTER":"2","KERTAS DAN COVER":"2","CETAK PENGGANDAAN FC":"3","CETAK MMT":"3","OBAT OBATAN":"7","LISTRIK":"4","INTERNET":"4","KONSUMSI RAPAT":"7","PELAYANAN FASILITAS":"7","SEWA KENDARAAN":"7","PERJADIN":"6","PRINTER":"8","LAPTOP":"8","ALAT KELISTRIKAN":"5","HONOR TKA":"1","MATERAI":"2","OLAHRAGA":"7","ALAT KEBERSIHAN":"7","PENDAFTARAN LOMBA":"7","LANGGANAN MAJALAH":"7","MODAL BUKU":"8","WORKSHOP KEPALA SEKOLAH":"7"};
+const REKKOMP={"ATK":"2","BAHAN KOMPUTER":"2","KERTAS DAN COVER":"2","CETAK PENGGANDAAN FC":"3","CETAK MMT":"3","OBAT OBATAN":"9","LISTRIK":"4","INTERNET":"4","KONSUMSI RAPAT":"7","PELAYANAN FASILITAS":"7","SEWA KENDARAAN":"7","PERJADIN":"6","PRINTER":"8","LAPTOP":"8","ALAT KELISTRIKAN":"5","HONOR TKA":"1","MATERAI":"2","OLAHRAGA":"7","ALAT KEBERSIHAN":"7","PENDAFTARAN LOMBA":"7","LANGGANAN MAJALAH":"7","MODAL BUKU":"8","WORKSHOP KEPALA SEKOLAH":"7"};
 const rekKomp=x=>x.komp||REKKOMP[x.nama]||'';
 const PAJAK=[{kode:"pph21",label:"PPh 21",persen:5},{kode:"pph23",label:"PPh 23",persen:4},{kode:"ppn",label:"PPN",persen:12}];
 const fP=k=>PAJAK.find(x=>x.kode===k);
@@ -598,12 +605,17 @@ async function start(){
  }
 }
 /* Saat aplikasi dibuka kembali, ambil data terbaru jika ada perubahan dari perangkat lain */
-async function refresh(){
- if(!user||Object.keys(pend).length)return;
- const o=await fetchAll();if(!o||Object.keys(pend).length)return;
+/* m = tombol ⟳ di header (muat ulang manual): memberi tanda berputar dan selalu memberi kabar; tanpa m berjalan diam seperti biasa */
+async function refresh(m){
+ if(!user)return;
+ if(Object.keys(pend).length){m&&toast('⏳ Data masih menyimpan, coba lagi sebentar');return}
+ m&&m.classList.add('spin');
+ const o=await fetchAll();m&&m.classList.remove('spin');
+ if(!o){m&&toast('⚠️ Gagal memuat. Periksa internet');return}
+ if(Object.keys(pend).length)return;
  let ch=false;new Set([...Object.keys(o),...Object.keys(DB)]).forEach(k=>{if(canon(o[k])!==canon(DB[k]))ch=true});
- if(!ch)return;
- DB=o;cfg={...DEF_CFG,...(ld(CFGK)||{})};loadYear(yr);render();toast('🔄 Data diperbarui dari perangkat lain');
+ if(!ch){m&&toast('✅ Data sudah terbaru');return}
+ DB=o;loadYear(yr);render();toast(m?'🔄 Data dimuat ulang':'🔄 Data diperbarui dari perangkat lain');
 }
 /* File cadangan: {app,versi,tanggal,data}. File lama (tanpa header, isinya langsung kunci bos4-*) tetap diterima. */
 const lbkTxt=()=>{const l=ld(LBK);return l?'Cadangan terakhir: '+tglJam(l):'Belum pernah unduh cadangan'};
@@ -1043,7 +1055,7 @@ function vInput(){
    <label>🔖 Nama Rekening</label>
    <select onchange="pickRek(this.value)"><option value="">— Pilih nama rekening —</option>${rk.map(x=>`<option value="${x.id}"${(f.rek?f.rek===x.id:f.kode&&rk.find(y=>y.kode===f.kode)===x)?' selected':''}>${esc(x.nama)}</option>`).join('')}</select>
    <div class="g2"><div><label>🔖 Kode Rekening</label><input id="f-kode" value="${esc(f.kode)}" oninput="fset('kode',this.value);F.rek=''" placeholder="Terisi otomatis"></div>
-   <div><label>🏷️ Komponen BOS</label><select id="f-komp" onchange="fset('komponen',this.value)">${KOMP.map(x=>`<option value="${x.kode}"${f.komponen===x.kode?' selected':''}>${x.kode}. ${x.full}</option>`).join('')}</select></div></div>
+   <div><label>🏷️ Komponen BOS</label><select id="f-komp" onchange="fset('komponen',this.value)">${KOMP.map((x,i)=>`<option value="${x.kode}"${f.komponen===x.kode?' selected':''}>${i+1}. ${x.full}</option>`).join('')}</select></div></div>
    ${uraian}${jumlah}</div>
   <div class="card"><div class="ct">🧾 Pajak &amp; Pelaksana</div>
    <div style="padding:11px;background:#fefce8;border-radius:10px;border:1px solid #fde68a">
@@ -1653,7 +1665,7 @@ function vSet(){
   ${(d.rekening||[]).length?'':empty('input','Belum ada rekening','Tambahkan nama dan kode rekening agar bisa dipilih saat input belanja.',[],1)}
   ${(()=>{const e=(d.rekening||[]).find(x=>x.id===rekEd)||{};return `<div style="margin-top:9px;padding:11px;background:#f9fafb;border-radius:10px;border:1px dashed ${e.id?'#0f766e':'#d1d5db'}"><b style="font-size:12px;color:#166534">${e.id?'✏️ Edit Rekening':'+ Tambah Rekening'}</b>
    <div class="g2"><div><label>Nama Rekening</label><input id="rk-nama" placeholder="Contoh: ATK" value="${esc(e.nama)}"></div><div><label>Kode Rekening</label><input id="rk-kode" placeholder="5.1.02.01.01.0024" value="${esc(e.kode)}"></div></div>
-   <label>Komponen BOS (terisi otomatis saat rekening dipilih di Input)</label><select id="rk-komp"><option value="">— Tidak diatur —</option>${KOMP.map(y=>`<option value="${y.kode}"${(e.id?rekKomp(e):'')===y.kode?' selected':''}>${y.kode}. ${y.full}</option>`).join('')}</select>
+   <label>Komponen BOS (terisi otomatis saat rekening dipilih di Input)</label><select id="rk-komp"><option value="">— Tidak diatur —</option>${KOMP.map((y,i)=>`<option value="${y.kode}"${(e.id?rekKomp(e):'')===y.kode?' selected':''}>${i+1}. ${y.full}</option>`).join('')}</select>
    <div style="display:flex;gap:8px;margin-top:8px"><button class="btn blue" onclick="addRek()">${e.id?'💾 Simpan Perubahan':'+ Tambah'}</button>${e.id?'<button class="btn gray" onclick="cancelRek()">Batal</button>':''}</div></div>`})()}
  </div>
  <div style="display:flex;gap:8px;margin-bottom:11px"><button class="btn" style="flex:1" onclick="saveCfg()">💾 Simpan Semua Pengaturan</button>${cfgD?'<button class="btn gray" onclick="cancelCfg()">Batal</button>':''}</div>`:''}
@@ -1681,6 +1693,7 @@ const IC={
  log:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/>',
  menu:'<path d="M4 6h16M4 12h16M4 18h16"/>',
+ refresh:'<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>',
  fold:'<path d="m11 17-5-5 5-5"/><path d="m18 17-5-5 5-5"/>',
  moon:'<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
@@ -1751,6 +1764,7 @@ function render(){
  $('app').innerHTML=`<div class="shell${sbMini?' mini':''}">${sidebar()}<div class="scrim" onclick="document.querySelector('.shell').classList.remove('open')"></div><div class="mainc"><div class="top">
   <div class="hdr"><button class="mbtn" aria-label="Buka menu" onclick="sbTgl()">${ico('menu')}</button>
    <div style="flex:1;min-width:0">${clkBox()}</div>
+   <button class="rfb" title="Muat ulang data" aria-label="Muat ulang data" onclick="refresh(this)">${ico('refresh')}</button>
    <div class="yr"><span>TA</span><select onchange="switchYr(this.value)">${yearList().map(y=>`<option value="${y}"${String(y)===yr?' selected':''}>${y}</option>`).join('')}</select></div>
    <div style="text-align:right;font-size:10px;line-height:1.4"><div>Bank <b>${rp(T.bank)}</b></div><div>Tunai <b>${rp(T.tunai)}</b></div></div></div>
   </div>
