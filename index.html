@@ -316,15 +316,15 @@ input:focus,select:focus{border-color:#10b981;box-shadow:0 0 0 4px #10b98126}
 .login .ct{font-family:var(--ser);font-size:24px!important;color:var(--g8)}
 /* jam digital di kanan judul halaman */
 @keyframes bl{50%{opacity:.35;transform:scale(.8)}}
-.clk{display:flex;align-items:center;gap:12px;padding:10px 18px 10px 14px;border-radius:18px;background:linear-gradient(135deg,#052e26,#064e3b 60%,#0f766e);color:#fff;box-shadow:0 16px 28px -16px #052e26cc,inset 0 0 0 1px #f5c4512e;position:relative;overflow:hidden}
-.clk::after{content:'';position:absolute;right:-22px;top:-22px;width:74px;height:74px;border-radius:50%;background:#f5c45126}
+.clk{display:flex;align-items:center;gap:12px;color:#fff;min-width:0}
 .clk-dot{width:10px;height:10px;border-radius:50%;background:var(--gold2);box-shadow:0 0 0 4px #f5c45135;animation:bl 2s ease-in-out infinite;flex-shrink:0}
-.clk-t{font-size:26px;font-weight:800;line-height:1.05;letter-spacing:.5px;font-variant-numeric:tabular-nums}
-.clk-t small{font-size:15px;font-weight:700;color:var(--gold2);letter-spacing:0}
-.clk-d{margin-top:3px;font-size:12px;color:#c4ebdc;white-space:nowrap}
+.clk-t{font-size:24px;font-weight:800;line-height:1.05;letter-spacing:.5px;font-variant-numeric:tabular-nums}
+.clk-t small{font-size:14px;font-weight:700;color:var(--gold2);letter-spacing:0}
+.clk-d{margin-top:2px;font-size:12px;color:#c4ebdc}
 .clk-d b{color:var(--gold2);font-weight:800}
+.sbs{margin-top:3px;font-weight:700;color:#a7f3d0;opacity:1!important}
 @media(prefers-reduced-motion:reduce){.clk-dot{animation:none}}
-@media(max-width:560px){.clk{width:100%;justify-content:flex-start}.clk-t{font-size:24px}}
+@media(max-width:560px){.clk{gap:9px}.clk-t{font-size:21px}.clk-d{font-size:11px}}
 /* header: saldo jadi pil yang terbaca (12px), bukan teks 10px */
 .top .hdr>div:last-child{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;font-size:12px!important;line-height:1.3!important}
 .top .hdr>div:last-child>div{background:#ffffff1c;border:1px solid #ffffff2e;border-radius:99px;padding:5px 12px;white-space:nowrap}
@@ -1689,7 +1689,7 @@ function sidebar(){
   const its=TABS.filter(t=>t[2]===g),shut=!its.some(t=>t[0]===tab)&&!!(g in sv0?sv0[g]:GRP_TUTUP[g]);
   return `<div class="sbc${shut?' shut':''}" data-g="${g}"><button class="sbg" aria-expanded="${!shut}" onclick="sbGrp(this)">${g}<i>▾</i></button><div class="sbl">${its.map(([id,l])=>
    `<button class="sbi${tab===id?' on':''}" title="${l}${bd[id]?` — ${bd[id]} perlu ditindak`:''}"${tab===id?' aria-current="page"':''} onclick="go('${id}')">${ico(id)}<span>${l}</span>${bd[id]?`<i class="bdg">${bd[id]}</i>`:''}</button>`).join('')}</div></div>`}).join('');
- return `<aside class="sb"><div class="sbh"><div class="logo">📒</div><div><b>BOS Digital</b><small>${esc(cfg.namaSekolah)}</small></div></div>
+ return `<aside class="sb"><div class="sbh"><div class="logo">📒</div><div><b>BOS Digital</b><small>${esc(cfg.namaSekolah)}</small><small class="sbs" id="sync">${SYN[sync]}</small></div></div>
   <nav class="sbn">${nav}</nav>
   <div class="sbf"><button class="sbi" title="Ciutkan / lebarkan menu" aria-label="Ciutkan atau lebarkan menu" onclick="sbTgl()">${ico('fold')}<span>Ciutkan menu</span></button></div>
   <div class="sbo"><button class="sbi tm" title="Ganti mode terang/gelap" aria-label="Ganti mode terang atau gelap" onclick="temaTgl()">${ico('moon')}${ico('sun')}<span><b class="tl">Mode gelap</b><b class="td">Mode terang</b></span></button><div class="sbu" title="${esc(user&&user.email)}">${esc(user&&user.email)}</div><button class="sbi out" title="Keluar" onclick="logout()">${ico('out')}<span>Keluar</span></button></div></aside>`;
@@ -1699,8 +1699,12 @@ function pgHead(){
  const h=new Date().getHours(),s=h<11?'pagi':h<15?'siang':h<18?'sore':'malam',c=TABS.find(t=>t[0]===tab)||TABS[0];
  const nm=((cfg.bendahara||'').replace(/^(Drs?|Hj?|H)\.\s*/,'').split(/[ ,]/)[0])||'Bendahara';
  const [t,p]=tab==='dashboard'?[`Selamat ${s}, ${esc(nm)} 👋`,'Ringkasan dana BOS tahun anggaran '+esc(yr)]:[c[1],`${c[2]} · ${esc(cfg.namaSekolah)}`];
+ return `<div class="pgh"><div><h1>${t}</h1><p>${p}</p></div></div>`;
+}
+/* kotak jam di header (pojok kiri atas) */
+function clkBox(){
  const k=clk();
- return `<div class="pgh"><div><h1>${t}</h1><p>${p}</p></div><div class="clk" role="timer" aria-label="Jam dan tanggal sekarang"><i class="clk-dot" aria-hidden="true"></i><div><div class="clk-t" id="clk-t">${k.t}</div><div class="clk-d"><span id="clk-d">${k.d}</span> · <b id="clk-z">${k.z}</b></div></div></div></div>`;
+ return `<div class="clk" role="timer" aria-label="Jam dan tanggal sekarang"><i class="clk-dot" aria-hidden="true"></i><div><div class="clk-t" id="clk-t">${k.t}</div><div class="clk-d"><span id="clk-d">${k.d}</span> · <b id="clk-z">${k.z}</b></div></div></div>`;
 }
 /* Jam mengikuti waktu perangkat. Hanya teks yang diganti tiap detik (tanpa render ulang), jadi isian tidak terganggu. */
 function clk(){
@@ -1720,7 +1724,7 @@ function render(){
  const views={dashboard:vDash,input:vInput,rkn:vRkn,riwayat:vRiw,bku:vBKU,bkupj:vPj,rekap:vRk,a2:()=>vList('a2'),a2t:()=>vList('a2t'),sp:()=>vList('sp'),und:()=>vRp('und'),hdr:()=>vRp('hdr'),dok:vDok,log:vLog,set:vSet};
  $('app').innerHTML=`<div class="shell${sbMini?' mini':''}">${sidebar()}<div class="scrim" onclick="document.querySelector('.shell').classList.remove('open')"></div><div class="mainc"><div class="top">
   <div class="hdr"><button class="mbtn" aria-label="Buka menu" onclick="sbTgl()">${ico('menu')}</button>
-   <div style="flex:1"><div style="font-weight:800;font-size:13px">Aplikasi BOS Digital</div><div style="font-size:10px;opacity:.85">${esc(cfg.namaSekolah)} · <span id="sync">${SYN[sync]}</span></div></div>
+   <div style="flex:1;min-width:0">${clkBox()}</div>
    <div class="yr"><span>TA</span><select onchange="switchYr(this.value)">${yearList().map(y=>`<option value="${y}"${String(y)===yr?' selected':''}>${y}</option>`).join('')}</select></div>
    <div style="text-align:right;font-size:10px;line-height:1.4"><div>Bank <b>${rp(T.bank)}</b></div><div>Tunai <b>${rp(T.tunai)}</b></div></div></div>
   </div>
