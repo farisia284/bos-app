@@ -499,7 +499,7 @@ async function flush(){
  keys.forEach(k=>{if(pend[k]===sent[k])delete pend[k]});
  if(Object.keys(pend).length){clearTimeout(sTimer);sTimer=setTimeout(flush,300)}else setSync('ok');
 }
-const TXK=y=>'bos4-tx-'+y, SAK=y=>'bos4-sa-'+y, CFGK='bos4-cfg', YK='bos4-years', LBK='bos-lastbk'; /* LBK sengaja tanpa awalan bos4- supaya tidak ikut masuk file cadangan */
+const TXK=y=>'bos4-tx-'+y, SAK=y=>'bos4-sa-'+y, CFGK='bos4-cfg', PRK=y=>'bos4-pr-'+y, YK='bos4-years', LBK='bos-lastbk'; /* LBK sengaja tanpa awalan bos4- supaya tidak ikut masuk file cadangan */
 
 /* ─── LOGO BOSku (dipakai di login & sidebar; sama dengan icon.svg) ─── */
 const boskuIcon=s=>`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="${s}" height="${s}" role="img" aria-label="Logo BOSku"><defs><linearGradient id="bkg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#10b981"/><stop offset="1" stop-color="#064e3b"/></linearGradient></defs><rect x="24" y="24" width="464" height="464" rx="126" fill="url(#bkg)"/><path d="M137 370V240a17 17 0 0 1 17-17h31a17 17 0 0 1 17 17v130zm82 0V187a17 17 0 0 1 17-17h31a17 17 0 0 1 17 17v183zm82 0V137a17 17 0 0 1 17-17h31a17 17 0 0 1 17 17v233z" fill="#fff" opacity=".96"/><path d="m146 208 86-52 67 28 78-69" fill="none" stroke="#fbbf24" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/><circle cx="377" cy="115" r="13" fill="#fbbf24" stroke="#fff" stroke-width="7"/><path d="M128 389h256" stroke="#a7f3d0" stroke-width="12" stroke-linecap="round" opacity=".9"/></svg>`;
@@ -689,7 +689,11 @@ function autoNo(){
  F.noBukti=renumber([...tx.filter(t=>t.id!==id),{id,jenis:'kredit',tanggal:F.tanggal,dibuat:cur?cur.dibuat:new Date().toISOString()}]).find(t=>t.id===id).noBukti;
 }
 function newForm(){clearDraft();F=initForm();autoNo()}
-function loadYear(y){yr=y;tx=renumber(ld(TXK(y))||[]);sa=ld(SAK(y))||{bank:0,tunai:0}}
+/* pagu & rencana disimpan per tahun (bos4-pr-<tahun>); cfg.pagu/cfg.rencana = nilai tahun aktif.
+   shortcut: tahun lama tanpa catatan ambil pagu global lama (hanya jika tahun itu punya transaksi), tahun baru mulai kosong */
+function loadYear(y){yr=y;tx=renumber(ld(TXK(y))||[]);sa=ld(SAK(y))||{bank:0,tunai:0};
+ const g=ld(CFGK)||{},p=ld(PRK(y))||(ld(TXK(y))?{pagu:g.pagu,rencana:g.rencana}:{});
+ cfg.pagu=+p.pagu||0;cfg.rencana=p.rencana||[]}
 
 /* ─── HITUNG SALDO ───
    Dana masuk  -> bank +
@@ -801,7 +805,7 @@ function cancelEdit(){editId=null;newForm();render()}
 function doDel(id){commit(tx.filter(t=>t.id!==id),'🗑️ Dihapus');delId=null;render()}
 /* Buka Input dengan formulir masih kosong: tanggal ikut hari ini (kalau aplikasi dibiarkan terbuka sejak kemarin) */
 function go(t){if(t==='input'&&!editId&&!F.uraian&&!F.jumlah&&F.tanggal!==today())fTgl(today());tab=t;render();scrollTo(0,0)}
-function switchYr(y){loadYear(y);editId=null;rkTgl='';newForm();render();toast('📅 Beralih ke Tahun '+y)}
+function switchYr(y){cfgD=null;loadYear(y);editId=null;rkTgl='';newForm();render();toast('📅 Beralih ke Tahun '+y)}
 
 /* ─── PENGATURAN HANDLERS ─── */
 function cs(k,v){cfgD=cfgD||JSON.parse(JSON.stringify(cfg));cfgD[k]=v}
@@ -853,7 +857,7 @@ function saveCfg(){if(!cfgD){toast('Tidak ada perubahan');return}
  const r=rnInfo(cfgD);if(r.any&&r.diff!==0){toast(`⚠️ Rencana per bulan belum sama dengan pagu (${r.diff>0?'kurang':'lebih'} ${rp(Math.abs(r.diff))})`,5000);return}
  if((cfgD.noAwal||'').trim()&&!parseNo(cfgD.noAwal)){toast('⚠️ No. bukti awal harus memuat angka, mis. 15/BOSP/XI/2026',5000);return}
  const ch=Object.keys(cfgD).filter(k=>canon(cfgD[k])!==canon(cfg[k]));if(ch.length)addLog('pengaturan','Diubah: '+ch.join(', '));
- cfg=cfgD;sv(CFGK,cfg);cfgD=null;tx=renumber(tx);sv(TXK(yr),tx);if(!editId)autoNo();render();toast('✅ Pengaturan disimpan')}
+ cfg=cfgD;sv(PRK(yr),{pagu:cfg.pagu,rencana:cfg.rencana});const {pagu:_p,rencana:_r,...glob}=cfg;sv(CFGK,glob);cfgD=null;tx=renumber(tx);sv(TXK(yr),tx);if(!editId)autoNo();render();toast('✅ Pengaturan disimpan')}
 function cancelCfg(){cfgD=null;render()}
 function setSa(n){
  const old=sa;sa=n;const r=run(tx);
@@ -1624,7 +1628,7 @@ function vSet(){
    <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:9px"><button class="btn" onclick="saveSa()">💾 Simpan Saldo Awal</button><button class="btn teal" onclick="carry()">🔄 Ambil otomatis dari Des ${+yr-1}</button></div>
   </div></div>
 <div class="card" style="border-left:4px solid #CA8A04"><div class="ct">💰 Pagu Dana BOS</div>
-  <div class="g2"><div><label>Pagu Dana BOS (Rp) — angka tetap</label><input inputmode="numeric" value="${d.pagu?Number(d.pagu).toLocaleString('id-ID'):''}" oninput="cs('pagu',fmt(this,'tb-pagu'));rnSt()"><div class="tbx" id="tb-pagu" style="display:${d.pagu>0?'block':'none'}">✍️ ${terbilang(d.pagu)}</div></div></div>
+  <div class="g2"><div><label>Pagu Dana BOS (Rp) — khusus tahun ${yr}</label><input inputmode="numeric" value="${d.pagu?Number(d.pagu).toLocaleString('id-ID'):''}" oninput="cs('pagu',fmt(this,'tb-pagu'));rnSt()"><div class="tbx" id="tb-pagu" style="display:${d.pagu>0?'block':'none'}">✍️ ${terbilang(d.pagu)}</div></div></div>
 </div>
  <div class="card" style="border-left:4px solid #7C3AED"><div class="ct">🗓️ Rencana Anggaran per Bulan</div>
   <div class="rg">${MO.slice(1).map((m,i)=>`<div><label>${m}</label><input inputmode="numeric" value="${d.rencana&&d.rencana[i]?Number(d.rencana[i]).toLocaleString('id-ID'):''}" oninput="rn(${i},this)" placeholder="0"></div>`).join('')}</div>
