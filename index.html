@@ -1562,6 +1562,43 @@ function dokLink(){
   <div style="margin-top:4px">${dokCek(D)}</div>
   <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${D.t==='honor'?`<button class="btn blue" style="${bt}" onclick="dokSama()">🔄 Samakan dengan BKU</button>`:''}${cur?`<button class="btn gray" style="${bt}" onclick="go('input')">↩ Kembali ke Input</button>`:''}</div></div>`;
 }
+/* ── ambil nama dari Daftar Guru (hadir & honor): Kepala Sekolah, Bendahara, guru; pelaksana belanja tercentang dulu ── */
+function dokPeople(){
+ const gid=D.trx===(editId||F.tid)?F.guruId:(tx.find(x=>x.id===D.trx)||{}).guruId;
+ return[{nama:cfg.kepsek,nip:cfg.nipKepsek,jab:'Kepala Sekolah'},{nama:cfg.bendahara,nip:cfg.nipBendahara,jab:'Bendahara BOS'},
+  ...(cfg.guruList||[]).map(g=>({nama:g.nama,nip:g.nip,jab:g.jabatan||'Guru Kelas',pre:g.id===gid}))].filter(p=>(p.nama||'').trim());
+}
+function dokPick(){
+ if(D.t==='upah')return '';
+ const P=dokPeople(),bagi=D.t==='honor'&&D.trx&&bkuOf(D.trx)?'<button class="btn blue" onclick="dokBagi()">➗ Bagi rata honor dari BKU</button>':'';
+ return `<details style="margin-bottom:12px" open><summary style="cursor:pointer;font-size:13px;font-weight:700;min-height:32px">👥 Ambil dari Daftar Guru</summary>
+ ${P.length?`<div id="dk-pk" class="rg" style="margin-top:8px">${P.map((p,i)=>`<label style="display:flex;align-items:center;gap:8px;margin:0;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:12px;cursor:pointer;min-height:44px"><input type="checkbox" value="${i}"${p.pre?' checked':''}><span style="min-width:0"><b style="font-size:12px;display:block;word-break:break-word">${esc(p.nama)}</b><small style="font-size:11px;color:#6b7280">${esc(p.jab)}</small></span></label>`).join('')}</div>
+ <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn teal" onclick="dokAmbil()">+ Tambahkan yang dicentang</button><button class="btn gray" onclick="document.querySelectorAll('#dk-pk input').forEach(x=>x.checked=true)">Pilih semua</button>${bagi}</div>`
+ :'<div style="font-size:12px;color:#6b7280;margin-top:6px">Daftar Guru masih kosong. Isi di Pengaturan → Profil Sekolah.</div>'}</details>`;
+}
+function dokAmbil(){
+ const P=dokPeople(),sel=[...document.querySelectorAll('#dk-pk input:checked')].map(x=>P[+x.value]);
+ if(!sel.length){toast('⚠️ Centang dulu nama yang mau ditambahkan');return}
+ const kept=D.rows.filter(dokFilled),ada=new Set(kept.map(r=>(r[0]||'').trim().toLowerCase())),baru=[];
+ sel.forEach(p=>{
+  if(ada.has(p.nama.trim().toLowerCase()))return;
+  const r=D.t==='honor'?dokRow('honor',D.pph):[];r[0]=p.nama;
+  if(D.t==='honor')r[1]=p.jab;
+  else D.cols.forEach((c,i)=>{if(/^jabatan$/i.test(c.trim()))r[i+1]=p.jab;else if(/^nip$/i.test(c.trim()))r[i+1]=p.nip||''});
+  baru.push(r);
+ });
+ if(!baru.length){toast('Semua yang dicentang sudah ada di daftar');return}
+ D.rows=[...kept,...baru];dokRowsUpd();dokUpd();toast(`✅ ${baru.length} nama ditambahkan`);
+}
+/* honor: bagi jumlah belanja BKU sama rata ke semua penerima; sisa rupiah ke penerima terakhir supaya total pas */
+function dokBagi(){
+ const b=bkuOf(D.trx),f=D.rows.filter(dokFilled);
+ if(!b||!b.j){toast('⚠️ Isi dulu jumlah belanja di Input');return}
+ if(!f.length){toast('⚠️ Tambahkan penerima dulu');return}
+ const u=Math.floor(b.j/f.length);
+ f.forEach((r,i)=>{r[4]=String(i===f.length-1?b.j-u*(f.length-1):u);r[5]=String(b.pp||r[5]||D.pph)});
+ dokRowsUpd();dokUpd();toast('✅ Honor dibagi rata');
+}
 function dokBaru(){if(dokAsk()){dokReset(D.t);dokUpd();render()}}
 function dokType(t){if(dokAsk()){dokReset(t);dokUpd()}render()}
 function vDok(){return dkV==='e'?vDokEd():vDokList()}
@@ -1582,7 +1619,7 @@ function vDokEd(){
    <div style="font-size:11px;color:#6b7280;margin:6px 0 8px">Kolom bernama TTD / Tanda Tangan terisi nomor otomatis. Contoh: Jabatan, Kelas, Cabang Lomba, Sesi 1.</div>${f('Jumlah baris jika daftar kosong (lembar kosong)','n',' inputmode="numeric"')}`:''}
   ${t==='honor'?f('PPh 21 bawaan untuk baris baru (%), bisa diubah per baris','pph',' inputmode="decimal"'):''}</div>
  <div class="card"><div class="ct">${t==='hadir'?'👥 Daftar Nama':t==='honor'?'💵 Penerima Honor':'🔨 Daftar Pekerja'}</div>
-  <div id="dk-rows">${dokRowsHtml()}</div>
+  ${dokPick()}<div id="dk-rows">${dokRowsHtml()}</div>
   <button class="btn blue" onclick="dokAdd()">+ Tambah baris</button>
   ${t==='hadir'?`<details style="margin-top:12px"><summary style="cursor:pointer;font-size:12px;color:#6b7280">📋 Tempel banyak nama sekaligus</summary>
    <textarea id="dk-ps" rows="5" style="width:100%;border:1.5px solid #e2e8f0;border-radius:12px;padding:10px 12px;font:inherit;font-size:14px" placeholder="Satu nama per baris"></textarea>
