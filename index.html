@@ -689,11 +689,20 @@ function autoNo(){
  F.noBukti=renumber([...tx.filter(t=>t.id!==id),{id,jenis:'kredit',tanggal:F.tanggal,dibuat:cur?cur.dibuat:new Date().toISOString()}]).find(t=>t.id===id).noBukti;
 }
 function newForm(){clearDraft();F=initForm();autoNo()}
-/* pagu & rencana disimpan per tahun (bos4-pr-<tahun>); cfg.pagu/cfg.rencana = nilai tahun aktif.
-   shortcut: tahun lama tanpa catatan ambil pagu global lama (hanya jika tahun itu punya transaksi), tahun baru mulai kosong */
+/* Seluruh pengaturan disimpan per tahun (bos4-pr-<tahun>); cfg = pengaturan tahun aktif.
+   Tahun tanpa catatan memakai bos4-cfg lama (tidak ditulis lagi). shortcut: pagu/rencana lama hanya terbawa ke tahun yang punya transaksi. */
+const cfgOf=y=>({...DEF_CFG,...(ld(CFGK)||{}),...ld(PRK(y))});
 function loadYear(y){yr=y;tx=renumber(ld(TXK(y))||[]);sa=ld(SAK(y))||{bank:0,tunai:0};
- const g=ld(CFGK)||{},p=ld(PRK(y))||(ld(TXK(y))?{pagu:g.pagu,rencana:g.rencana}:{});
- cfg.pagu=+p.pagu||0;cfg.rencana=p.rencana||[]}
+ cfg=cfgOf(y);if(!ld(PRK(y))&&!ld(TXK(y))){cfg.pagu=0;cfg.rencana=[]}}
+function simpanCfg(){sv(PRK(yr),cfg);tx=renumber(tx);sv(TXK(yr),tx);if(!editId)autoNo()}
+/* salin profil, guru, rekening, no. bukti dari tahun sebelumnya; pagu & rencana tidak ikut. Tahun sebelumnya tidak disentuh. */
+function imporCfg(){
+ const py=String(+yr-1);
+ if(!ld(PRK(py))&&!ld(TXK(py))){toast('⚠️ Tidak ada data tahun '+py);return}
+ if(!confirm(`Salin profil sekolah, guru, daftar rekening, dan no. bukti dari ${py} ke ${yr}?\nIsi ${yr} sekarang diganti. Pagu & rencana tidak ikut. Tahun ${py} tidak berubah.`))return;
+ const {pagu:_p,rencana:_r,...x}=cfgOf(py);
+ cfg={...cfg,...x};cfgD=null;simpanCfg();addLog('pengaturan',`Impor pengaturan ${py} ke ${yr}`);render();toast(`✅ Pengaturan ${py} disalin ke ${yr}`);
+}
 
 /* ─── HITUNG SALDO ───
    Dana masuk  -> bank +
@@ -857,7 +866,7 @@ function saveCfg(){if(!cfgD){toast('Tidak ada perubahan');return}
  const r=rnInfo(cfgD);if(r.any&&r.diff!==0){toast(`⚠️ Rencana per bulan belum sama dengan pagu (${r.diff>0?'kurang':'lebih'} ${rp(Math.abs(r.diff))})`,5000);return}
  if((cfgD.noAwal||'').trim()&&!parseNo(cfgD.noAwal)){toast('⚠️ No. bukti awal harus memuat angka, mis. 15/BOSP/XI/2026',5000);return}
  const ch=Object.keys(cfgD).filter(k=>canon(cfgD[k])!==canon(cfg[k]));if(ch.length)addLog('pengaturan','Diubah: '+ch.join(', '));
- cfg=cfgD;sv(PRK(yr),{pagu:cfg.pagu,rencana:cfg.rencana});const {pagu:_p,rencana:_r,...glob}=cfg;sv(CFGK,glob);cfgD=null;tx=renumber(tx);sv(TXK(yr),tx);if(!editId)autoNo();render();toast('✅ Pengaturan disimpan')}
+ cfg=cfgD;cfgD=null;simpanCfg();render();toast('✅ Pengaturan '+yr+' disimpan')}
 function cancelCfg(){cfgD=null;render()}
 function setSa(n){
  const old=sa;sa=n;const r=run(tx);
@@ -1584,6 +1593,7 @@ function vSet(){
  const lg=(l,k)=>`<div><label>${l}</label><input type="file" accept="image/*" onchange="setLogo('${k}',this)">${d[k]?`<div style="margin-top:6px"><img src="${d[k]}" style="height:50px;vertical-align:middle"> <button class="ib" onclick="cs('${k}','');render()">🗑️</button></div>`:''}</div>`;
  return `
  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:11px">${[['akun','👤 Akun',''],['profil','🏫 Profil Sekolah',''],['bos','💰 Manajemen BOS',''],['bahaya','⚠️ Zona Berbahaya','red']].map(([id,l,c])=>`<button class="btn ${setT===id?c:'gray'}" onclick="setT='${id}';render();scrollTo(0,0)">${l}</button>`).join('')}</div>
+ ${setT==='profil'||setT==='bos'?`<div class="info row" style="flex-wrap:wrap">Pengaturan ini khusus tahun <b>${yr}</b>. Mengubahnya tidak mengubah tahun lain.<button class="btn teal" style="padding:7px 12px;font-size:12px" onclick="imporCfg()">📥 Impor dari ${+yr-1}</button></div>`:''}
  ${setT==='akun'?` <div class="card" style="border-left:4px solid #0369a1"><div class="ct">👤 Akun &amp; Cadangan</div>
   <div class="row" style="flex-wrap:wrap"><div style="font-size:13px">Masuk sebagai <b>${esc(user&&user.email)}</b><div style="font-size:11px;color:#6b7280">${SYN[sync]}</div></div><button class="btn gray" onclick="logout()">Keluar</button></div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn teal" onclick="exportDb()">⬇️ Unduh Cadangan</button>
