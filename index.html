@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Aplikasi BOS Digital</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#064e3b">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <script>/* tema dipasang sebelum halaman digambar supaya tidak berkedip; default mengikuti pengaturan perangkat */try{var t=localStorage.getItem('bos-tema');if(!t&&matchMedia('(prefers-color-scheme:dark)').matches)t='dark';if(t==='dark')document.documentElement.dataset.theme='dark'}catch(e){}</script>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1818,6 +1822,9 @@ function spHtml(t){
   <div style="font-weight:700">NIP. ${esc(cfg.nipKepsek)||dots}</div>
  </div></div>`;
 }
+
+/* Aplikasi bisa dipasang (PWA); sw.js selalu ambil versi terbaru kalau online. Gagal = diam, website tetap jalan. */
+if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 
 /* ═════════ START ═════════ */
 (async function boot(){
