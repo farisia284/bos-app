@@ -833,7 +833,7 @@ function doEdit(id){
  editId=id;clearDraft();tab='input';render();scrollTo(0,0);
 }
 function cancelEdit(){editId=null;newForm();render()}
-function doDel(id){commit(tx.filter(t=>t.id!==id),'🗑️ Dihapus');delId=null;render()}
+function doDel(id){if(commit(tx.filter(t=>t.id!==id),'🗑️ Dihapus')&&fotoOf(id).length)sv(FTK(id),[]);delId=null;render()}
 /* Buka Input dengan formulir masih kosong: tanggal ikut hari ini (kalau aplikasi dibiarkan terbuka sejak kemarin) */
 function go(t){if(t==='input'&&!editId&&!F.uraian&&!F.jumlah&&F.tanggal!==today())fTgl(today());tab=t;render();scrollTo(0,0)}
 function switchYr(y){cfgD=null;loadYear(y);editId=null;rkTgl='';newForm();render();toast('📅 Beralih ke Tahun '+y)}
@@ -949,7 +949,7 @@ async function doWipe(){
  $('wp-ok').disabled=true;
  const {error}=await sb.auth.signInWithPassword({email:user.email,password:pw});
  if(error){wipeErr=error.status===400?'Password salah. Penghapusan ditolak.':'Gagal memeriksa password: '+error.message;render();$('wp-pw').focus();return}
- const n=tx.length;tx=[];sv(TXK(yr),tx);addLog('hapus',`Hapus SEMUA transaksi tahun ${yr} (${n} transaksi)`);
+ const n=tx.length;tx.forEach(t=>{if(fotoOf(t.id).length)sv(FTK(t.id),[])});tx=[];sv(TXK(yr),tx);addLog('hapus',`Hapus SEMUA transaksi tahun ${yr} (${n} transaksi)`);
  wipeAsk=false;render();toast('🗑️ Data dihapus');
 }
 
@@ -1129,7 +1129,7 @@ function vInput(){
    <label>👤 Pelaksana Belanja</label>
    <select onchange="fset('guruId',this.value)"><option value="">— Pilih Guru/Pelaksana —</option>${(cfg.guruList||[]).map(g=>`<option value="${g.id}"${f.guruId===g.id?' selected':''}>${esc(g.nama)}${g.nip?` (${esc(g.nip)})`:''}</option>`).join('')}</select></div>
   <div class="card"><div class="ct">📎 Dokumen Tambahan</div>
-   <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px"><input type="checkbox" id="tkcb"${f.tukang?' checked':''} onchange="F.tukang=this.checked"><label for="tkcb" style="margin:0;cursor:pointer;font-size:12px">🔨 Pembayaran tukang — dicetak di menu <b>A2 Tukang</b> (tanda tangan hanya Kepala Sekolah &amp; Bendahara BOS)</label></div>${rapatBlk(f)}${dkBlk(f)}${ket}</div>`
+   <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px"><input type="checkbox" id="tkcb"${f.tukang?' checked':''} onchange="F.tukang=this.checked"><label for="tkcb" style="margin:0;cursor:pointer;font-size:12px">🔨 Pembayaran tukang — dicetak di menu <b>A2 Tukang</b> (tanda tangan hanya Kepala Sekolah &amp; Bendahara BOS)</label></div>${rapatBlk(f)}${dkBlk(f)}${ftBlk()}${ket}</div>`
  :`<div class="card"><div class="g2">
    <div><label>📅 Tanggal *</label>${dIn(f.tanggal,'fTgl(v)')}</div>
    <div><label>🔢 No. Bukti</label>${noInp}</div></div>${uraian}${jumlah}${ket}</div>`;
@@ -1333,7 +1333,7 @@ function vRk(){
 /* kind: 'a2' = belanja biasa, 'a2t' = belanja tukang, 'sp' = semua belanja */
 function monthList(kind){
  const rp=kind==='und'||kind==='hdr'; /* undangan/daftar hadir dikelompokkan menurut tanggal rapat */
- const bm={};sortTx(tx).filter(t=>rp?t.rapat:t.jenis==='kredit'&&(kind==='sp'||!!t.tukang===(kind==='a2t'))).forEach(t=>{const m=getMonth(rp?t.rapat.dR:t.tanggal);(bm[m]=bm[m]||[]).push(t)});
+ const bm={};sortTx(tx).filter(t=>rp?t.rapat:kind==='lamp'?t.jenis==='kredit'&&fotoOf(t.id).length:t.jenis==='kredit'&&(kind==='sp'||!!t.tukang===(kind==='a2t'))).forEach(t=>{const m=getMonth(rp?t.rapat.dR:t.tanggal);(bm[m]=bm[m]||[]).push(t)});
  const av=Object.keys(bm).map(Number).sort((a,b)=>a-b);
  const m=av.includes(+pMo)?+pMo:av[0];
  return{bm,av,m,list:m?bm[m]:[]};
@@ -1687,6 +1687,46 @@ function vDokEd(){
  <div class="card wrap"><div id="dk-pv" style="min-width:680px">${dokHtml()}</div></div>`;
 }
 
+/* ─── LAMPIRAN FOTO KEGIATAN ───
+   Foto disimpan per belanja di kunci bos4-ft-<id belanja> (ikut cadangan), dikecilkan dulu supaya hemat tempat.
+   Disimpan langsung saat dipilih (tidak menunggu tombol Simpan belanja). Belanja dihapus -> fotonya dikosongkan. */
+const FTK=id=>'bos4-ft-'+id,FTMAX=4;
+const fotoOf=id=>DB[FTK(id)]||[];
+const ftId=()=>editId||F.tid;
+const ftShrink=f=>new Promise((ok,no)=>{const rd=new FileReader();rd.onerror=no;rd.onload=()=>{const im=new Image();im.onerror=no;im.onload=()=>{
+ const s=Math.min(1,900/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);
+ const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0,c.width,c.height);ok(c.toDataURL('image/jpeg',.65))};im.src=rd.result};rd.readAsDataURL(f)});
+function ftBody(){
+ const l=fotoOf(ftId());
+ return `<div style="font-size:12px;font-weight:700;margin-bottom:6px">📷 Foto Kegiatan (${l.length}/${FTMAX})</div>`
+ +(l.length?`<div style="display:flex;gap:10px;flex-wrap:wrap">${l.map((s,i)=>`<div style="position:relative"><img src="${s}" alt="Foto ${i+1}" style="width:84px;height:84px;object-fit:cover;border-radius:10px;border:1px solid #e2e8f0;display:block"><button class="ib" aria-label="Hapus foto ${i+1}" title="Hapus foto" onclick="ftDel(${i})" style="position:absolute;top:-8px;right:-8px;background:#fff;border-radius:50%;box-shadow:0 1px 4px #0004;min-width:36px;min-height:36px">🗑️</button></div>`).join('')}</div>`:'<div style="font-size:11px;color:#6b7280">Belum ada foto. Dicetak di menu <b>Lampiran Foto</b>.</div>')
+ +(l.length<FTMAX?`<label class="btn blue" style="margin:10px 0 0;display:inline-block;font-size:12px;padding:8px 12px">➕ Tambah Foto<input type="file" accept="image/*" multiple style="display:none" onchange="ftAdd(this)"></label>`:'');
+}
+const ftBlk=()=>`<div id="ft-blk" style="margin-top:10px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px">${ftBody()}</div>`;
+const ftUpd=()=>{const e=$('ft-blk');if(e)e.innerHTML=ftBody()};
+async function ftAdd(el){
+ const id=ftId(),fs=[...el.files],room=FTMAX-fotoOf(id).length;el.value='';
+ if(fs.length>room)toast(`⚠️ Maksimal ${FTMAX} foto per belanja, hanya ${room} yang diambil`);
+ const out=[];
+ for(const f of fs.slice(0,room)){try{out.push(await ftShrink(f))}catch(e){toast('⚠️ Foto tidak bisa dibaca: '+f.name)}}
+ if(!out.length)return;
+ sv(FTK(id),[...fotoOf(id),...out]);ftUpd();
+}
+function ftDel(i){const id=ftId();sv(FTK(id),fotoOf(id).filter((_,j)=>j!==i));ftUpd()}
+/* lembar cetak: hanya judul + foto, tanpa teks lain */
+const lampHtml=t=>`<div style="${rpFont}"><table style="width:100%;border-collapse:collapse;table-layout:fixed"><tr><td style="border:1px dotted #000;padding:3px 6px;text-align:center;font-weight:700;font-size:15px">LAMPIRAN KEGIATAN</td></tr><tr><td style="border:1px dotted #000;height:22px;padding:0"></td></tr></table><div style="margin-top:34px">${fotoOf(t.id).map(s=>`<div style="text-align:center;margin-bottom:22px;break-inside:avoid"><img src="${s}" alt="" style="max-width:100%;max-height:11.5cm;object-fit:contain"></div>`).join('')}</div></div>`;
+function printLamp(id){const t=tx.find(x=>x.id===id);if(t)doPrint(lampHtml(t))}
+function vLamp(){
+ const {bm,av,m,list}=monthList('lamp');
+ return `<div class="card row" style="flex-wrap:wrap"><div class="ct" style="margin:0">📷 Lampiran Foto — per Transaksi</div>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label style="margin:0">📅 Bulan:</label>
+  <select class="auto" onchange="pMo=this.value;render()">${av.length?av.map(x=>`<option value="${x}"${x===m?' selected':''}>${MO[x]} (${bm[x].length} tx)</option>`).join(''):'<option>— Belum ada foto —</option>'}</select>
+  <button class="btn" onclick="printAll('lamp')"${list.length?'':' disabled'}>🖨️ Cetak Semua (${list.length})</button></div></div>
+ ${list.length?list.map((t,i)=>{const f=fotoOf(t.id),k=fK(t.komponen);
+  return `<div class="card" style="border-left:4px solid ${k?k.color:'#d1d5db'}"><div class="row" style="align-items:flex-start"><div style="min-width:0;flex:1"><div style="font-weight:700;font-size:13px;word-break:break-word">${i+1}. ${esc(t.uraian)}</div><div style="font-size:11px;color:#6b7280;margin-top:2px">Lunas ${tgl(t.tanggal)} · ${esc(t.noBukti)} · ${f.length} foto</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${f.map(s=>`<img src="${s}" alt="" style="width:56px;height:56px;object-fit:cover;border-radius:8px">`).join('')}</div></div><div style="flex-shrink:0;display:flex;gap:4px"><button class="btn gold" style="padding:7px 14px;font-size:12px" onclick="printLamp('${t.id}')">🖨️ Cetak</button><button class="ib" title="Edit transaksi / foto" aria-label="Edit transaksi" onclick="doEdit('${t.id}')">✏️</button></div></div></div>`}).join('')
+ :`<div class="card">${empty('lamp','Belum ada lampiran foto','Tambahkan foto kegiatan saat mencatat belanja (kartu Dokumen Tambahan di menu Input), lalu cetak dari sini.',[['➕ Catat belanja',"go('input')"]])}</div>`}`;
+}
+
 let logF='';
 function vLog(){
  const all=ld(LOGK)||[],l=all.slice().reverse().filter(x=>!logF||x.a===logF),I={login:'🔑',logout:'🚪',tambah:'➕',ubah:'✏️',hapus:'🗑️',pengaturan:'⚙️','saldo awal':'💰',pulihkan:'♻️',cadangan:'⬇️',akun:'🔐'};
@@ -1778,7 +1818,7 @@ function vSet(){
 
 /* ═════════ RENDER ═════════ */
 /* [id, label, grup]. Ikon = IC[id]. Menambah menu baru: tambah di sini + IC + views di render() */
-const TABS=[['dashboard','Dashboard','Harian'],['input','Input','Harian'],['rkn','Rekapan Belanja','Harian'],['riwayat','Riwayat','Harian'],['bku','BKU','Buku Kas'],['bkupj','BKU Pajak','Buku Kas'],['rekap','Rekap Pajak','Buku Kas'],['a2','Form A2','Pembayaran'],['a2t','A2 Tukang','Pembayaran'],['sp','Surat Pesanan (SP)','Pembayaran'],['und','Undangan','Rapat'],['hdr','Daftar Hadir','Rapat'],['dok','Dokumen Lain','Pembayaran'],['log','Riwayat Aktivitas','Sistem'],['set','Pengaturan','Sistem']];
+const TABS=[['dashboard','Dashboard','Harian'],['input','Input','Harian'],['rkn','Rekapan Belanja','Harian'],['riwayat','Riwayat','Harian'],['bku','BKU','Buku Kas'],['bkupj','BKU Pajak','Buku Kas'],['rekap','Rekap Pajak','Buku Kas'],['a2','Form A2','Pembayaran'],['a2t','A2 Tukang','Pembayaran'],['sp','Surat Pesanan (SP)','Pembayaran'],['und','Undangan','Rapat'],['hdr','Daftar Hadir','Rapat'],['dok','Dokumen Lain','Pembayaran'],['lamp','Lampiran Foto','Pembayaran'],['log','Riwayat Aktivitas','Sistem'],['set','Pengaturan','Sistem']];
 const IC={
  dashboard:'<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>',
  input:'<circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/>',
@@ -1794,6 +1834,7 @@ const IC={
  hdr:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
  set:'<path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/>',
  dok:'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
+ lamp:'<rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21"/>',
  log:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/>',
  menu:'<path d="M4 6h16M4 12h16M4 18h16"/>',
@@ -1864,7 +1905,7 @@ function render(){
  const sbS=document.querySelector('.sbn')?.scrollTop||0; /* innerHTML ganti sidebar: simpan posisi scroll menu */
  R=run(tx);const T=tot();
  try{sessionStorage.setItem(VK,JSON.stringify({tab,yr,setT}))}catch(e){}
- const views={dashboard:vDash,input:vInput,rkn:vRkn,riwayat:vRiw,bku:vBKU,bkupj:vPj,rekap:vRk,a2:()=>vList('a2'),a2t:()=>vList('a2t'),sp:()=>vList('sp'),und:()=>vRp('und'),hdr:()=>vRp('hdr'),dok:vDok,log:vLog,set:vSet};
+ const views={dashboard:vDash,input:vInput,rkn:vRkn,riwayat:vRiw,bku:vBKU,bkupj:vPj,rekap:vRk,a2:()=>vList('a2'),a2t:()=>vList('a2t'),sp:()=>vList('sp'),und:()=>vRp('und'),hdr:()=>vRp('hdr'),dok:vDok,lamp:vLamp,log:vLog,set:vSet};
  $('app').innerHTML=`<div class="shell${sbMini?' mini':''}">${sidebar()}<div class="scrim" onclick="document.querySelector('.shell').classList.remove('open')"></div><div class="mainc"><div class="top">
   <div class="hdr"><button class="mbtn" aria-label="Buka menu" onclick="sbTgl()">${ico('menu')}</button>
    <div style="flex:1;min-width:0">${clkBox()}</div>
@@ -1897,7 +1938,7 @@ function printSP(id){const t=tx.find(x=>x.id===id);if(t)doPrint(spHtml(t))}
 /* Cetak semua A2 / A2 Tukang / SP bulan terpilih: satu lembar per transaksi */
 function printAll(kind){
  const {list}=monthList(kind);if(!list.length){toast('Tidak ada transaksi');return}
- doPrint(list.map((t,i)=>`<div style="${i<list.length-1?'break-after:page;page-break-after:always':''}">${kind==='sp'?spHtml(t):kind==='und'||kind==='hdr'?(kind==='und'?undHtml(t):hdrHtml(t)):a2Html(t)}</div>`).join(''));
+ doPrint(list.map((t,i)=>`<div style="${i<list.length-1?'break-after:page;page-break-after:always':''}">${kind==='sp'?spHtml(t):kind==='lamp'?lampHtml(t):kind==='und'||kind==='hdr'?(kind==='und'?undHtml(t):hdrHtml(t)):a2Html(t)}</div>`).join(''));
 }
 
 /* A2: Arial 11 seluruhnya (diatur lewat class .a2), nama kepala / bendahara / yang membayar sejajar,
