@@ -1730,46 +1730,42 @@ function vLamp(){
 }
 
 /* ─── IMPOR BELANJA DARI PDF BKU (aplikasi lain) ───
-   Hanya baris belanja (punya No. Bukti BPU): tanggal = lunas bayar, kode rekening, uraian, nominal.
-   Dana masuk, tarik tunai, pajak terima/setor, saldo, bunga, kode kegiatan, no. bukti dilewati.
-   Kode rekening di PDF terpotong dua baris (5.1.02.02.01.00 + 63) -> disambung. Selalu ada pratinjau sebelum disimpan. */
+   PDF dibaca per KOLOM (posisi x), bukan per baris teks: tiap baris tabel berjangkar pada tanggal di kolom kiri,
+   kode rekening yang terpotong dua baris (5.1.02.02.01.00 + 63) disambung. Belanja = pengeluaran > 0, ada kode rekening,
+   uraian bukan Terima/Setor pajak. TIAP BARIS = SATU TRANSAKSI: no. bukti sama beda rekening, atau no. bukti beda rekening sama,
+   tidak digabung. Dana masuk, tarik tunai, pajak, saldo, bunga, kode kegiatan dilewati. Selalu ada pratinjau sebelum disimpan.
+   shortcut: batas kolom (x) cocok untuk format BKU aplikasi ini saja, baris tanpa tanggal tidak terbaca. */
 const PDFJS='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
 let IM=null;
 const loadPdfJs=()=>window.pdfjsLib?Promise.resolve(window.pdfjsLib):new Promise((ok,no)=>{const s=document.createElement('script');s.src=PDFJS;s.onload=()=>{pdfjsLib.GlobalWorkerOptions.workerSrc=PDFJS.replace('pdf.min','pdf.worker.min');ok(pdfjsLib)};s.onerror=()=>no(new Error('pustaka PDF gagal dimuat, periksa internet'));document.head.appendChild(s)});
-async function pdfLines(f){
- const lib=await loadPdfJs(),pdf=await lib.getDocument({data:await f.arrayBuffer()}).promise,out=[];
+async function pdfRecs(f){
+ const lib=await loadPdfJs(),pdf=await lib.getDocument({data:new Uint8Array(await f.arrayBuffer())}).promise,out=[];
  for(let p=1;p<=pdf.numPages;p++){
-  const its=(await(await pdf.getPage(p)).getTextContent()).items.filter(i=>i.str&&i.str.trim()).map(i=>({x:i.transform[4],y:i.transform[5],s:i.str.trim()})).sort((a,b)=>b.y-a.y),ls=[];
-  its.forEach(i=>{const l=ls[ls.length-1];if(l&&l.y-i.y<=3)l.a.push(i);else ls.push({y:i.y,a:[i]})});
-  ls.forEach(l=>out.push(l.a.sort((a,b)=>a.x-b.x).map(i=>i.s).join(' ')));
+  const its=(await(await pdf.getPage(p)).getTextContent()).items.filter(i=>i.str&&i.str.trim()).map(i=>({x:i.transform[4],x1:i.transform[4]+i.width,y:i.transform[5],s:i.str.trim()}));
+  const an=its.filter(i=>i.x<90&&/^\d\d-\d\d-\d{4}$/.test(i.s)).sort((a,b)=>b.y-a.y);
+  if(!an.length)continue;
+  const top=an[0].y+14,last=an[an.length-1].y,tot=its.filter(i=>i.s==='Jumlah'&&i.y<last-5).sort((a,b)=>b.y-a.y)[0];
+  const low=Math.max(tot?tot.y+3:-1e9,last-20); /* di bawahnya: baris Jumlah, tanda tangan, catatan kaki */
+  const bk=an.map(a=>({a,w:[]}));
+  its.filter(i=>i.y<=top&&i.y>low).forEach(i=>{let b=bk[0];bk.forEach(k=>{if(Math.abs(k.a.y-i.y)<Math.abs(b.a.y-i.y))b=k});b.w.push(i)});
+  bk.forEach(({a,w})=>{
+   const col=(l,h)=>w.filter(i=>i.x>=l&&i.x<h&&i.x!==a.x).sort((m,n)=>n.y-m.y||m.x-n.x),num=(l,h)=>{const n=w.find(i=>i.x>=600&&i.x1>=l&&i.x1<h&&/^[\d.]+$/.test(i.s));return n?cleanNum(n.s):0};
+   out.push({tgl:a.s.split('-').reverse().join('-'),kode:col(134,203).map(i=>i.s).join(''),bpu:(col(203,242)[0]||{}).s||'',uraian:col(242,600).map(i=>i.s).join(' ').replace(/\s+/g,' '),masuk:num(0,710),keluar:num(710,780)});
+  });
  }
  return out;
 }
 async function imFile(el){
  const f=el.files[0];el.value='';if(!f)return;
  toast('⏳ Membaca PDF…',8000);
- try{imParse(await pdfLines(f),f.name)}catch(e){toast('⚠️ PDF tidak bisa dibaca ('+e.message+'). Coba tempel teksnya di bawah.',6000)}
+ try{imBuild(await pdfRecs(f),f.name)}catch(e){IM={rows:[],skip:0,src:f.name,err:String(e&&e.message||e)};render()}
 }
-const imPaste=()=>imParse($('im-tx').value.split('\n'),'teks tempelan');
-function imParse(lines,src){
- const junk=/NPSN|Halaman \d|^[\d ]{3,}$|^(B U K U|TANGGAL KODE|KEGIATAN URAIAN|BULAN :|KODE$|REKENING NO|Sumber Dana|Nama Sekolah$|Desa\/Kecamatan|Kabupaten \/ Kota|Provinsi$|BKU$)/i,stop=/^(Jumlah\b|Menyetujui|Pada hari)/i,recs=[];
- let cur=null;
- lines.map(s=>s.replace(/\s+/g,' ').trim()).filter(s=>s&&!junk.test(s)).forEach(s=>{
-  if(stop.test(s)){cur=null;return}
-  if(/^\d\d-\d\d-\d{4}\b/.test(s))recs.push(cur=[s]);else if(cur)cur.push(s);
- });
+function imBuild(recs,src){
  const rows=[],rk=cfg.rekening||[];
  recs.forEach(r=>{
-  const t=r.join(' ');
-  if(!/BPU\d+/.test(t)||/^\S+\s+(Terima|Setor)\b/.test(t))return; /* bukan belanja */
-  const d=t.match(/^(\d\d)-(\d\d)-(\d{4})/),a=t.match(/\s0\s+(\d[\d.]*)\s+\d[\d.]*\s+(5(?:\.\d+)+)/),s=t.match(/(?:\s|^)(\d{1,4})\s+BPU\d+/);
-  if(!d||!a)return;
-  let kode=a[2];const g=kode.match(/\d+$/)[0];
-  if(g.length<4&&s)kode=kode.slice(0,-g.length)+(g+s[1]).padStart(4,'0');
-  const u=t.replace(/^\d\d-\d\d-\d{4}/,'').replace(a[0],' ').replace(/(?:\s|^)\d{1,4}\s+BPU\d+/,' ').replace(/(?:^|\s)\d\d\.\d\d\.\d\d\.(?=\s|$)/g,' ').replace(/\s+/g,' ').trim();
-  const tgl=`${d[3]}-${d[2]}-${d[1]}`,jml=cleanNum(a[1]),x=rk.find(y=>y.kode===kode);
-  const dup=tx.some(y=>y.jenis==='kredit'&&y.tanggal===tgl&&y.jumlah===jml&&y.uraian.trim().toLowerCase()===u.toLowerCase());
-  rows.push({id:uid(),on:!dup&&d[3]===yr,tgl,uraian:u,jml,kode,rek:x?x.id:'',dup,thn:d[3]!==yr});
+  if(!(r.keluar>0)||!/^5(\.\d+){4,}$/.test(r.kode)||/^(Terima|Setor)\b/.test(r.uraian))return; /* bukan belanja */
+  const x=rk.find(y=>y.kode===r.kode),dup=tx.some(y=>y.jenis==='kredit'&&y.tanggal===r.tgl&&y.jumlah===r.keluar&&y.uraian.trim().toLowerCase()===r.uraian.toLowerCase());
+  rows.push({id:uid(),on:!dup&&r.tgl.slice(0,4)===yr,tgl:r.tgl,uraian:r.uraian,jml:r.keluar,kode:r.kode,bpu:r.bpu,rek:x?x.id:'',dup,thn:r.tgl.slice(0,4)!==yr});
  });
  IM={rows,skip:recs.length-rows.length,src};render();scrollTo(0,0);
 }
@@ -1788,18 +1784,16 @@ function vImpor(){
  const head=`<div class="card"><div class="ct">📥 Impor BKU dari PDF</div>
   <div class="info">Mengambil <b>belanja</b> dari PDF BKU aplikasi lain: tanggal (lunas bayar), kode rekening, uraian, nominal. Dana masuk, tarik tunai, pajak, saldo, dan kode kegiatan dilewati. Isi <b>saldo awal</b> di Pengaturan dulu supaya saldo tunai cukup.</div>
   <label class="btn" style="display:inline-block;margin:0">📄 Pilih File PDF<input type="file" accept="application/pdf,.pdf" style="display:none" onchange="imFile(this)"></label>
-  <details style="margin-top:12px"><summary style="cursor:pointer;font-size:12px;color:#6b7280">📋 Cara lain: tempel teks dari PDF (jika file PDF tidak terbaca)</summary>
-   <textarea id="im-tx" rows="6" style="width:100%;border:1.5px solid #e2e8f0;border-radius:12px;padding:10px 12px;font:inherit;font-size:13px" placeholder="Buka PDF, pilih semua teks (Ctrl+A), salin, lalu tempel di sini"></textarea>
-   <button class="btn teal" style="margin-top:6px" onclick="imPaste()">Baca teks</button></details></div>`;
+  </div>`;
  if(!IM)return head;
- if(!IM.rows.length)return head+`<div class="card">${empty('impor','Tidak ada belanja terbaca','Pastikan ini PDF Buku Kas Umum bulanan. Kalau benar, coba cara tempel teks di atas.',[],1)}</div>`;
+ if(!IM.rows.length)return head+`<div class="card">${IM.err?`<div class="info" style="background:#fef2f2;border-color:#fecaca;color:#991b1b">⚠️ PDF gagal dibaca: <b>${esc(IM.err)}</b><br>Periksa internet (pustaka pembaca PDF dimuat dari internet), lalu coba lagi. Kalau masih gagal, kirim tulisan di atas ke saya.</div>`:empty('impor','Tidak ada belanja terbaca','Pastikan ini PDF Buku Kas Umum bulanan dari aplikasi sumber.',[],1)}</div>`;
  const rk=cfg.rekening||[],sel=imTx(),tot=sel.reduce((s,t)=>s+t.jumlah,0),e=sel.length?run(renumber([...tx,...sel])).err:null;
  const sum=`<div class="info">${IM.rows.length} belanja terbaca dari ${esc(IM.src)}${IM.skip?` · ${IM.skip} baris lain dilewati (saldo, tarik, pajak, bunga)`:''}<br>Dipilih <b>${sel.length}</b> · Total <b>${rp(tot)}</b>${e?`<div style="color:#dc2626;font-weight:700;margin-top:4px">⚠️ ${esc(errMsg(e))} Isi saldo awal atau catat Tarik Dana dulu.</div>`:''}</div>`;
  const cards=IM.rows.map((r,i)=>{
   const x=rk.find(y=>y.id===r.rek),k=x&&fK(rekKomp(x));
   const note=r.dup?'<span style="color:#b45309">⚠️ Sudah ada di BKU (tanggal, uraian, jumlah sama), tidak dicentang</span>'
    :r.thn?`<span style="color:#b45309">⚠️ Tahun ${r.tgl.slice(0,4)} berbeda dari tahun aktif ${yr}, tidak dicentang</span>`
-   :x?`🔖 ${esc(r.kode)}${k?' · '+esc(k.nama):''}`:`<span style="color:#dc2626">⚠️ Kode ${esc(r.kode)} belum ada di Daftar Rekening, pilih rekening atau tambah di Pengaturan</span>`;
+   :x?`🔖 ${esc(r.kode)}${k?' · '+esc(k.nama):''}${r.bpu?' · '+esc(r.bpu)+' di PDF':''}`:`<span style="color:#dc2626">⚠️ Kode ${esc(r.kode)} belum ada di Daftar Rekening, pilih rekening atau tambah di Pengaturan</span>`;
   return `<div class="card" style="padding:12px;border-left:4px solid ${r.on?'#0f766e':'#d1d5db'};${r.on?'':'opacity:.7'}">
    <div class="row"><label style="display:flex;align-items:center;gap:8px;margin:0;cursor:pointer;min-height:32px"><input type="checkbox"${r.on?' checked':''} onchange="IM.rows[${i}].on=this.checked;render()"><b style="font-size:13px">${tglS(r.tgl)}</b></label><b style="color:#dc2626">${rp(r.jml)}</b></div>
    <input value="${esc(r.uraian)}" aria-label="Uraian" oninput="IM.rows[${i}].uraian=this.value">
