@@ -443,7 +443,7 @@ const ROM=["","I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"];
 const TW=["","Satu","Dua","Tiga","Empat"];
 const logoImg=s=>s?`<img src="${s}" style="width:80px;height:80px;object-fit:contain">`:'<div style="width:80px;height:80px"></div>';
 
-const KOMP=[
+const KOMP_DEF=[
  {kode:"1",nama:"Honorarium Non-PNS",full:"Honorarium NON PNS",color:"#7C3AED"},
  {kode:"2",nama:"Alat Tulis Kantor",full:"Belanja Alat Tulis Kantor",color:"#2563EB"},
  {kode:"3",nama:"Cetak & Penggandaan",full:"Belanja Cetak dan Penggandaan",color:"#0891B2"},
@@ -454,6 +454,9 @@ const KOMP=[
  {kode:"7",nama:"Belanja Lainnya",full:"Belanja Lainnya",color:"#DC2626"},
  {kode:"8",nama:"Belanja Modal",full:"Belanja Modal",color:"#BE185D"},
 ];
+/* KOMP = komponen aktif tahun ini (cfg.komp, bisa diubah di Pengaturan); kosong -> bawaan KOMP_DEF */
+let KOMP=KOMP_DEF;
+const applyKomp=()=>{KOMP=cfg.komp&&cfg.komp.length?cfg.komp:KOMP_DEF};
 const fK=k=>KOMP.find(x=>x.kode===k);
 /* komponen bawaan tiap rekening (bisa diubah di Pengaturan > Manajemen BOS > Daftar Rekening) */
 const REKKOMP={"ATK":"2","BAHAN KOMPUTER":"2","KERTAS DAN COVER":"2","CETAK PENGGANDAAN FC":"3","CETAK MMT":"3","OBAT OBATAN":"9","LISTRIK":"4","INTERNET":"4","KONSUMSI RAPAT":"7","PELAYANAN FASILITAS":"7","SEWA KENDARAAN":"7","PERJADIN":"6","PRINTER":"8","LAPTOP":"8","ALAT KELISTRIKAN":"5","HONOR TKA":"1","MATERAI":"2","OLAHRAGA":"7","ALAT KEBERSIHAN":"7","PENDAFTARAN LOMBA":"7","LANGGANAN MAJALAH":"7","MODAL BUKU":"8","WORKSHOP KEPALA SEKOLAH":"7"};
@@ -516,9 +519,16 @@ function showLogin(msg,email){
   <div class="bk-brand"><div class="bk-ic">${boskuIcon(92)}</div><div class="bk-name">BOS<span>ku</span></div><div class="bk-tag">Catat rapi, kelola pasti</div><div class="bk-sub"><i></i>KEUANGAN SEKOLAH<i></i></div></div>
   ${msg?`<div class="info" style="background:#fef2f2;border-color:#fecaca;color:#991b1b">${esc(msg)}</div>`:''}
   <label>Email</label><input id="lg-e" type="email" autocomplete="username" value="${esc(email||'')}">
-  <label>Password</label><input id="lg-p" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+  <label>Password</label><div style="position:relative"><input id="lg-p" type="password" autocomplete="current-password" style="padding-right:52px" onkeydown="if(event.key==='Enter')doLogin()">${EYE}</div>
   <button class="btn" style="width:100%;margin-top:14px" onclick="doLogin()">Masuk</button>
   <button class="btn gray" style="width:100%;margin-top:8px" onclick="lupaPass()">Lupa password?</button></div></div>`;
+}
+const EYE=`<button type="button" class="ib" aria-label="Tampilkan password" title="Tampilkan password" style="position:absolute;right:2px;top:0;height:100%;min-width:44px;font-size:18px" onclick="lihatPass(this)">👁️</button>`;
+const pwBox=(attr)=>`<div style="position:relative"><input type="password" style="padding-right:52px" ${attr}>${EYE}</div>`;
+function lihatPass(b){
+ const i=b.previousElementSibling,s=i.type==='password';
+ i.type=s?'text':'password';b.textContent=s?'🙈':'👁️';
+ const t=s?'Sembunyikan password':'Tampilkan password';b.title=t;b.setAttribute('aria-label',t);
 }
 /* Kirim link reset ke email; pesan sengaja sama apa pun hasilnya supaya email yang terdaftar tidak bisa ditebak */
 async function lupaPass(){
@@ -705,8 +715,8 @@ function newForm(){clearDraft();F=initForm();autoNo()}
    Tahun tanpa catatan memakai bos4-cfg lama (tidak ditulis lagi). shortcut: pagu/rencana lama hanya terbawa ke tahun yang punya transaksi. */
 const cfgOf=y=>({...DEF_CFG,...(ld(CFGK)||{}),...ld(PRK(y))});
 function loadYear(y){yr=y;tx=renumber(ld(TXK(y))||[]);sa=ld(SAK(y))||{bank:0,tunai:0};
- cfg=cfgOf(y);if(!ld(PRK(y))&&!ld(TXK(y))){cfg.pagu=0;cfg.rencana=[]}}
-function simpanCfg(){sv(PRK(yr),cfg);tx=renumber(tx);sv(TXK(yr),tx);if(!editId)autoNo()}
+ cfg=cfgOf(y);if(!ld(PRK(y))&&!ld(TXK(y))){cfg.pagu=0;cfg.rencana=[]}applyKomp()}
+function simpanCfg(){applyKomp();sv(PRK(yr),cfg);tx=renumber(tx);sv(TXK(yr),tx);if(!editId)autoNo()}
 /* salin profil, guru, rekening, no. bukti dari tahun sebelumnya; pagu & rencana tidak ikut. Tahun sebelumnya tidak disentuh. */
 function imporCfg(){
  const py=String(+yr-1);
@@ -853,8 +863,25 @@ function editRek(id){rekEd=id;render();$('rk-nama').focus();$('rk-nama').scrollI
 function cancelRek(){rekEd=null;render()}
 function rmRek(id){if(rekEd===id)rekEd=null;cfgD=cfgD||JSON.parse(JSON.stringify(cfg));cfgD.rekening=cfgD.rekening.filter(x=>x.id!==id);render()}
 /* pilih nama rekening di Input -> kode rekening terisi otomatis (tetap bisa diketik manual) */
-function pickRek(id){const x=(cfg.rekening||[]).find(y=>y.id===id);if(!x)return;F.kode=x.kode;F.rek=x.id;$('f-kode').value=x.kode;const kk=rekKomp(x);if(kk){F.komponen=kk;$('f-komp').value=kk}}
+function pickRek(id){const x=(cfg.rekening||[]).find(y=>y.id===id);if(!x)return;F.kode=x.kode;F.rek=x.id;$('f-kode').value=x.kode;const kk=rekKomp(x);if(kk&&fK(kk)){F.komponen=kk;$('f-komp').value=kk}}
 function rmGuru(id){if(guruEd===id)guruEd=null;cfgD=cfgD||JSON.parse(JSON.stringify(cfg));cfgD.guruList=cfgD.guruList.filter(g=>g.id!==id);render()}
+/* Komponen BOS: diedit di cfgD (ikut tombol Simpan Semua Pengaturan), per tahun anggaran */
+let kpEd=null;
+const kpD=()=>{cfgD=cfgD||JSON.parse(JSON.stringify(cfg));cfgD.komp=cfgD.komp&&cfgD.komp.length?cfgD.komp:JSON.parse(JSON.stringify(KOMP_DEF));return cfgD.komp};
+function addKomp(){
+ const n=$('kp-nama').value.trim(),f=$('kp-full').value.trim()||n;if(!n){toast('⚠️ Nama komponen wajib diisi');return}
+ const l=kpD(),x={kode:kpEd||'k'+Date.now().toString(36),nama:n,full:f,color:$('kp-warna').value};
+ cfgD.komp=kpEd?l.map(y=>y.kode===kpEd?x:y):[...l,x];kpEd=null;render();
+}
+function editKomp(k){kpEd=k;render();$('kp-nama').focus();$('kp-nama').scrollIntoView({block:'center'})}
+function cancelKomp(){kpEd=null;render()}
+function rmKomp(k){
+ const n=tx.filter(t=>t.komponen===k).length;
+ if(n){toast(`⚠️ Komponen dipakai ${n} transaksi tahun ${yr}. Cukup ganti namanya, atau ubah transaksinya dulu`,5500);return}
+ const l=kpD();if(l.length<2){toast('⚠️ Minimal satu komponen');return}
+ if(kpEd===k)kpEd=null;cfgD.komp=l.filter(x=>x.kode!==k);render();
+}
+function resetKomp(){if(!confirm('Kembalikan daftar komponen ke bawaan? Tekan Simpan Semua Pengaturan untuk menerapkan.'))return;kpD();cfgD.komp=JSON.parse(JSON.stringify(KOMP_DEF));kpEd=null;render()}
 function setLogo(k,el){
  const f=el.files[0];if(!f)return;
  const rd=new FileReader();
@@ -1681,8 +1708,8 @@ function vSet(){
    <label class="btn blue" style="margin:0;display:inline-block;font-size:13px">⬆️ Pulihkan Cadangan<input type="file" accept=".json,application/json" style="display:none" onchange="importDb(this)"></label></div>
   <div style="font-size:11px;color:#6b7280;margin-top:6px">Data tersimpan online di Supabase. Unduh cadangan secara berkala sebagai pengaman tambahan. <b id="lbk">${lbkTxt()}</b></div></div>
  <div class="card"><div class="ct">🔐 Ganti Email &amp; Password</div>
-  <div class="g2"><div><label>Password baru (min. 8 karakter)</label><input id="pw-1" type="password" autocomplete="new-password"></div>
-  <div><label>Ulangi password baru</label><input id="pw-2" type="password" autocomplete="new-password"></div></div>
+  <div class="g2"><div><label>Password baru (min. 8 karakter)</label>${pwBox('id="pw-1" autocomplete="new-password"')}</div>
+  <div><label>Ulangi password baru</label>${pwBox('id="pw-2" autocomplete="new-password"')}</div></div>
   <button class="btn" style="margin-top:8px" onclick="gantiPass()">Ganti Password</button>
   <div style="margin-top:12px"><label>Email baru (sekarang: ${esc(user&&user.email)})</label><input id="em-n" type="email" autocomplete="off" placeholder="email@baru.com"></div>
   <button class="btn blue" style="margin-top:8px" onclick="gantiEmail()">Ganti Email</button>
@@ -1728,9 +1755,17 @@ function vSet(){
  <div class="card"><div class="ct">🔢 Nomor Bukti Pembayaran</div>
   ${inp('No. bukti awal (boleh kosong)','noAwal','contoh: 15/BOSP/XI/2026')}
   <div style="font-size:11px;color:#6b7280;margin-top:4px">Tulis contoh nomor bukti pertama dengan format bebas, mis. <b>15/BOSP/XI/2026</b> atau <b>BKT-007/2026</b>. Angka pertama jadi nomor awal, angka Romawi diganti bulan, tahun diganti tahun aktif, teks lain dipakai apa adanya. Saat input belanja, nomor lanjut urut otomatis. Dengan angka Romawi, nomor mulai lagi dari 1 tiap bulan baru; tanpa Romawi, nomor lanjut terus. Kosongkan untuk format bawaan 1/I/2026. Tekan Simpan Semua Pengaturan.</div></div>
+ <div class="card" style="border-left:4px solid #7C3AED"><div class="ct">🏷️ Komponen BOS</div>
+  <div style="font-size:11px;color:#6b7280;margin:-4px 0 8px">Sesuaikan dengan juknis BOS tahun ${yr}. Komponen yang sudah dipakai transaksi tidak bisa dihapus (cukup ganti namanya). Tekan Simpan Semua Pengaturan untuk menerapkan.</div>
+  ${(d.komp&&d.komp.length?d.komp:KOMP_DEF).map((x,i)=>`<div class="row" style="padding:6px 10px;background:#f0fdf4;border-radius:8px;margin-bottom:5px"><div style="min-width:0"><div style="font-weight:600;font-size:13px"><span class="dot" style="background:${esc(x.color)}"></span>${i+1}. ${esc(x.nama)}</div><div style="font-size:11px;color:#6b7280">${esc(x.full)}</div></div><div style="flex-shrink:0"><button class="ib" title="Edit" onclick="editKomp('${x.kode}')">✏️</button><button class="ib" style="color:#dc2626" title="Hapus" onclick="rmKomp('${x.kode}')">🗑️</button></div></div>`).join('')}
+  ${(()=>{const e=(d.komp&&d.komp.length?d.komp:KOMP_DEF).find(x=>x.kode===kpEd)||{};return `<div style="margin-top:9px;padding:11px;background:#f9fafb;border-radius:10px;border:1px dashed ${e.kode?'#7C3AED':'#d1d5db'}"><b style="font-size:12px;color:#166534">${e.kode?'✏️ Edit Komponen':'+ Tambah Komponen'}</b>
+   <div class="g2"><div><label>Nama Singkat (tampil di grafik)</label><input id="kp-nama" placeholder="Contoh: Jaskom" value="${esc(e.nama)}"></div><div><label>Nama Lengkap</label><input id="kp-full" placeholder="Contoh: Belanja Jasa Komunikasi" value="${esc(e.full)}"></div></div>
+   <label>Warna</label><input id="kp-warna" type="color" style="height:44px;padding:4px" value="${esc(e.color||'#0f766e')}">
+   <div style="display:flex;gap:8px;margin-top:8px"><button class="btn blue" onclick="addKomp()">${e.kode?'💾 Simpan Perubahan':'+ Tambah'}</button>${e.kode?'<button class="btn gray" onclick="cancelKomp()">Batal</button>':''}</div></div>`})()}
+  <button class="btn gray" style="margin-top:8px;font-size:12px" onclick="resetKomp()">↺ Kembalikan ke bawaan</button></div>
  <div class="card" style="border-left:4px solid #0f766e"><div class="ct">🔖 Daftar Rekening &amp; Kode Rekening</div>
   <div style="font-size:11px;color:#6b7280;margin:-4px 0 8px">Dipakai di Input belanja: pilih nama rekening, kode rekening terisi otomatis.</div>
-  <div style="max-height:340px;overflow:auto;margin-bottom:6px">${(d.rekening||[]).map(x=>`<div class="row" style="padding:6px 10px;background:#f0fdf4;border-radius:8px;margin-bottom:5px"><div style="min-width:0"><div style="font-weight:600;font-size:13px">${esc(x.nama)}</div><div style="font-size:11px;color:#6b7280">${esc(x.kode)}${rekKomp(x)?` · ${esc(fK(rekKomp(x)).nama)}`:''}</div></div><div style="flex-shrink:0"><button class="ib" title="Edit" onclick="editRek('${x.id}')">✏️</button><button class="ib" style="color:#dc2626" onclick="rmRek('${x.id}')">🗑️</button></div></div>`).join('')}</div>
+  <div style="max-height:340px;overflow:auto;margin-bottom:6px">${(d.rekening||[]).map(x=>`<div class="row" style="padding:6px 10px;background:#f0fdf4;border-radius:8px;margin-bottom:5px"><div style="min-width:0"><div style="font-weight:600;font-size:13px">${esc(x.nama)}</div><div style="font-size:11px;color:#6b7280">${esc(x.kode)}${fK(rekKomp(x))?` · ${esc(fK(rekKomp(x)).nama)}`:''}</div></div><div style="flex-shrink:0"><button class="ib" title="Edit" onclick="editRek('${x.id}')">✏️</button><button class="ib" style="color:#dc2626" onclick="rmRek('${x.id}')">🗑️</button></div></div>`).join('')}</div>
   ${(d.rekening||[]).length?'':empty('input','Belum ada rekening','Tambahkan nama dan kode rekening agar bisa dipilih saat input belanja.',[],1)}
   ${(()=>{const e=(d.rekening||[]).find(x=>x.id===rekEd)||{};return `<div style="margin-top:9px;padding:11px;background:#f9fafb;border-radius:10px;border:1px dashed ${e.id?'#0f766e':'#d1d5db'}"><b style="font-size:12px;color:#166534">${e.id?'✏️ Edit Rekening':'+ Tambah Rekening'}</b>
    <div class="g2"><div><label>Nama Rekening</label><input id="rk-nama" placeholder="Contoh: ATK" value="${esc(e.nama)}"></div><div><label>Kode Rekening</label><input id="rk-kode" placeholder="5.1.02.01.01.0024" value="${esc(e.kode)}"></div></div>
@@ -1839,7 +1874,7 @@ function render(){
   </div>
  <main>${pgHead()}${views[tab]()}</main></div></div>
  ${wipeAsk?`<div class="modal"><div><div style="font-size:22px;text-align:center">⚠️</div><div style="font-weight:700;text-align:center;margin:6px 0">Hapus SEMUA data ${yr}?</div><div style="font-size:12px;color:#6b7280;text-align:center;margin-bottom:10px">${tx.length} transaksi tahun ${yr} akan dihapus dan tidak bisa dibatalkan. Masukkan password akun untuk melanjutkan.</div>
- <input id="wp-pw" type="password" autocomplete="current-password" placeholder="Password" onkeydown="if(event.key==='Enter')doWipe()">
+ ${pwBox('id="wp-pw" autocomplete="current-password" placeholder="Password" onkeydown="if(event.key===\'Enter\')doWipe()"')}
  ${wipeErr?`<div style="color:#dc2626;font-size:12px;font-weight:600;margin-top:6px">${esc(wipeErr)}</div>`:''}
  <div style="display:flex;gap:8px;margin-top:14px"><button class="btn gray" style="flex:1" onclick="wipeNo()">Batal</button><button class="btn red" style="flex:1" id="wp-ok" onclick="doWipe()">Hapus</button></div></div></div>`:''}
  ${delId?`<div class="modal"><div><div style="font-size:22px;text-align:center">🗑️</div><div style="font-weight:700;text-align:center;margin:6px 0">Hapus Transaksi?</div><div style="font-size:12px;color:#6b7280;text-align:center;margin-bottom:17px">Tidak dapat dibatalkan.</div><div style="display:flex;gap:8px"><button class="btn gray" style="flex:1" onclick="delId=null;render()">Batal</button><button class="btn red" style="flex:1" onclick="doDel('${delId}')">Hapus</button></div></div></div>`:''}`;
