@@ -839,7 +839,7 @@ function cancelEdit(){editId=null;newForm();render()}
 function doDel(id){if(commit(tx.filter(t=>t.id!==id),'🗑️ Dihapus')&&fotoOf(id).length)sv(FTK(id),[]);delId=null;render()}
 /* Buka Input dengan formulir masih kosong: tanggal ikut hari ini (kalau aplikasi dibiarkan terbuka sejak kemarin) */
 function go(t){if(t==='input'&&!editId&&!F.uraian&&!F.jumlah&&F.tanggal!==today())fTgl(today());tab=t;render();scrollTo(0,0)}
-function switchYr(y){cfgD=null;loadYear(y);editId=null;rkTgl='';newForm();render();toast('📅 Beralih ke Tahun '+y)}
+function switchYr(y){cfgD=null;IM=null;loadYear(y);editId=null;rkTgl='';newForm();render();toast('📅 Beralih ke Tahun '+y)}
 
 /* ─── PENGATURAN HANDLERS ─── */
 function cs(k,v){cfgD=cfgD||JSON.parse(JSON.stringify(cfg));cfgD[k]=v}
@@ -1729,6 +1729,85 @@ function vLamp(){
  :`<div class="card">${empty('lamp','Belum ada lampiran foto','Tambahkan foto kegiatan saat mencatat belanja (kartu Dokumen Tambahan di menu Input), lalu cetak dari sini.',[['➕ Catat belanja',"go('input')"]])}</div>`}`;
 }
 
+/* ─── IMPOR BELANJA DARI PDF BKU (aplikasi lain) ───
+   Hanya baris belanja (punya No. Bukti BPU): tanggal = lunas bayar, kode rekening, uraian, nominal.
+   Dana masuk, tarik tunai, pajak terima/setor, saldo, bunga, kode kegiatan, no. bukti dilewati.
+   Kode rekening di PDF terpotong dua baris (5.1.02.02.01.00 + 63) -> disambung. Selalu ada pratinjau sebelum disimpan. */
+const PDFJS='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+let IM=null;
+const loadPdfJs=()=>window.pdfjsLib?Promise.resolve(window.pdfjsLib):new Promise((ok,no)=>{const s=document.createElement('script');s.src=PDFJS;s.onload=()=>{pdfjsLib.GlobalWorkerOptions.workerSrc=PDFJS.replace('pdf.min','pdf.worker.min');ok(pdfjsLib)};s.onerror=()=>no(new Error('pustaka PDF gagal dimuat, periksa internet'));document.head.appendChild(s)});
+async function pdfLines(f){
+ const lib=await loadPdfJs(),pdf=await lib.getDocument({data:await f.arrayBuffer()}).promise,out=[];
+ for(let p=1;p<=pdf.numPages;p++){
+  const its=(await(await pdf.getPage(p)).getTextContent()).items.filter(i=>i.str&&i.str.trim()).map(i=>({x:i.transform[4],y:i.transform[5],s:i.str.trim()})).sort((a,b)=>b.y-a.y),ls=[];
+  its.forEach(i=>{const l=ls[ls.length-1];if(l&&l.y-i.y<=3)l.a.push(i);else ls.push({y:i.y,a:[i]})});
+  ls.forEach(l=>out.push(l.a.sort((a,b)=>a.x-b.x).map(i=>i.s).join(' ')));
+ }
+ return out;
+}
+async function imFile(el){
+ const f=el.files[0];el.value='';if(!f)return;
+ toast('⏳ Membaca PDF…',8000);
+ try{imParse(await pdfLines(f),f.name)}catch(e){toast('⚠️ PDF tidak bisa dibaca ('+e.message+'). Coba tempel teksnya di bawah.',6000)}
+}
+const imPaste=()=>imParse($('im-tx').value.split('\n'),'teks tempelan');
+function imParse(lines,src){
+ const junk=/NPSN|Halaman \d|^[\d ]{3,}$|^(B U K U|TANGGAL KODE|KEGIATAN URAIAN|BULAN :|KODE$|REKENING NO|Sumber Dana|Nama Sekolah$|Desa\/Kecamatan|Kabupaten \/ Kota|Provinsi$|BKU$)/i,stop=/^(Jumlah\b|Menyetujui|Pada hari)/i,recs=[];
+ let cur=null;
+ lines.map(s=>s.replace(/\s+/g,' ').trim()).filter(s=>s&&!junk.test(s)).forEach(s=>{
+  if(stop.test(s)){cur=null;return}
+  if(/^\d\d-\d\d-\d{4}\b/.test(s))recs.push(cur=[s]);else if(cur)cur.push(s);
+ });
+ const rows=[],rk=cfg.rekening||[];
+ recs.forEach(r=>{
+  const t=r.join(' ');
+  if(!/BPU\d+/.test(t)||/^\S+\s+(Terima|Setor)\b/.test(t))return; /* bukan belanja */
+  const d=t.match(/^(\d\d)-(\d\d)-(\d{4})/),a=t.match(/\s0\s+(\d[\d.]*)\s+\d[\d.]*\s+(5(?:\.\d+)+)/),s=t.match(/(?:\s|^)(\d{1,4})\s+BPU\d+/);
+  if(!d||!a)return;
+  let kode=a[2];const g=kode.match(/\d+$/)[0];
+  if(g.length<4&&s)kode=kode.slice(0,-g.length)+(g+s[1]).padStart(4,'0');
+  const u=t.replace(/^\d\d-\d\d-\d{4}/,'').replace(a[0],' ').replace(/(?:\s|^)\d{1,4}\s+BPU\d+/,' ').replace(/(?:^|\s)\d\d\.\d\d\.\d\d\.(?=\s|$)/g,' ').replace(/\s+/g,' ').trim();
+  const tgl=`${d[3]}-${d[2]}-${d[1]}`,jml=cleanNum(a[1]),x=rk.find(y=>y.kode===kode);
+  const dup=tx.some(y=>y.jenis==='kredit'&&y.tanggal===tgl&&y.jumlah===jml&&y.uraian.trim().toLowerCase()===u.toLowerCase());
+  rows.push({id:uid(),on:!dup&&d[3]===yr,tgl,uraian:u,jml,kode,rek:x?x.id:'',dup,thn:d[3]!==yr});
+ });
+ IM={rows,skip:recs.length-rows.length,src};render();scrollTo(0,0);
+}
+function imRek(i,id){const r=IM.rows[i],x=(cfg.rekening||[]).find(y=>y.id===id);r.rek=id;if(x)r.kode=x.kode;render()}
+const imTx=()=>IM?IM.rows.filter(r=>r.on&&r.uraian.trim()&&r.jml>0).map((r,i)=>{
+ const x=(cfg.rekening||[]).find(y=>y.id===r.rek),k=x&&rekKomp(x);
+ return{id:r.id,dibuat:new Date(Date.now()+i).toISOString(),tanggal:r.tgl,tglTrx:r.tgl,noBukti:'',kode:r.kode,uraian:r.uraian.trim(),komponen:fK(k)?k:(fK('7')?'7':KOMP[0].kode),jenis:'kredit',jumlah:r.jml,ket:'',guruId:lastGuru(),tukang:false,pajak:null,rapat:null,rek:r.rek};
+}):[];
+function imDo(){
+ const l=imTx();if(!l.length)return;
+ if(!commit([...tx,...l]))return;
+ const m=getMonth(l[0].tanggal);IM=null;bkuM=String(m);tab='bku';render();scrollTo(0,0);
+ toast(`✅ ${l.length} belanja diimpor. Pajak, pelaksana, dan NTPN dilengkapi lewat ✏️`,5000);
+}
+function vImpor(){
+ const head=`<div class="card"><div class="ct">📥 Impor BKU dari PDF</div>
+  <div class="info">Mengambil <b>belanja</b> dari PDF BKU aplikasi lain: tanggal (lunas bayar), kode rekening, uraian, nominal. Dana masuk, tarik tunai, pajak, saldo, dan kode kegiatan dilewati. Isi <b>saldo awal</b> di Pengaturan dulu supaya saldo tunai cukup.</div>
+  <label class="btn" style="display:inline-block;margin:0">📄 Pilih File PDF<input type="file" accept="application/pdf,.pdf" style="display:none" onchange="imFile(this)"></label>
+  <details style="margin-top:12px"><summary style="cursor:pointer;font-size:12px;color:#6b7280">📋 Cara lain: tempel teks dari PDF (jika file PDF tidak terbaca)</summary>
+   <textarea id="im-tx" rows="6" style="width:100%;border:1.5px solid #e2e8f0;border-radius:12px;padding:10px 12px;font:inherit;font-size:13px" placeholder="Buka PDF, pilih semua teks (Ctrl+A), salin, lalu tempel di sini"></textarea>
+   <button class="btn teal" style="margin-top:6px" onclick="imPaste()">Baca teks</button></details></div>`;
+ if(!IM)return head;
+ if(!IM.rows.length)return head+`<div class="card">${empty('impor','Tidak ada belanja terbaca','Pastikan ini PDF Buku Kas Umum bulanan. Kalau benar, coba cara tempel teks di atas.',[],1)}</div>`;
+ const rk=cfg.rekening||[],sel=imTx(),tot=sel.reduce((s,t)=>s+t.jumlah,0),e=sel.length?run(renumber([...tx,...sel])).err:null;
+ const sum=`<div class="info">${IM.rows.length} belanja terbaca dari ${esc(IM.src)}${IM.skip?` · ${IM.skip} baris lain dilewati (saldo, tarik, pajak, bunga)`:''}<br>Dipilih <b>${sel.length}</b> · Total <b>${rp(tot)}</b>${e?`<div style="color:#dc2626;font-weight:700;margin-top:4px">⚠️ ${esc(errMsg(e))} Isi saldo awal atau catat Tarik Dana dulu.</div>`:''}</div>`;
+ const cards=IM.rows.map((r,i)=>{
+  const x=rk.find(y=>y.id===r.rek),k=x&&fK(rekKomp(x));
+  const note=r.dup?'<span style="color:#b45309">⚠️ Sudah ada di BKU (tanggal, uraian, jumlah sama), tidak dicentang</span>'
+   :r.thn?`<span style="color:#b45309">⚠️ Tahun ${r.tgl.slice(0,4)} berbeda dari tahun aktif ${yr}, tidak dicentang</span>`
+   :x?`🔖 ${esc(r.kode)}${k?' · '+esc(k.nama):''}`:`<span style="color:#dc2626">⚠️ Kode ${esc(r.kode)} belum ada di Daftar Rekening, pilih rekening atau tambah di Pengaturan</span>`;
+  return `<div class="card" style="padding:12px;border-left:4px solid ${r.on?'#0f766e':'#d1d5db'};${r.on?'':'opacity:.7'}">
+   <div class="row"><label style="display:flex;align-items:center;gap:8px;margin:0;cursor:pointer;min-height:32px"><input type="checkbox"${r.on?' checked':''} onchange="IM.rows[${i}].on=this.checked;render()"><b style="font-size:13px">${tglS(r.tgl)}</b></label><b style="color:#dc2626">${rp(r.jml)}</b></div>
+   <input value="${esc(r.uraian)}" aria-label="Uraian" oninput="IM.rows[${i}].uraian=this.value">
+   <select aria-label="Nama rekening" onchange="imRek(${i},this.value)"><option value="">— Pilih nama rekening —</option>${rk.map(y=>`<option value="${y.id}"${y.id===r.rek?' selected':''}>${esc(y.nama)} (${esc(y.kode)})</option>`).join('')}</select>
+   <div style="font-size:11px;margin-top:4px;color:#6b7280">${note}</div></div>`}).join('');
+ return head+sum+cards+`<div class="stk" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" style="flex:1" onclick="imDo()"${sel.length&&!e?'':' disabled'}>📥 Impor ${sel.length} Belanja</button><button class="btn gray" onclick="IM=null;render()">Batal</button></div>`;
+}
+
 let logF='';
 function vLog(){
  const all=ld(LOGK)||[],l=all.slice().reverse().filter(x=>!logF||x.a===logF),I={login:'🔑',logout:'🚪',tambah:'➕',ubah:'✏️',hapus:'🗑️',pengaturan:'⚙️','saldo awal':'💰',pulihkan:'♻️',cadangan:'⬇️',akun:'🔐'};
@@ -1820,7 +1899,7 @@ function vSet(){
 
 /* ═════════ RENDER ═════════ */
 /* [id, label, grup]. Ikon = IC[id]. Menambah menu baru: tambah di sini + IC + views di render() */
-const TABS=[['dashboard','Dashboard','Harian'],['input','Input','Harian'],['rkn','Rekapan Belanja','Harian'],['riwayat','Riwayat','Harian'],['bku','BKU','Buku Kas'],['bkupj','BKU Pajak','Buku Kas'],['rekap','Rekap Pajak','Buku Kas'],['a2','Form A2','Pembayaran'],['a2t','A2 Tukang','Pembayaran'],['sp','Surat Pesanan (SP)','Pembayaran'],['und','Undangan','Rapat'],['hdr','Daftar Hadir','Rapat'],['dok','Dokumen Lain','Pembayaran'],['lamp','Lampiran Foto','Pembayaran'],['log','Riwayat Aktivitas','Sistem'],['set','Pengaturan','Sistem']];
+const TABS=[['dashboard','Dashboard','Harian'],['input','Input','Harian'],['impor','Impor BKU (PDF)','Harian'],['rkn','Rekapan Belanja','Harian'],['riwayat','Riwayat','Harian'],['bku','BKU','Buku Kas'],['bkupj','BKU Pajak','Buku Kas'],['rekap','Rekap Pajak','Buku Kas'],['a2','Form A2','Pembayaran'],['a2t','A2 Tukang','Pembayaran'],['sp','Surat Pesanan (SP)','Pembayaran'],['und','Undangan','Rapat'],['hdr','Daftar Hadir','Rapat'],['dok','Dokumen Lain','Pembayaran'],['lamp','Lampiran Foto','Pembayaran'],['log','Riwayat Aktivitas','Sistem'],['set','Pengaturan','Sistem']];
 const IC={
  dashboard:'<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>',
  input:'<circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/>',
@@ -1836,6 +1915,7 @@ const IC={
  hdr:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
  set:'<path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/>',
  dok:'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
+ impor:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/>',
  lamp:'<rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21"/>',
  log:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/>',
@@ -1907,7 +1987,7 @@ function render(){
  const sbS=document.querySelector('.sbn')?.scrollTop||0; /* innerHTML ganti sidebar: simpan posisi scroll menu */
  R=run(tx);const T=tot();
  try{sessionStorage.setItem(VK,JSON.stringify({tab,yr,setT}))}catch(e){}
- const views={dashboard:vDash,input:vInput,rkn:vRkn,riwayat:vRiw,bku:vBKU,bkupj:vPj,rekap:vRk,a2:()=>vList('a2'),a2t:()=>vList('a2t'),sp:()=>vList('sp'),und:()=>vRp('und'),hdr:()=>vRp('hdr'),dok:vDok,lamp:vLamp,log:vLog,set:vSet};
+ const views={dashboard:vDash,input:vInput,rkn:vRkn,riwayat:vRiw,bku:vBKU,bkupj:vPj,rekap:vRk,a2:()=>vList('a2'),a2t:()=>vList('a2t'),sp:()=>vList('sp'),und:()=>vRp('und'),hdr:()=>vRp('hdr'),dok:vDok,lamp:vLamp,impor:vImpor,log:vLog,set:vSet};
  $('app').innerHTML=`<div class="shell${sbMini?' mini':''}">${sidebar()}<div class="scrim" onclick="document.querySelector('.shell').classList.remove('open')"></div><div class="mainc"><div class="top">
   <div class="hdr"><button class="mbtn" aria-label="Buka menu" onclick="sbTgl()">${ico('menu')}</button>
    <div style="flex:1;min-width:0">${clkBox()}</div>
