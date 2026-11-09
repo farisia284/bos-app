@@ -245,6 +245,9 @@ button.sbg{display:flex;align-items:center;justify-content:space-between;width:1
 .bk table.fm td{border:1px solid #000!important;padding:1px 16px!important;text-align:center;font-size:12px;background:none!important}
 .bk .sg{display:flex;justify-content:space-between;align-items:flex-end;margin-top:18px;padding:0 12%;text-align:center;font-size:12px}
 .bk .sg .sp{height:50px}
+/* Rekap Pajak: tabel menyesuaikan isi, rata tengah halaman */
+.bk table.t.rkt{width:auto!important;margin:6px auto 0}
+.bk table.t.rkt th,.bk table.t.rkt td{padding:3px 12px!important;white-space:nowrap}
 
 /* ===== UKURAN CETAK BKU, BKU PAJAK, REKAP PAJAK: Arial 11, judul/kop 12 ===== */
 .bk,.bk table.t th,.bk table.t td,.bk table.inf td,.bk table.fm td,.bk .sg{font-size:11px!important}
@@ -1280,11 +1283,10 @@ function rkSheet(th,act){
   <div style="text-align:center;line-height:1.35"><div style="font-size:19px;font-weight:700">${esc(cfg.kopPemda)}</div><div style="font-size:17px;font-weight:700">${esc(cfg.namaLengkap)}</div><div style="font-size:12px">${esc(cfg.alamatRekap)}</div></div>
   ${logoImg(cfg.logoKanan)}</div>
  <div class="hd" style="text-align:center;margin:22px 0 12px;line-height:1.5"><div>NOMER TRANSAKSI PENERIMAAN NEGARA (NTPN)</div><div>TAHAP ${th} (${MO[a]}-${MO[b]})</div></div>
- <table class="t" style="border:2px solid #000">
-  <colgroup><col style="width:5%"><col style="width:19%"><col style="width:18%"><col style="width:12%"><col style="width:26%"><col style="width:20%">${act?'<col style="width:6%">':''}</colgroup>
-  <thead><tr><th>No</th><th>Nama Sekolah</th><th>Tanggal Pembayaran</th><th>Jenis Pajak</th><th>Nomer NTPN</th><th>Nilai Pembayaran</th>${act?'<th></th>':''}</tr></thead>
+ <table class="t rkt" style="border:2px solid #000">
+    <thead><tr><th>No</th><th>Nama Sekolah</th><th>Tanggal Pembayaran</th><th>Jenis Pajak</th><th>Nomer NTPN</th><th>Nilai Pembayaran</th>${act?'<th></th>':''}</tr></thead>
   <tbody>${rows}<tr class="j"><td colspan="5" style="text-align:center">TOTAL</td><td class="r">Rp${num(total)}</td>${act?'<td></td>':''}</tr></tbody></table>
- <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:22px">
+ <div class="sg" style="margin-top:22px">
   <div><div>Kepala Sekolah</div><div style="height:52px"></div>${nmU(cfg.kepsek)}<div>NIP. ${esc(cfg.nipKepsek)||'………………………………'}</div></div>
   <div><div>${esc(cfg.tempat||cfg.kota)}, ${tglN(lastD)}</div><div>Bendahara</div><div style="height:52px"></div>${nmU(cfg.bendahara)}<div>NIP. ${esc(cfg.nipBendahara)||'………………………………'}</div></div>
  </div></div>`;
@@ -1714,7 +1716,7 @@ async function ftAdd(el){
 }
 function ftDel(i){const id=ftId();sv(FTK(id),fotoOf(id).filter((_,j)=>j!==i));ftUpd()}
 /* lembar cetak: hanya judul + foto, tanpa teks lain */
-const lampHtml=t=>`<div style="${rpFont}"><table style="width:100%;border-collapse:collapse;table-layout:fixed"><tr><td style="border:1px dotted #000;padding:3px 6px;text-align:center;font-weight:700;font-size:15px">LAMPIRAN KEGIATAN</td></tr><tr><td style="border:1px dotted #000;height:22px;padding:0"></td></tr></table><div style="margin-top:34px">${fotoOf(t.id).map(s=>`<div style="text-align:center;margin-bottom:22px;break-inside:avoid"><img src="${s}" alt="" style="max-width:100%;max-height:11.5cm;object-fit:contain"></div>`).join('')}</div></div>`;
+const lampHtml=t=>`<div style="${rpFont}"><table style="width:100%;border-collapse:collapse;table-layout:fixed"><tr><td style="border:1px dotted #000;padding:3px 6px;text-align:center;font-weight:700;font-size:15px">LAMPIRAN KEGIATAN</td></tr><tr><td style="border:1px dotted #000;height:22px;padding:0"></td></tr></table><div style="margin-top:34px">${fotoOf(t.id).map(s=>`<div style="text-align:center;margin-bottom:22px;break-inside:avoid"><img src="${s}" alt="" style="width:100%;max-height:12cm;object-fit:contain"></div>`).join('')}</div></div>`;
 function printLamp(id){const t=tx.find(x=>x.id===id);if(t)doPrint(lampHtml(t))}
 function vLamp(){
  const {bm,av,m,list}=monthList('lamp');
