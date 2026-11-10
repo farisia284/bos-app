@@ -1761,13 +1761,18 @@ async function imFile(el){
  try{imBuild(await pdfRecs(f),f.name)}catch(e){IM={rows:[],skip:0,src:f.name,err:String(e&&e.message||e)};render()}
 }
 function imBuild(recs,src){
- const rows=[],rk=cfg.rekening||[];
+ const g=[],by={},rk=cfg.rekening||[];let n=0;
  recs.forEach(r=>{
   if(!(r.keluar>0)||!/^5(\.\d+){4,}$/.test(r.kode)||/^(Terima|Setor)\b/.test(r.uraian))return; /* bukan belanja */
-  const x=rk.find(y=>y.kode===r.kode),dup=tx.some(y=>y.jenis==='kredit'&&y.tanggal===r.tgl&&y.jumlah===r.keluar&&y.uraian.trim().toLowerCase()===r.uraian.toLowerCase());
-  rows.push({id:uid(),on:!dup&&r.tgl.slice(0,4)===yr,tgl:r.tgl,uraian:r.uraian,jml:r.keluar,kode:r.kode,bpu:r.bpu,rek:x?x.id:'',dup,thn:r.tgl.slice(0,4)!==yr});
+  n++;const k=r.bpu&&r.bpu+'|'+r.kode,o=k&&by[k];
+  if(o){o.jml+=r.keluar;o.n++;if(!o.us.includes(r.uraian))o.us.push(r.uraian);return} /* no. bukti DAN rekening sama -> satu belanja, nominal dijumlah; rekening beda tetap terpisah */
+  const b={tgl:r.tgl,bpu:r.bpu,kode:r.kode,jml:r.keluar,n:1,us:[r.uraian]};g.push(b);if(k)by[k]=b;
  });
- IM={rows,skip:recs.length-rows.length,src};render();scrollTo(0,0);
+ const rows=g.map(b=>{
+  const u=b.us.join('; '),x=rk.find(y=>y.kode===b.kode),dup=tx.some(y=>y.jenis==='kredit'&&y.tanggal===b.tgl&&y.jumlah===b.jml&&y.uraian.trim().toLowerCase()===u.toLowerCase());
+  return{id:uid(),on:!dup&&b.tgl.slice(0,4)===yr,tgl:b.tgl,uraian:u,jml:b.jml,kode:b.kode,bpu:b.bpu,gab:b.n>1?b.n:0,rek:x?x.id:'',dup,thn:b.tgl.slice(0,4)!==yr};
+ });
+ IM={rows,skip:recs.length-n,src};render();scrollTo(0,0);
 }
 function imRek(i,id){const r=IM.rows[i],x=(cfg.rekening||[]).find(y=>y.id===id);r.rek=id;if(x)r.kode=x.kode;render()}
 const imTx=()=>IM?IM.rows.filter(r=>r.on&&r.uraian.trim()&&r.jml>0).map((r,i)=>{
@@ -1798,7 +1803,7 @@ function vImpor(){
    <div class="row"><label style="display:flex;align-items:center;gap:8px;margin:0;cursor:pointer;min-height:32px"><input type="checkbox"${r.on?' checked':''} onchange="IM.rows[${i}].on=this.checked;render()"><b style="font-size:13px">${tglS(r.tgl)}</b></label><b style="color:#dc2626">${rp(r.jml)}</b></div>
    <input value="${esc(r.uraian)}" aria-label="Uraian" oninput="IM.rows[${i}].uraian=this.value">
    <select aria-label="Nama rekening" onchange="imRek(${i},this.value)"><option value="">— Pilih nama rekening —</option>${rk.map(y=>`<option value="${y.id}"${y.id===r.rek?' selected':''}>${esc(y.nama)} (${esc(y.kode)})</option>`).join('')}</select>
-   <div style="font-size:11px;margin-top:4px;color:#6b7280">${note}</div></div>`}).join('');
+   <div style="font-size:11px;margin-top:4px;color:#6b7280">${note}${r.gab?`<br><span style="color:#7C3AED">🔗 Gabungan ${r.gab} baris ${esc(r.bpu)} dengan rekening sama, nominal dijumlah.</span>`:''}</div></div>`}).join('');
  return head+sum+cards+`<div class="stk" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" style="flex:1" onclick="imDo()"${sel.length&&!e?'':' disabled'}>📥 Impor ${sel.length} Belanja</button><button class="btn gray" onclick="IM=null;render()">Batal</button></div>`;
 }
 
