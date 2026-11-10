@@ -736,17 +736,18 @@ function imporCfg(){
    Pajak: terima (tgl lunas bayar) tunai +, stor (tgl stor pajak) tunai -
    Urutan hari yang sama: masuk, tarik, belanja(+terima pajak), stor pajak */
 const RANK={debet:0,tarik:1,kredit:2};
-const sortTx=l=>[...l].sort((a,b)=>a.tanggal.localeCompare(b.tanggal)||RANK[a.jenis]-RANK[b.jenis]||a.id.localeCompare(b.id));
+const sortTx=l=>[...l].sort((a,b)=>a.tanggal.localeCompare(b.tanggal)||RANK[a.jenis]-RANK[b.jenis]||(a.dibuat||'').localeCompare(b.dibuat||'')||a.id.localeCompare(b.id));
 function run(list,s0){
  s0=s0||sa;let bank=s0.bank,tunai=s0.tunai,err=null,n=0;const rows=[],ev=[];
  list.forEach(t=>{
-  ev.push({d:t.tanggal,r:RANK[t.jenis],id:t.id,s:0,k:'m',t});
+  const c=t.dibuat||''; /* urutan input dulu, baru id (id impor bisa acak: dibuat di milidetik yang sama) = urutan sama dengan nomor bukti */
+  ev.push({d:t.tanggal,r:RANK[t.jenis],c,id:t.id,s:0,k:'m',t});
   if(t.jenis==='kredit'&&t.pajak){
-   ev.push({d:t.tanggal,r:2,id:t.id,s:1,k:'t',t});
-   ev.push({d:t.pajak.tglStor||t.tanggal,r:3,id:t.id,s:2,k:'s',t});
+   ev.push({d:t.tanggal,r:2,c,id:t.id,s:1,k:'t',t});
+   ev.push({d:t.pajak.tglStor||t.tanggal,r:3,c,id:t.id,s:2,k:'s',t});
   }
  });
- ev.sort((a,b)=>a.d.localeCompare(b.d)||a.r-b.r||a.id.localeCompare(b.id)||a.s-b.s);
+ ev.sort((a,b)=>a.d.localeCompare(b.d)||a.r-b.r||a.c.localeCompare(b.c)||a.id.localeCompare(b.id)||a.s-b.s);
  ev.forEach(e=>{
   const t=e.t;
   if(e.k==='m'){
