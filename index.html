@@ -2121,7 +2121,7 @@ function spHtml(t){
 
 /* ─── SPPD: satu belanja boleh punya beberapa SPPD (t.sppd = array). Semua isian boleh kosong (dicetak titik-titik).
    Pegawai diambil dari Daftar Guru; kop = kop SP; huruf Times New Roman. Dicetak 3 halaman: SPPD, balik (I–VI), laporan perjalanan. */
-const newSp=()=>{const g=fGuru(F.guruId)||{};return{id:uid(),gid:F.guruId||'',nomor:'',lembar:'1',kode:'-',ppk:'Kepala '+cfg.namaSekolah+(cfg.kecamatan?' Kec. '+cfg.kecamatan:''),pangkat:g.pangkat||'',jab:g.jabatan||'',biaya:'',maksud:'',alat:'',asal:cfg.namaSekolah,tujuan:'',lama:'',tglB:F.tanggal,tglK:F.tanggal,pengikut:'-',beban:'BOS Reguler '+yr,instansi:cfg.namaSekolah,akun:'',ket:'Lihat Lembar berikutnya',pjbJab:'',pjbNama:'',pjbNip:''}};
+const newSp=()=>{const g=fGuru(F.guruId)||{};return{id:uid(),gid:F.guruId||'',nomor:'',lembar:'1',kode:'-',ppk:'Kepala '+cfg.namaSekolah+(cfg.kecamatan?' Kec. '+cfg.kecamatan:''),pangkat:g.pangkat||'',jab:g.jabatan||'',biaya:'',maksud:'',alat:'Kendaraan Pribadi',asal:cfg.namaSekolah,tujuan:'',lama:'',tglB:F.tanggal,tglK:F.tanggal,pengikut:'-',beban:'BOS Reguler '+yr,instansi:cfg.namaSekolah,akun:'',ket:'Lihat Lembar berikutnya',pjbJab:'',pjbNama:'',pjbNip:''}};
 const sf=(n,k,v)=>{F.sp[n][k]=v};
 const addSp=()=>{F.sp.push(newSp());render()};
 const rmSp=n=>{F.sp.splice(n,1);if(!F.sp.length)F.sppdOn=false;render()};
@@ -2178,7 +2178,7 @@ const SPB='<div style="break-after:page;page-break-after:always"></div>';
 const SPW='font-family:\'Times New Roman\',Times,serif;font-size:13px;color:#000;line-height:1.35';
 /* Tiga halaman: 1 SPPD (depan), 2 SPPD (belakang, I–VI), 3 laporan perjalanan dinas. Isian kosong = titik-titik. */
 function sppdHtml(s){
- const g=fGuru(s.gid)||{},dots='………………………',V=x=>x?esc(x):dots,T=x=>x?tglN(x):dots;
+ const g=fGuru(s.gid)||{},dots='-',V=x=>x?esc(x):dots,T=x=>x?tglN(x):dots;
  const nama=g.nama?esc(g.nama):dots,nip='NIP '+(g.nip?esc(g.nip):dots),ks=esc(cfg.kepsek)||dots,nipK='NIP '+(cfg.nipKepsek?esc(cfg.nipKepsek):dots);
  const lama=s.lama||(s.tglB&&s.tglK?Math.max(1,Math.round((new Date(s.tglK)-new Date(s.tglB))/864e5)+1):'');
  const biaya=/^\d+$/.test(s.biaya||'')?rp(+s.biaya):s.biaya,tmp=esc(cfg.tempat||cfg.kota),tK=T(s.tglK||s.tglB);
@@ -2204,7 +2204,7 @@ function sppdHtml(s){
  ${tb(r('9.','','Pembebanan Anggaran',V(s.beban))+r('','a.','Instansi',V(s.instansi))+r('','b.','Akun',V(s.akun)))}
  ${tb(r('10.','','Keterangan lain-lain',V(s.ket)))}
  </table>
- <div style="margin:16px 0 0 56%">${kv('Dikeluarkan di',tmp,100)}<div style="border-bottom:1px solid #000;padding-bottom:2px">${kv('Pada tanggal',T(s.tglB),100)}</div>
+ <div style="margin:16px 0 0 56%">${kv('Dikeluarkan di',tmp,100)}${kv('Pada tanggal','<span style="display:inline-block;border-bottom:1px solid #000;padding-bottom:2px">'+T(s.tglB)+'</span>',100)}
   <div style="margin-top:8px;text-align:left">Pejabat Pembuat Komitmen</div><div style="height:62px"></div>${ul(ks)}<div>${nipK}</div></div>`;
  /* halaman 2 */
  const k4=(a,l,v)=>`<div style="display:grid;grid-template-columns:30px 100px 14px 1fr;padding:1px 0"><div>${a}</div><div>${l}</div><div>:</div><div>${v}</div></div>`;
@@ -2212,8 +2212,8 @@ function sppdHtml(s){
  const two=(l,rt)=>`<tr><td style="width:50%;border-right:1px solid #000">${l}</td><td>${rt}</td></tr>`;
  const kvs=(l,v)=>kv(l,v,92);
  const blank=ln=>`<div style="text-align:center;margin-top:${ln}px"><b>…………………</b><div>…………………</div></div>`;
- const p2=`<div style="margin-left:18%">${k4('I.','SPPD Nomor',V(s.nomor))}${k4('','Berangkat dari',V(s.asal))}${k4('','Pada tanggal',T(s.tglB))}${k4('','Ke',V(s.tujuan))}${k4('','Kegiatan',V(s.maksud))}</div>
- <div style="margin:14px 0 12px 56%">${sg('yang diberi tugas',nama,nip,50)}</div>
+ const p2=`<div style="margin-left:50%">${k4('I.','SPPD Nomor',V(s.nomor))}${k4('','Berangkat dari',V(s.asal))}${k4('','Pada tanggal',T(s.tglB))}${k4('','Ke',V(s.tujuan))}${k4('','Kegiatan',V(s.maksud))}</div>
+ <div style="margin:14px 0 12px 50%">${sg('yang diberi tugas',nama,nip,50)}</div>
  <table class="sd">
  ${tb(two(`<div style="display:flex"><div style="width:30px">II.</div><div style="flex:1">${kvs('Tiba di',V(s.tujuan))}<div style="height:14px"></div>${kvs('Pada tanggal',T(s.tglB))}</div></div>${pj}`,`${kvs('Berangkat dari',V(s.tujuan))}<div style="height:14px"></div>${kvs('Ke',V(s.asal))}${kvs('Pada tanggal',T(s.tglK))}${pj}`))}
  ${tb(two(`<div style="display:flex"><div style="width:30px">III.</div><div style="flex:1">${kvs('Tiba di','')}${kvs('Pada tanggal','')}<div>Kepala</div></div></div>${blank(70)}`,`${kvs('Berangkat dari','')}${kvs('Ke','')}${kvs('Pada tanggal','')}${blank(70)}`))}
