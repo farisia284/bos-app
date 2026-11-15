@@ -684,7 +684,7 @@ function lastGuru(){try{const g=localStorage.getItem(GK);return cfg&&(cfg.guruLi
 function saveDraft(){if(F&&!editId)try{sessionStorage.setItem(DK,JSON.stringify(F))}catch(e){}}
 function clearDraft(){try{sessionStorage.removeItem(DK)}catch(e){}}
 document.addEventListener('input',saveDraft);document.addEventListener('change',saveDraft);
-function initForm(){return{tid:uid(),tanggal:today(),tglTrx:today(),tglStor:today(),ntpn:'',noBukti:'',kode:'',uraian:'',komponen:'2',jenis:'kredit',jumlah:'',ket:'',guruId:lastGuru(),tukang:false,pajakOn:false,pajakKode:'pph23',rapatOn:false,rp:newRp(),rek:''};}
+function initForm(){return{tid:uid(),tanggal:today(),tglTrx:today(),tglStor:today(),ntpn:'',noBukti:'',kode:'',uraian:'',komponen:'2',jenis:'kredit',jumlah:'',ket:'',guruId:lastGuru(),tukang:false,pajakOn:false,pajakKode:'pph23',rapatOn:false,rp:newRp(),sppdOn:false,sp:[],rek:''};}
 /* No bukti belanja otomatis: 8/XI/2026. Urut per bulan menurut tanggal lunas bayar; tanggal sama -> yang lebih dulu diinput.
    Ganti bulan mulai lagi dari 1; tahun = tahun aktif. Dihitung ulang tiap simpan/hapus/muat, jadi selalu rapat dan berurutan. */
 /* Format bebas dari Pengaturan, mis. "15/BOSP/XI/2026" atau "BKT-007/2026": angka pertama = nomor awal, angka Romawi = bulan,
@@ -823,7 +823,7 @@ function doSubmit(again){
   if(sd.slice(0,4)!==yr){toast('⚠️ Tanggal stor pajak harus di tahun '+yr);return}
  }
  const pajak=k&&f.pajakOn&&pi?{kode:pi.kode,persen:pi.persen,jumlah:Math.round(j*pi.persen/100),tglStor:sd,ntpn:f.ntpn.trim()}:null;
- const e={tanggal:f.tanggal,tglTrx:k?(f.tglTrx||f.tanggal):'',noBukti:f.noBukti,kode:k?f.kode.trim():'',uraian:f.uraian.trim(),komponen:k?f.komponen:'0',jenis:f.jenis,jumlah:j,ket:f.ket,guruId:k?f.guruId:'',tukang:k&&!!f.tukang,pajak,rapat:k&&f.rapatOn?{...f.rp}:null,rek:k?f.rek:''};
+ const e={tanggal:f.tanggal,tglTrx:k?(f.tglTrx||f.tanggal):'',noBukti:f.noBukti,kode:k?f.kode.trim():'',uraian:f.uraian.trim(),komponen:k?f.komponen:'0',jenis:f.jenis,jumlah:j,ket:f.ket,guruId:k?f.guruId:'',tukang:k&&!!f.tukang,pajak,rapat:k&&f.rapatOn?{...f.rp}:null,sppd:k&&f.sppdOn&&f.sp.length?f.sp.map(x=>({...x})):null,rek:k?f.rek:''};
  /* dibuat = waktu pertama kali disimpan; otomatis, tidak bisa diubah, dipertahankan saat edit */
  const list=editId?tx.map(t=>t.id===editId?{...e,id:editId,dibuat:t.dibuat}:t):[...tx,{...e,id:f.tid||uid(),dibuat:new Date().toISOString()}];
  if(!commit(list,editId?'✅ Transaksi diperbarui':'✅ Transaksi disimpan'))return;
@@ -833,7 +833,7 @@ function doSubmit(again){
 }
 function doEdit(id){
  const t=tx.find(x=>x.id===id);if(!t)return;
- F={tanggal:t.tanggal,tglTrx:t.tglTrx||t.tanggal,tglStor:(t.pajak&&t.pajak.tglStor)||t.tanggal,ntpn:(t.pajak&&t.pajak.ntpn)||'',noBukti:t.noBukti,kode:t.kode||'',uraian:t.uraian,komponen:t.komponen,jenis:t.jenis,jumlah:String(t.jumlah),ket:t.ket||'',guruId:t.guruId||'',tukang:!!t.tukang,pajakOn:!!t.pajak,pajakKode:t.pajak?t.pajak.kode:'pph23',rapatOn:!!t.rapat,rp:{...newRp(),...(t.rapat||{})},rek:t.rek||''};
+ F={tanggal:t.tanggal,tglTrx:t.tglTrx||t.tanggal,tglStor:(t.pajak&&t.pajak.tglStor)||t.tanggal,ntpn:(t.pajak&&t.pajak.ntpn)||'',noBukti:t.noBukti,kode:t.kode||'',uraian:t.uraian,komponen:t.komponen,jenis:t.jenis,jumlah:String(t.jumlah),ket:t.ket||'',guruId:t.guruId||'',tukang:!!t.tukang,pajakOn:!!t.pajak,pajakKode:t.pajak?t.pajak.kode:'pph23',rapatOn:!!t.rapat,rp:{...newRp(),...(t.rapat||{})},sppdOn:!!(t.sppd&&t.sppd.length),sp:JSON.parse(JSON.stringify(t.sppd||[])),rek:t.rek||''};
  editId=id;clearDraft();tab='input';render();scrollTo(0,0);
 }
 function cancelEdit(){editId=null;newForm();render()}
@@ -850,7 +850,7 @@ let guruEd=null; /* id guru yang sedang diedit; id tetap sama supaya transaksi l
 function addGuru(){
  const n=$('g-nama').value.trim();if(!n)return;
  cfgD=cfgD||JSON.parse(JSON.stringify(cfg));
- const g={id:guruEd||uid(),nama:n,nip:$('g-nip').value.trim(),jabatan:$('g-jab').value.trim()};
+ const g={id:guruEd||uid(),nama:n,nip:$('g-nip').value.trim(),jabatan:$('g-jab').value.trim(),pangkat:$('g-pkt').value.trim()};
  cfgD.guruList=guruEd?cfgD.guruList.map(x=>x.id===guruEd?g:x):[...(cfgD.guruList||[]),g];
  guruEd=null;render();
 }
@@ -1133,7 +1133,7 @@ function vInput(){
    <label>👤 Pelaksana Belanja</label>
    <select onchange="fset('guruId',this.value)"><option value="">— Pilih Guru/Pelaksana —</option>${(cfg.guruList||[]).map(g=>`<option value="${g.id}"${f.guruId===g.id?' selected':''}>${esc(g.nama)}${g.nip?` (${esc(g.nip)})`:''}</option>`).join('')}</select></div>
   <div class="card"><div class="ct">📎 Dokumen Tambahan</div>
-   <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px"><input type="checkbox" id="tkcb"${f.tukang?' checked':''} onchange="F.tukang=this.checked"><label for="tkcb" style="margin:0;cursor:pointer;font-size:12px">🔨 Pembayaran tukang — dicetak di menu <b>A2 Tukang</b> (tanda tangan hanya Kepala Sekolah &amp; Bendahara BOS)</label></div>${rapatBlk(f)}${dkBlk(f)}${ftBlk()}${ket}</div>`
+   <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px"><input type="checkbox" id="tkcb"${f.tukang?' checked':''} onchange="F.tukang=this.checked"><label for="tkcb" style="margin:0;cursor:pointer;font-size:12px">🔨 Pembayaran tukang — dicetak di menu <b>A2 Tukang</b> (tanda tangan hanya Kepala Sekolah &amp; Bendahara BOS)</label></div>${rapatBlk(f)}${sppdBlk(f)}${dkBlk(f)}${ftBlk()}${ket}</div>`
  :`<div class="card"><div class="g2">
    <div><label>📅 Tanggal *</label>${dIn(f.tanggal,'fTgl(v)')}</div>
    <div><label>🔢 No. Bukti</label>${noInp}</div></div>${uraian}${jumlah}${ket}</div>`;
@@ -1851,6 +1851,7 @@ function vSet(){
   ${(()=>{const e=(d.guruList||[]).find(g=>g.id===guruEd)||{};return `<div style="margin-top:9px;padding:11px;background:#f9fafb;border-radius:10px;border:1px dashed ${e.id?'#0891B2':'#d1d5db'}"><b style="font-size:12px;color:#166534">${e.id?'✏️ Edit Guru':'+ Tambah Guru'}</b>
    <div class="g2"><div><label>Nama Guru</label><input id="g-nama" placeholder="Nama lengkap + gelar" value="${esc(e.nama)}"></div><div><label>NIP (opsional)</label><input id="g-nip" placeholder="19XXXXXXX" value="${esc(e.nip)}"></div></div>
    <label>Jabatan</label><input id="g-jab" placeholder="Guru Kelas" value="${esc(e.jabatan)}">
+   <label>Pangkat / Golongan (untuk SPPD, opsional)</label><input id="g-pkt" placeholder="Penata Muda Tk.I, III/B" value="${esc(e.pangkat)}">
    <div style="display:flex;gap:8px;margin-top:8px"><button class="btn blue" onclick="addGuru()">${e.id?'💾 Simpan Perubahan':'+ Tambah'}</button>${e.id?'<button class="btn gray" onclick="cancelGuru()">Batal</button>':''}</div></div>`})()}
   </div>
  <div style="display:flex;gap:8px;margin-bottom:11px"><button class="btn" style="flex:1" onclick="saveCfg()">💾 Simpan Semua Pengaturan</button>${cfgD?'<button class="btn gray" onclick="cancelCfg()">Batal</button>':''}</div>`:''}
@@ -1899,7 +1900,7 @@ function vSet(){
 
 /* ═════════ RENDER ═════════ */
 /* [id, label, grup]. Ikon = IC[id]. Menambah menu baru: tambah di sini + IC + views di render() */
-const TABS=[['dashboard','Dashboard','Harian'],['input','Input','Harian'],['impor','Impor BKU (PDF)','Harian'],['rkn','Rekapan Belanja','Harian'],['riwayat','Riwayat','Harian'],['bku','BKU','Buku Kas'],['bkupj','BKU Pajak','Buku Kas'],['rekap','Rekap Pajak','Buku Kas'],['a2','Form A2','Pembayaran'],['a2t','A2 Tukang','Pembayaran'],['sp','Surat Pesanan (SP)','Pembayaran'],['und','Undangan','Rapat'],['hdr','Daftar Hadir','Rapat'],['dok','Dokumen Lain','Pembayaran'],['lamp','Lampiran Foto','Pembayaran'],['log','Riwayat Aktivitas','Sistem'],['set','Pengaturan','Sistem']];
+const TABS=[['dashboard','Dashboard','Harian'],['input','Input','Harian'],['impor','Impor BKU (PDF)','Harian'],['rkn','Rekapan Belanja','Harian'],['riwayat','Riwayat','Harian'],['bku','BKU','Buku Kas'],['bkupj','BKU Pajak','Buku Kas'],['rekap','Rekap Pajak','Buku Kas'],['a2','Form A2','Pembayaran'],['a2t','A2 Tukang','Pembayaran'],['sp','Surat Pesanan (SP)','Pembayaran'],['sppd','SPPD','Pembayaran'],['und','Undangan','Rapat'],['hdr','Daftar Hadir','Rapat'],['dok','Dokumen Lain','Pembayaran'],['lamp','Lampiran Foto','Pembayaran'],['log','Riwayat Aktivitas','Sistem'],['set','Pengaturan','Sistem']];
 const IC={
  dashboard:'<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>',
  input:'<circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/>',
@@ -1910,6 +1911,7 @@ const IC={
  a2:'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m9 15 2 2 4-4"/>',
  a2t:'<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
  sp:'<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
+ sppd:'<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>',
  rkn:'<path d="M12 3v18"/><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/>',
  und:'<path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>',
  hdr:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
@@ -1987,7 +1989,7 @@ function render(){
  const sbS=document.querySelector('.sbn')?.scrollTop||0; /* innerHTML ganti sidebar: simpan posisi scroll menu */
  R=run(tx);const T=tot();
  try{sessionStorage.setItem(VK,JSON.stringify({tab,yr,setT}))}catch(e){}
- const views={dashboard:vDash,input:vInput,rkn:vRkn,riwayat:vRiw,bku:vBKU,bkupj:vPj,rekap:vRk,a2:()=>vList('a2'),a2t:()=>vList('a2t'),sp:()=>vList('sp'),und:()=>vRp('und'),hdr:()=>vRp('hdr'),dok:vDok,lamp:vLamp,impor:vImpor,log:vLog,set:vSet};
+ const views={dashboard:vDash,input:vInput,rkn:vRkn,riwayat:vRiw,bku:vBKU,bkupj:vPj,rekap:vRk,a2:()=>vList('a2'),a2t:()=>vList('a2t'),sp:()=>vList('sp'),sppd:vSppd,und:()=>vRp('und'),hdr:()=>vRp('hdr'),dok:vDok,lamp:vLamp,impor:vImpor,log:vLog,set:vSet};
  $('app').innerHTML=`<div class="shell${sbMini?' mini':''}">${sidebar()}<div class="scrim" onclick="document.querySelector('.shell').classList.remove('open')"></div><div class="mainc"><div class="top">
   <div class="hdr"><button class="mbtn" aria-label="Buka menu" onclick="sbTgl()">${ico('menu')}</button>
    <div style="flex:1;min-width:0">${clkBox()}</div>
@@ -2115,6 +2117,121 @@ function spHtml(t){
   <div style="font-weight:700;text-decoration:underline">${esc(cfg.kepsek)||'(___________________)'}</div>
   <div style="font-weight:700">NIP. ${esc(cfg.nipKepsek)||dots}</div>
  </div></div>`;
+}
+
+/* ─── SPPD: satu belanja boleh punya beberapa SPPD (t.sppd = array). Semua isian boleh kosong (dicetak titik-titik).
+   Pegawai diambil dari Daftar Guru; kop = kop SP; huruf Times New Roman. Dicetak 3 halaman: SPPD, balik (I–VI), laporan perjalanan. */
+const newSp=()=>{const g=fGuru(F.guruId)||{};return{id:uid(),gid:F.guruId||'',nomor:'',lembar:'1',kode:'-',ppk:'Kepala '+cfg.namaSekolah+(cfg.kecamatan?' Kec. '+cfg.kecamatan:''),pangkat:g.pangkat||'',jab:g.jabatan||'',biaya:'',maksud:'',alat:'',asal:cfg.namaSekolah,tujuan:'',lama:'',tglB:F.tanggal,tglK:F.tanggal,pengikut:'-',beban:'BOS Reguler '+yr,instansi:cfg.namaSekolah,akun:'',ket:'Lihat Lembar berikutnya',pjbJab:'',pjbNama:'',pjbNip:''}};
+const sf=(n,k,v)=>{F.sp[n][k]=v};
+const addSp=()=>{F.sp.push(newSp());render()};
+const rmSp=n=>{F.sp.splice(n,1);if(!F.sp.length)F.sppdOn=false;render()};
+function spGuru(n,id){const g=fGuru(id)||{};Object.assign(F.sp[n],{gid:id,pangkat:g.pangkat||'',jab:g.jabatan||''});render()}
+function sppdBlk(f){
+ const h=`<div style="display:flex;align-items:center;gap:8px;margin-top:10px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px"><input type="checkbox" id="sdcb"${f.sppdOn?' checked':''} onchange="F.sppdOn=this.checked;if(F.sppdOn&&!F.sp.length)F.sp.push(newSp());render()"><label for="sdcb" style="margin:0;cursor:pointer;font-size:12px">✈️ Ada <b>SPPD</b> (surat perintah perjalanan dinas) — dicetak di menu <b>SPPD</b></label></div>`;
+ if(!f.sppdOn)return h;
+ return h+f.sp.map((s,n)=>{
+  const i=(l,k,ph)=>`<div><label>${l}</label><input value="${esc(s[k])}" placeholder="${ph||''}" oninput="sf(${n},'${k}',this.value)"></div>`;
+  const d=(l,k)=>`<div><label>${l}</label>${dIn(s[k],`sf(${n},'${k}',v)`)}</div>`;
+  return `<div style="margin-top:8px;padding:11px;background:#faf5ff;border:1px solid #e9d5ff;border-radius:10px">
+  <div class="row" style="margin-bottom:6px"><b style="font-size:13px">✈️ SPPD ke-${n+1}</b><button class="ib" style="color:#dc2626" title="Hapus SPPD ini" onclick="rmSp(${n})">🗑️</button></div>
+  <label>👤 Pegawai (dari Daftar Guru)</label><select onchange="spGuru(${n},this.value)"><option value="">— Pilih Guru —</option>${(cfg.guruList||[]).map(g=>`<option value="${g.id}"${s.gid===g.id?' selected':''}>${esc(g.nama)}</option>`).join('')}</select>
+  <div class="g2">${i('Nomor SPPD','nomor','B/103.C/400.3.11.1/IX/2026')}${i('Tingkat biaya','biaya','20000')}</div>
+  <div class="g2">${i('Pangkat / Golongan','pangkat','Penata Muda Tk.I, III/B')}${i('Jabatan','jab','Guru Ahli Pertama')}</div>
+  ${i('Maksud perjalanan dinas','maksud')}
+  <div class="g2">${i('Alat angkut','alat','Kendaraan Pribadi')}${i('Pengikut','pengikut')}</div>
+  <div class="g2">${i('Tempat berangkat','asal')}${i('Tempat tujuan','tujuan')}</div>
+  <div class="g2">${d('Tanggal berangkat','tglB')}${d('Tanggal harus kembali','tglK')}</div>
+  ${i('Lama perjalanan (hari) — kosong = dihitung dari tanggal','lama')}
+  <details style="margin-top:8px"><summary style="cursor:pointer;font-size:12px;font-weight:600">⚙️ Isian lainnya (boleh dikosongi)</summary>
+   <div class="g2">${i('Lembar ke','lembar')}${i('Kode No','kode')}</div>
+   ${i('Pejabat Pembuat Komitmen','ppk')}
+   <div class="g2">${i('Pembebanan anggaran','beban')}${i('Akun','akun','04.28.01.')}</div>
+   ${i('Instansi','instansi')}${i('Keterangan lain-lain','ket')}
+   <label style="margin-top:6px">Pejabat di tempat tujuan (yang mengesahkan tiba / berangkat)</label>
+   <div class="g2">${i('Jabatan','pjbJab','Ketua KKG PAI')}${i('Nama','pjbNama')}</div>${i('NIP','pjbNip')}
+  </details></div>`}).join('')
+ +`<button class="btn gray" style="margin-top:8px;font-size:12px" onclick="addSp()">➕ Tambah SPPD</button>`;
+}
+/* daftar SPPD per bulan (menurut tanggal berangkat; kosong -> tanggal lunas bayar belanja) */
+function sppdList(){
+ const bm={};sortTx(tx).forEach(t=>(t.sppd||[]).forEach((s,i)=>{const m=getMonth(s.tglB||t.tanggal);(bm[m]=bm[m]||[]).push({t,s,i})}));
+ const av=Object.keys(bm).map(Number).sort((a,b)=>a-b),m=av.includes(+pMo)?+pMo:av[0];
+ return{bm,av,m,list:m?bm[m]:[]};
+}
+function vSppd(){
+ const {bm,av,m,list}=sppdList();
+ return `<div class="card row" style="flex-wrap:wrap"><div class="ct" style="margin:0">✈️ SPPD — per Pegawai</div>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label style="margin:0">📅 Bulan:</label>
+  <select class="auto" onchange="pMo=this.value;render()">${av.length?av.map(x=>`<option value="${x}"${x===m?' selected':''}>${MO[x]} (${bm[x].length})</option>`).join(''):'<option>— Belum ada SPPD —</option>'}</select>
+  <button class="btn" onclick="printAllSppd()"${list.length?'':' disabled'}>🖨️ Cetak Semua (${list.length})</button></div></div>
+ ${list.length?list.map(({t,s,i},n)=>{const g=fGuru(s.gid);
+  return `<div class="card" style="border-left:4px solid #7C3AED"><div class="row" style="align-items:flex-start">
+   <div><div style="font-weight:700;font-size:13px">${n+1}. ${g?esc(g.nama):'(pegawai belum dipilih)'} — ${esc(s.maksud)||'(maksud kosong)'}</div>
+   <div style="font-size:11px;color:#6b7280;margin-top:2px">${s.tglB?tgl(s.tglB):'—'}${s.tglK&&s.tglK!==s.tglB?' s.d. '+tgl(s.tglK):''} · ${esc(s.asal)} → ${esc(s.tujuan)||'…'}${s.nomor?' · No. '+esc(s.nomor):''}</div>
+   <div style="font-size:11px;color:#6b7280;margin-top:2px">dari belanja: ${esc(t.uraian)}</div></div>
+   <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0"><button class="btn blue" style="padding:7px 14px;font-size:12px" onclick="printSppd('${t.id}',${i})">🖨️ Cetak SPPD</button><button class="btn gray" style="padding:7px 14px;font-size:12px" onclick="doEdit('${t.id}')">✏️ Edit</button></div></div></div>`}).join('')
+ :`<div class="card">${empty('sppd','Belum ada SPPD','Centang <b>Ada SPPD</b> saat mencatat belanja di menu Input, isi (boleh dikosongi), lalu cetak dari sini.',[['➕ Catat belanja',"go('input')"]])}</div>`}`;
+}
+const printSppd=(id,i)=>{const t=tx.find(x=>x.id===id);if(t&&t.sppd&&t.sppd[i])doPrint(sppdHtml(t.sppd[i]))};
+const printAllSppd=()=>{const {list}=sppdList();if(!list.length){toast('Tidak ada SPPD');return}doPrint(list.map(x=>sppdHtml(x.s)).join(SPB))};
+const SPB='<div style="break-after:page;page-break-after:always"></div>';
+const SPW='font-family:\'Times New Roman\',Times,serif;font-size:13px;color:#000;line-height:1.35';
+/* Tiga halaman: 1 SPPD (depan), 2 SPPD (belakang, I–VI), 3 laporan perjalanan dinas. Isian kosong = titik-titik. */
+function sppdHtml(s){
+ const g=fGuru(s.gid)||{},dots='………………………',V=x=>x?esc(x):dots,T=x=>x?tglN(x):dots;
+ const nama=g.nama?esc(g.nama):dots,nip='NIP '+(g.nip?esc(g.nip):dots),ks=esc(cfg.kepsek)||dots,nipK='NIP '+(cfg.nipKepsek?esc(cfg.nipKepsek):dots);
+ const lama=s.lama||(s.tglB&&s.tglK?Math.max(1,Math.round((new Date(s.tglK)-new Date(s.tglB))/864e5)+1):'');
+ const biaya=/^\d+$/.test(s.biaya||'')?rp(+s.biaya):s.biaya,tmp=esc(cfg.tempat||cfg.kota),tK=T(s.tglK||s.tglB);
+ const kv=(l,v,w)=>`<div style="display:grid;grid-template-columns:${w||96}px 14px 1fr;padding:1px 0"><div>${l}</div><div>:</div><div>${v}</div></div>`;
+ const ul=x=>`<b style="text-decoration:underline">${x}</b>`;
+ const sg=(top,nm,np,gap)=>`<div style="text-align:center">${top}<div style="height:${gap||58}px"></div>${ul(nm)}<div>${np}</div></div>`;
+ const pg=(h,last)=>`<div style="${SPW}${last?'':';break-after:page;page-break-after:always'}">${h}</div>`;
+ const css='<style>#print-layer table.sd{table-layout:fixed;border:1px solid #000}#print-layer table.sd td{border:0;padding:3px 6px;vertical-align:top}</style>';
+ /* halaman 1 */
+ const r=(a,b,l,v,bold)=>`<tr><td>${a}</td>${b?`<td>${b}</td><td>${l}</td>`:`<td colspan="2">${l}</td>`}<td>:</td><td>${bold?'<b>'+v+'</b>':v}</td></tr>`;
+ const tb=rows=>`<tbody style="border-top:1px solid #000">${rows}</tbody>`;
+ const p1=`${kopSp()}
+ <div style="margin:14px 0 0 56%">${kv('Lembar ke',V(s.lembar),90)}${kv('Kode No',V(s.kode),90)}${kv('Nomor',V(s.nomor),90)}</div>
+ <div style="text-align:center;font-weight:700;text-decoration:underline;margin:14px 0 8px">SURAT PERINTAH PERJALANAN DINAS<br>(SPPD)</div>
+ <table class="sd"><colgroup><col style="width:30px"><col style="width:24px"><col><col style="width:14px"><col style="width:50%"></colgroup>
+ ${tb(r('1.','','Pejabat Pembuat Komitmen',V(s.ppk)))}
+ ${tb(r('2.','','Nama / NIP Pegawai yang melaksanakan perjalanan dinas',nama+'<br>'+nip,1))}
+ ${tb(r('3.','a.','Pangkat dan golongan',V(s.pangkat))+r('','b.','Jabatan/Instansi',V(s.jab))+r('','c.','Tingkat biaya Perjalanan Dinas',biaya?esc(biaya):dots,1))}
+ ${tb(r('4.','','Maksud perjalanan dinas',V(s.maksud)))}
+ ${tb(r('5.','','Alat angkut yang dipergunakan',V(s.alat))+r('6.','a.','Tempat berangkat',V(s.asal))+r('','b.','Tempat tujuan',V(s.tujuan)))}
+ ${tb(r('7.','a.','Lamanya perjalanan dinas',(lama?esc(lama):dots)+' hari')+r('','b.','Tanggal berangkat',T(s.tglB))+r('','c.','Tanggal harus kembali',T(s.tglK)))}
+ ${tb(r('8.','','Pengikut',V(s.pengikut)))}
+ ${tb(r('9.','','Pembebanan Anggaran',V(s.beban))+r('','a.','Instansi',V(s.instansi))+r('','b.','Akun',V(s.akun)))}
+ ${tb(r('10.','','Keterangan lain-lain',V(s.ket)))}
+ </table>
+ <div style="margin:16px 0 0 56%">${kv('Dikeluarkan di',tmp,100)}<div style="border-bottom:1px solid #000;padding-bottom:2px">${kv('Pada tanggal',T(s.tglB),100)}</div>
+  <div style="margin-top:8px;text-align:left">Pejabat Pembuat Komitmen</div><div style="height:62px"></div>${ul(ks)}<div>${nipK}</div></div>`;
+ /* halaman 2 */
+ const k4=(a,l,v)=>`<div style="display:grid;grid-template-columns:30px 100px 14px 1fr;padding:1px 0"><div>${a}</div><div>${l}</div><div>:</div><div>${v}</div></div>`;
+ const pj=sg(V(s.pjbJab)+',',s.pjbNama?esc(s.pjbNama):dots,'NIP '+(s.pjbNip?esc(s.pjbNip):dots),56);
+ const two=(l,rt)=>`<tr><td style="width:50%;border-right:1px solid #000">${l}</td><td>${rt}</td></tr>`;
+ const kvs=(l,v)=>kv(l,v,92);
+ const blank=ln=>`<div style="text-align:center;margin-top:${ln}px"><b>…………………</b><div>…………………</div></div>`;
+ const p2=`<div style="margin-left:18%">${k4('I.','SPPD Nomor',V(s.nomor))}${k4('','Berangkat dari',V(s.asal))}${k4('','Pada tanggal',T(s.tglB))}${k4('','Ke',V(s.tujuan))}${k4('','Kegiatan',V(s.maksud))}</div>
+ <div style="margin:14px 0 12px 56%">${sg('yang diberi tugas',nama,nip,50)}</div>
+ <table class="sd">
+ ${tb(two(`<div style="display:flex"><div style="width:30px">II.</div><div style="flex:1">${kvs('Tiba di',V(s.tujuan))}<div style="height:14px"></div>${kvs('Pada tanggal',T(s.tglB))}</div></div>${pj}`,`${kvs('Berangkat dari',V(s.tujuan))}<div style="height:14px"></div>${kvs('Ke',V(s.asal))}${kvs('Pada tanggal',T(s.tglK))}${pj}`))}
+ ${tb(two(`<div style="display:flex"><div style="width:30px">III.</div><div style="flex:1">${kvs('Tiba di','')}${kvs('Pada tanggal','')}<div>Kepala</div></div></div>${blank(70)}`,`${kvs('Berangkat dari','')}${kvs('Ke','')}${kvs('Pada tanggal','')}${blank(70)}`))}
+ ${tb(two(`<div style="display:flex"><div style="width:30px">IV.</div><div style="flex:1">${kvs('Tiba di',V(s.asal))}<div style="height:14px"></div>${kvs('Pada tanggal',T(s.tglK))}</div></div>${sg('Kepala Sekolah,',ks,nipK,56)}`,`<div style="text-align:justify">Telah diperiksa dengan keterangan bahwa perjalanan tersebut di atas benar dilakukan atas perintahnya dan semata-mata untuk kepentingan jabatan dalam waktu yang sesingkat-singkatnya.</div><div style="margin-top:12px">${sg('Pejabat Pembuat Komitmen',ks,nipK,56)}</div>`))}
+ ${tb(`<tr><td colspan="2"><div style="display:flex"><div style="width:30px">V.</div><div style="flex:1">Catatan Lain-lain :<div style="border-bottom:1px dotted #000;height:20px"></div><div style="border-bottom:1px dotted #000;height:20px"></div></div></div></td></tr>`)}
+ ${tb(`<tr><td colspan="2"><div>VI. &nbsp;Perhatian</div><div style="text-align:justify;margin:4px 0 4px 30px">PPK yang menerbitkan SPD, pegawai yang melakukan perjalanan dinas, para pejabat yang mengesahkan tanggal berangkat/tiba, serta bendahara pengeluaran bertanggung jawab berdasarkan peraturan-peraturan Keuangan Negara apabila negara menderita rugi akibat kesalahan, kelalaian, dan kealpaannya.</div></td></tr>`)}
+ </table>`;
+ /* halaman 3 */
+ const k3=(a,l,v)=>`<div style="display:grid;grid-template-columns:22px 150px 14px 1fr;padding:1px 0"><div>${a}</div><div>${l}</div><div>:</div><div>${v}</div></div>`;
+ const hari=s.tglB?hariTgl(s.tglB)+(s.tglK&&s.tglK!==s.tglB?' s.d. '+hariTgl(s.tglK):''):dots;
+ const p3=`<div style="text-align:center;font-weight:700;margin-top:6px">LAPORAN PERJALANAN DINAS<br>TAHUN ${esc(yr)}</div>
+ <div style="margin-top:16px">${kv('<b>Kepada Yth.</b>','<b>'+esc(s.ppk||'')+'</b>',96)}${kv('<b>Dasar</b>','Surat Perintah Perjalanan Dinas Nomor: '+V(s.nomor),96)}</div>
+ <div style="text-align:center;font-weight:700;margin:16px 0 8px">LAPORAN HASIL PELAKSANAAN TUGAS</div>
+ ${k3('1.','Tujuan perjalanan',V(s.maksud))}${k3('2.','Tempat tujuan',V(s.tujuan))}${k3('3.','Pada Hari dan tanggal',hari)}${k3('4.','Nama/NIP Petugas',nama+' / '+nip)}
+ <div style="margin-top:14px">Uraian Hasil Perjalanan Dinas</div>
+ <div style="margin:8px 0 0 28px;border-top:1px solid #000">${'<div style="height:23px;border-bottom:1px solid #000"></div>'.repeat(24)}</div>
+ <div style="margin:22px 0 0 56%"><div>${tmp}, ${tK}</div><div>yang melaksanakan tugas</div><div style="height:58px"></div>${ul(nama)}<div>${nip}</div></div>`;
+ return css+pg(p1)+pg(p2)+pg(p3,1);
 }
 
 /* Aplikasi bisa dipasang (PWA); sw.js selalu ambil versi terbaru kalau online. Gagal = diam, website tetap jalan. */
