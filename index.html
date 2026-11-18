@@ -373,17 +373,17 @@ input:focus,select:focus{border-color:#10b981;box-shadow:0 0 0 4px #10b98126}
 .lgx .lgc .info{background:#450a0a99!important;border-color:#f8717166!important;color:#fecaca!important;border-radius:12px;margin:0 0 6px}
 
 /* Tampilan login desktop memakai ilustrasi referensi sebagai panel kiri. */
-@media(min-width:1100px){
- .login.lgx{background-image:linear-gradient(90deg,transparent 54%,#03281f 64%,#021c16 72%),url("login-bg.webp");background-size:100% 100%,65% 100%;background-position:center,left center;background-repeat:no-repeat}
+@media(min-width:1200px){
+ .login.lgx{background-color:#021c16;background-image:linear-gradient(90deg,transparent 90%,#021c16 100%),url("login-bg.webp");background-size:calc(100vh*1165/941) 100%,auto 100%;background-position:left center,left center;background-repeat:no-repeat}
  .lgx .lgw{min-height:100vh;max-width:none;padding:32px clamp(28px,3.2vw,58px);display:flex;justify-content:flex-end;align-items:center}
  .lgx .lg-head,.lgx .lg-more,.lgx .lg-art{display:none}
- .lgx .lgc{width:min(100%,min(33vw,594px));max-width:594px;margin:0;justify-self:auto;padding:clamp(28px,2.3vw,42px);border-radius:22px}
+ .lgx .lgc{width:min(100%,min(30vw,540px));max-width:540px;background:linear-gradient(160deg,#0c2d24f5,#071f19f5);margin:0;justify-self:auto;padding:clamp(28px,2.3vw,42px);border-radius:22px}
  .lgx .lgc h2{font-size:44px}
  .lgx .lgc .lg-s{font-size:16px;margin-bottom:18px}
  .lgx .lgc label{font-size:15px}
  .lgx .lgc input,.login.lgx .lgc .btn{height:62px;min-height:62px;font-size:16px}
 }
-@media(max-width:1099px){.login.lgx{background-image:radial-gradient(800px 560px at 12% 0,#0c7a56 0,transparent 62%),linear-gradient(115deg,#0a5c43 0%,#064e3b 38%,#03281f 62%,#021c16 100%)}}
+@media(max-width:1199px){.login.lgx{background-image:radial-gradient(800px 560px at 12% 0,#0c7a56 0,transparent 62%),linear-gradient(115deg,#0a5c43 0%,#064e3b 38%,#03281f 62%,#021c16 100%)}}
 /* jam digital di kanan judul halaman */
 @keyframes bl{50%{opacity:.35;transform:scale(.8)}}
 .clk{display:flex;align-items:center;gap:12px;color:#fff;min-width:0}
