@@ -375,12 +375,10 @@ input:focus,select:focus{border-color:#10b981;box-shadow:0 0 0 4px #10b98126}
 .login.lgx{background-image:radial-gradient(700px 480px at 10% 0,#13a35e55,transparent 70%),linear-gradient(180deg,#05743f,#04683a 50%,#025a30)}
 
 /* ===== LOGIN PERSIS GAMBAR (layar lebar): gambar utuh sebagai latar, isi kartu digambar ulang di atasnya ===== */
-.login.lgs{position:fixed;inset:0;max-width:none;margin:0;padding:0;z-index:50;overflow:hidden;background:#06502c;--u:.059809cqw;font-family:Roboto,'Segoe UI',Inter,system-ui,sans-serif}
+.login.lgs{position:fixed;inset:0;max-width:none;margin:0;padding:0;z-index:50;overflow:hidden;background:#06502c url("login-bg.webp") center/calc(min(100vw,177.7vh)*3072/1672) auto no-repeat;--u:.059809cqw;font-family:Roboto,'Segoe UI',Inter,system-ui,sans-serif}
 .lgs button{font-family:inherit}
-/* sisa ruang di samping/atas gambar diisi gambar yang sama, diburamkan, supaya menyatu */
-.login.lgs::before{content:"";position:absolute;inset:-60px;background:url("login-bg.webp") center/cover;filter:blur(28px) brightness(.92)}
-.lgs .lgst{z-index:1}
-.lgs .lgst{position:absolute;left:50%;top:50%;width:min(100vw,177.7vh);aspect-ratio:1672/941;transform:translate(-50%,-50%);background:url("login-bg.webp") center/100% 100% no-repeat;container-type:size;color:#fff}
+/* login-bg.webp sudah diperluas ke segala arah (3072x1741), gambar asli di tengah; sisa layar terisi hijau yang menyambung */
+.lgs .lgst{position:absolute;left:50%;top:50%;width:min(100vw,177.7vh);aspect-ratio:1672/941;transform:translate(-50%,-50%);container-type:size;color:#fff}
 .lgs .lgst>*{position:absolute;margin:0}
 .lgs h2{font-size:calc(var(--u)*70);font-weight:800;line-height:1;letter-spacing:calc(var(--u)*-2);color:#f7f8f6;left:calc(var(--u)*1206);top:calc(var(--u)*222)}
 .lgs .lg-s,.lgs .lgerr{left:calc(var(--u)*1207);top:calc(var(--u)*308);font-size:calc(var(--u)*22);font-weight:500;line-height:1;white-space:nowrap}
