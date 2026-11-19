@@ -374,7 +374,6 @@ input:focus,select:focus{border-color:#10b981;box-shadow:0 0 0 4px #10b98126}
 
 /* Tampilan login desktop memakai ilustrasi referensi sebagai panel kiri. */
 @media(min-width:1100px){
- .login.lgx{background-image:linear-gradient(90deg,transparent 54%,#03281f 64%,#021c16 72%),url("login-bg.webp");background-size:100% 100%,65% 100%;background-position:center,left center;background-repeat:no-repeat}
  .lgx .lgw{min-height:100vh;max-width:none;padding:32px clamp(28px,3.2vw,58px);display:flex;justify-content:flex-end;align-items:center}
  .lgx .lg-head,.lgx .lg-more,.lgx .lg-art{display:none}
  .lgx .lgc{width:min(100%,min(33vw,594px));max-width:594px;margin:0;justify-self:auto;padding:clamp(28px,2.3vw,42px);border-radius:22px}
@@ -496,13 +495,51 @@ html[data-theme=dark] .a2,html[data-theme=dark] .rp,html[data-theme=dark] .bk{ba
 .login.lgx .lgc .btn.gray{background:#ffffff0d;border-color:#C6A15B59;color:#f4ecd6;box-shadow:none}
 .login.lgx .lgc .btn.gray:hover{background:#C6A15B1f}
 }
-/* desktop: ilustrasi kiri tetap (ukuran/posisi bawaan), pudar halus ke emerald di sisi kartu */
+/* desktop: teks kiri + kartu kanan di atas latar emerald polos */
 @media screen and (min-width:1100px){
-.login.lgx{background-image:linear-gradient(90deg,transparent 46%,#022C22b3 58%,#022C22f2 68%,#022C22 76%),url("login-bg.webp")}
+.lgx .lgw{display:grid;grid-template-columns:minmax(0,1fr) minmax(340px,min(33vw,594px));grid-template-areas:"head card" "more card";gap:12px clamp(40px,6vw,110px);align-content:center;max-width:1480px;margin:0 auto}
+.lgx .lg-head,.lgx .lg-more{display:block}
+.lgx .lgc{justify-self:end}
+.lgx h1{font-size:clamp(40px,4.2vw,64px)}
 }
 /* HP: ornamen lebih kecil agar tidak ramai */
 @media screen and (max-width:699px){.login.lgx::after{right:-30%;opacity:.6}}
 @media (prefers-reduced-motion:reduce){.login.lgx::before{animation:none}}
+/* ===== animasi login: ringan, CSS saja, mati otomatis bila "kurangi gerakan" aktif ===== */
+@media screen and (prefers-reduced-motion:no-preference){
+@keyframes emUp{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+@keyframes emTip{from{opacity:0;transform:translateY(22px) rotate(-1.2deg)}to{opacity:1;transform:rotate(-1.2deg)}}
+@keyframes emPop{0%{opacity:0;transform:scale(.4) rotate(-40deg)}70%{transform:scale(1.15)}100%{opacity:1;transform:none}}
+@keyframes emShine{to{background-position:-200% 0}}
+@keyframes emBob{50%{transform:translateY(-4px)}}
+@keyframes emSpin{to{transform:translateY(-50%) rotate(360deg)}}
+@keyframes emLine{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.lgx .lg-brand{animation:emUp .7s backwards}
+.lgx h1{animation:emUp .7s .12s backwards}
+.lgx h1 u::after{transform-origin:left;animation:emLine .9s .8s backwards}
+/* baris emas pada judul berkilau pelan */
+.lgx h1 em{background:linear-gradient(100deg,#fbbf24 35%,#fff3c4 50%,#fbbf24 65%) 0 0/200% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:emShine 4.5s 1.2s ease-in-out infinite}
+.lgx .lg-p{animation:emUp .7s .28s backwards}
+.lgx .lg-ul li{animation:emUp .6s backwards}
+.lgx .lg-ul li:nth-child(1){animation-delay:.42s}.lgx .lg-ul li:nth-child(2){animation-delay:.54s}.lgx .lg-ul li:nth-child(3){animation-delay:.66s}
+.lgx .lg-ul svg{animation:emPop .6s backwards}
+.lgx .lg-ul li:nth-child(1) svg{animation-delay:.6s}.lgx .lg-ul li:nth-child(2) svg{animation-delay:.72s}.lgx .lg-ul li:nth-child(3) svg{animation-delay:.84s}
+.lgx .lg-tip{animation:emTip .7s .85s backwards}
+.lgx .lg-tip svg{animation:emBob 2.6s 1.6s ease-in-out infinite}
+.lgx .lg-ft{animation:emUp .7s 1s backwards}
+.lgx .lgc{animation:emUp .8s .2s backwards}
+.lgx .lgc>*{animation:emUp .55s backwards}
+.lgx .lgc>*:nth-child(1){animation-delay:.45s}.lgx .lgc>*:nth-child(2){animation-delay:.52s}.lgx .lgc>*:nth-child(3){animation-delay:.59s}
+.lgx .lgc>*:nth-child(4){animation-delay:.66s}.lgx .lgc>*:nth-child(5){animation-delay:.73s}.lgx .lgc>*:nth-child(6){animation-delay:.8s}.lgx .lgc>*:nth-child(n+7){animation-delay:.87s}
+/* ornamen emas berputar sangat pelan */
+.login.lgx::after{animation:emSpin 140s linear infinite}
+/* tombol: kilau lewat saat disentuh, sedikit terangkat */
+.login.lgx .lgc .btn{position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s,background .2s}
+.login.lgx .lgc .btn::after{content:'';position:absolute;top:0;left:-70%;width:45%;height:100%;background:linear-gradient(100deg,transparent,#ffffff40,transparent);transform:skewX(-20deg);transition:left .6s}
+.login.lgx .lgc .btn:hover{transform:translateY(-2px)}
+.login.lgx .lgc .btn:hover::after{left:130%}
+.login.lgx .lgc .btn:active{transform:scale(.98)}
+}
 </style>
 </head>
 <body>
@@ -617,11 +654,11 @@ const boskuIcon=s=>`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512
 function showLogin(msg,email){
  $('app').innerHTML=`<div class="login lgx"><div class="lgw">
   <div class="lg-head"><div class="lg-brand">${boskuIcon(42)}<span>BOSku</span></div>
-   <h1>Bendahara BOS:<em>Senyum di Depan,</em><u>Rekonsiliasi di Belakang.</u></h1>
+   <h1>Bendahara BOS:<em>Bekerja dengan angka</em><u>bertahan dengan doa</u></h1>
    <p class="lg-p">Katanya cuma mengelola dana BOS. Ternyata harus menjadi <b>akuntan</b>, detektif nota, <b>pemburu tanda tangan</b>, sekaligus pejuang <b>deadline</b>. 😂</p></div>
   <div class="lg-more"><ul class="lg-ul"><li><svg viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="12" fill="none" stroke="#fbbf24" stroke-width="2.4"/><path d="m8.5 14.5 3.8 3.8 7.4-8" fill="none" stroke="#fbbf24" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg> Nota hilang lebih menegangkan daripada kehilangan dompet.</li><li><svg viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="12" fill="none" stroke="#fbbf24" stroke-width="2.4"/><path d="m8.5 14.5 3.8 3.8 7.4-8" fill="none" stroke="#fbbf24" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg> Pajak sudah dibayar, tapi laporan masih minta diperjuangkan.</li><li><svg viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="12" fill="none" stroke="#fbbf24" stroke-width="2.4"/><path d="m8.5 14.5 3.8 3.8 7.4-8" fill="none" stroke="#fbbf24" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg> Uang boleh habis sesuai anggaran, tenaga jangan sampai ikut habis.</li></ul>
    <div class="lg-tip"><svg viewBox="0 0 40 40" width="38" height="38" style="flex:none" aria-hidden="true"><path d="M20 4a11 11 0 0 0-6 20c1 1 2 3 2 5h8c0-2 1-4 2-5A11 11 0 0 0 20 4z" fill="#fbbf24" stroke="#7a5200" stroke-width="1.6"/><path d="M16 33h8M17 37h6" stroke="#7a5200" stroke-width="2" stroke-linecap="round"/><path d="M5 14l4 2M35 14l-4 2M20 0v3" stroke="#7a5200" stroke-width="2" stroke-linecap="round"/></svg><div><b>Tenang, setidaknya BOSku siap membantu.</b><br>Biar sistem yang sibuk mengurus angka, bendaharanya jangan sampai ikut stres.</div></div>
-   <div class="lg-ft"><b>BOSku</b> — Karena jadi bendahara sudah cukup melelahkan, jangan ditambah pembukuan yang berantakan.</div></div>
+   <div class="lg-ft"><b>BOSku</b> – karena jadi bendahara sudah cukup melelahkan, jangan ditambah pembukuan yang berantakan.</div></div>
   <div class="lg-art"><svg viewBox="0 0 470 500" role="img" aria-label="Bendahara BOS kewalahan di depan laptop dan tumpukan berkas"><ellipse cx="235" cy="270" rx="220" ry="215" fill="#0b6a4c" opacity=".45"/><g fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M180 38c20-14 52-4 48 14s-34 20-46 8-4-26 14-24 26 12 16 22" opacity=".9"/><path d="M92 156c10 4 14 10 12 20M80 184c10 0 18 6 20 16" opacity=".8"/></g><g stroke="#fbbf24" stroke-width="5" stroke-linecap="round"><path d="M104 88l16 12M92 62l14 6M298 52l-10 18M330 40l-4 16" /></g>
 <g><circle cx="352" cy="84" r="62" fill="#f6efe0" stroke="#2a2a2a" stroke-width="7"/><g stroke="#2a2a2a" stroke-width="3" stroke-linecap="round"><path d="M352 36v8M352 124v8M304 84h8M392 84h8M328 43l4 7M376 125l-4-7M328 125l4-7M376 43l-4 7"/></g><path d="M352 84V50M352 84l6 4" stroke="#2a2a2a" stroke-width="5" stroke-linecap="round"/><circle cx="352" cy="84" r="4" fill="#2a2a2a"/></g>
 <g><rect x="262" y="196" width="52" height="40" rx="6" fill="#d9b48a"/><path d="M288 200c-30-10-48-40-34-60 10 22 28 28 34 60zm0 0c8-36 30-54 52-52-6 26-24 40-52 52zm0 0c-4-22 2-44 14-58 6 24 0 44-14 58z" fill="#3f9d4a"/></g>
