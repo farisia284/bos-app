@@ -372,52 +372,18 @@ input:focus,select:focus{border-color:#10b981;box-shadow:0 0 0 4px #10b98126}
 .login.lgx .lgc .btn.gray:hover{background:#ffffff17}
 .lgx .lgc .info{background:#450a0a99!important;border-color:#f8717166!important;color:#fecaca!important;border-radius:12px;margin:0 0 6px}
 
-.login.lgx{background-image:radial-gradient(700px 480px at 10% 0,#13a35e55,transparent 70%),linear-gradient(180deg,#05743f,#04683a 50%,#025a30)}
-
-/* ===== LOGIN PERSIS GAMBAR (layar lebar): gambar utuh sebagai latar, isi kartu digambar ulang di atasnya ===== */
-.login.lgs{position:fixed;inset:0;max-width:none;margin:0;padding:0;z-index:50;overflow:hidden;background:#06502c url("login-bg-v2.webp") center/calc(min(100vw,177.7vh)*3072/1672) auto no-repeat;--u:.059809cqw;font-family:Roboto,'Segoe UI',Inter,system-ui,sans-serif}
-.lgs button{font-family:inherit}
-/* login-bg-v2.webp sudah diperluas ke segala arah (3072x1741), gambar asli di tengah; sisa layar terisi hijau yang menyambung */
-.lgs .lgst{position:absolute;left:50%;top:50%;width:min(100vw,177.7vh);aspect-ratio:1672/941;transform:translate(-50%,-50%);container-type:size;color:#fff}
-.lgs .lgst>*{position:absolute;margin:0}
-.lgs h2{font-size:calc(var(--u)*70);font-weight:800;line-height:1;letter-spacing:calc(var(--u)*-2);color:#f7f8f6;left:calc(var(--u)*1206);top:calc(var(--u)*222)}
-.lgs .lg-s,.lgs .lgerr{left:calc(var(--u)*1207);top:calc(var(--u)*308);font-size:calc(var(--u)*22);font-weight:500;line-height:1;white-space:nowrap}
-.lgs .lgerr{top:calc(var(--u)*300);width:calc(var(--u)*414);white-space:normal;line-height:1.25;background:#7f1d1d99;border:1px solid #fca5a5aa;border-radius:calc(var(--u)*10);padding:calc(var(--u)*8) calc(var(--u)*14);font-size:calc(var(--u)*22)}
-.lgs .lgb{left:calc(var(--u)*1205);width:calc(var(--u)*417);display:flex;align-items:center;box-sizing:border-box;border-radius:calc(var(--u)*20)}
-.lgs .lgb input{all:unset;box-sizing:border-box;width:100%;height:100%;font-size:calc(var(--u)*23);font-weight:500;color:#eceedd;letter-spacing:-.2px;caret-color:#fff}
-.lgs .lgb input::placeholder{color:#e2e4cf;opacity:1}
-.lgs .lgb input:-webkit-autofill{-webkit-text-fill-color:#eceedd;box-shadow:0 0 0 100px #02421f inset}
-.lgs .lgb:focus-within{box-shadow:0 0 0 calc(var(--u)*3) #ffe59b88}
-.lgs .lgb>svg{position:absolute;color:#fff;pointer-events:none}
-.lgs .lgf1{top:calc(var(--u)*376);height:calc(var(--u)*76);background:#02421f;border:calc(var(--u)*2) solid #e6e2b4cc}
-.lgs .lgf2{top:calc(var(--u)*476);height:calc(var(--u)*76);background:#02421f;border:calc(var(--u)*2) solid #e6e2b4cc}
-.lgs .lgf1 input,.lgs .lgf2 input{padding-left:calc(var(--u)*90)}
-.lgs .lgf1>svg{left:calc(var(--u)*17);width:calc(var(--u)*53);height:calc(var(--u)*53)}
-.lgs .lgf2>svg{left:calc(var(--u)*22);width:calc(var(--u)*50);height:calc(var(--u)*50)}
-.lgs .lgeye{position:absolute;right:calc(var(--u)*14);top:50%;transform:translateY(-50%);width:calc(var(--u)*48);height:calc(var(--u)*48);padding:0;border:0;background:none;color:#fff;cursor:pointer;border-radius:50%}
-.lgs .lgeye svg{display:block;width:100%;height:100%}
-.lgs .lgeye .e2,.lgs .lgeye.on .e1{display:none}.lgs .lgeye.on .e2{display:block}
-.lgs .lgb.lgbt{top:calc(var(--u)*576);height:calc(var(--u)*81);justify-content:center;gap:calc(var(--u)*28);border:0;cursor:pointer;font-weight:800;font-size:calc(var(--u)*30);line-height:1;color:#fff;background:linear-gradient(180deg,#05e57c,#03c862 45%,#04ae49);box-shadow:inset 0 calc(var(--u)*2) 0 #ffffffb0,0 calc(var(--u)*14) calc(var(--u)*14) -calc(var(--u)*10) #00140a}
-.lgs .lgb.lgbt:hover{filter:brightness(1.08)}
-.lgs .lgb.lgbt svg,.lgs .lgb.lgq svg{position:static;width:calc(var(--u)*52);height:calc(var(--u)*52);flex:none}
-.lgs .lgb.lgq{top:calc(var(--u)*679);height:calc(var(--u)*77);justify-content:center;gap:calc(var(--u)*26);background:transparent;border:calc(var(--u)*2) solid #dfe6d0cc;cursor:pointer;font-weight:500;font-size:calc(var(--u)*23);line-height:1;color:#f3f5ea}
-.lgs .lgb.lgq:hover{background:#ffffff12}
-.lgs .lgb.lgq svg{width:calc(var(--u)*44);height:calc(var(--u)*44)}
-.lgs button:focus-visible{outline:calc(var(--u)*3) solid #ffe59b}
-/* kartu masuk bergaya bingkai emas (semua ukuran layar) */
-.login.lgx .lgc{background:linear-gradient(160deg,#0b6038,#064a2b);border:3px solid #e9b92c;border-radius:26px;box-shadow:inset 0 0 0 1px #fff0a0aa,0 30px 60px -24px #00180dcc;backdrop-filter:none}
-.lgx .lgc h2{font-family:inherit;font-weight:800;color:#fff;font-size:clamp(34px,3vw,46px);letter-spacing:-1px}
-.lgx .lgc .lg-s{color:#fff;font-weight:500}
-.lgx .lgc label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);margin:0}
-.lgx .lgf+.lgf,.lgx .lgf{margin-top:12px}
-.login.lgx .lgc input{background:#00000030;border:1.5px solid #ffffff7a}
-.login.lgx .lgc input:focus{border-color:#ffd95a;box-shadow:0 0 0 4px #ffd95a40;background:#00000040}
-.login.lgx .lgc .btn{display:flex;align-items:center;justify-content:center;gap:10px;background:linear-gradient(180deg,#2fe38c,#0fb865);color:#fff;box-shadow:0 12px 22px -12px #000a,inset 0 1px 0 #ffffff66}
-.login.lgx .lgc .btn:hover{background:linear-gradient(180deg,#43f09c,#14c86f)}
-.login.lgx .lgc .btn.gray{background:transparent;border:1.5px solid #ffffff7a;box-shadow:none}
-.login.lgx .lgc .btn.gray:hover{background:#ffffff14}
-.lgx .lgc .btn svg{width:22px;height:22px;flex:none}
-
+/* Tampilan login desktop memakai ilustrasi referensi sebagai panel kiri. */
+@media(min-width:1100px){
+ .login.lgx{background-image:linear-gradient(90deg,transparent 54%,#03281f 64%,#021c16 72%),url("login-bg.webp");background-size:100% 100%,65% 100%;background-position:center,left center;background-repeat:no-repeat}
+ .lgx .lgw{min-height:100vh;max-width:none;padding:32px clamp(28px,3.2vw,58px);display:flex;justify-content:flex-end;align-items:center}
+ .lgx .lg-head,.lgx .lg-more,.lgx .lg-art{display:none}
+ .lgx .lgc{width:min(100%,min(33vw,594px));max-width:594px;margin:0;justify-self:auto;padding:clamp(28px,2.3vw,42px);border-radius:22px}
+ .lgx .lgc h2{font-size:44px}
+ .lgx .lgc .lg-s{font-size:16px;margin-bottom:18px}
+ .lgx .lgc label{font-size:15px}
+ .lgx .lgc input,.login.lgx .lgc .btn{height:62px;min-height:62px;font-size:16px}
+}
+@media(max-width:1099px){.login.lgx{background-image:radial-gradient(800px 560px at 12% 0,#0c7a56 0,transparent 62%),linear-gradient(115deg,#0a5c43 0%,#064e3b 38%,#03281f 62%,#021c16 100%)}}
 /* jam digital di kanan judul halaman */
 @keyframes bl{50%{opacity:.35;transform:scale(.8)}}
 .clk{display:flex;align-items:center;gap:12px;color:#fff;min-width:0}
@@ -492,6 +458,51 @@ html[data-theme=dark] .bd{filter:brightness(1.7) saturate(1.15)}
 html[data-theme=dark] label.btn{color:#fff}html[data-theme=dark] label.btn.gray{color:#cfe3da}
 html[data-theme=dark] .a2,html[data-theme=dark] .rp,html[data-theme=dark] .bk{background:#fff;color:#111;border-radius:6px}
 }
+</style>
+<style id="emerald-luxury">
+/* ===== EMERALD LUXURY — hanya halaman login (.login.lgx); dashboard & cetak tidak tersentuh ===== */
+@media screen{
+.login.lgx{
+ background-color:#022C22;
+ background-image:
+  radial-gradient(640px 520px at 76% 50%,#04785740,transparent 70%),
+  radial-gradient(900px 620px at 6% -6%,#064E3Baa,transparent 62%),
+  radial-gradient(720px 520px at 100% 108%,#C6A15B1c,transparent 62%),
+  linear-gradient(125deg,#064E3B 0%,#022C22 46%,#071B16 100%)}
+/* cahaya lembut + ornamen geometris tipis, berada di belakang semua elemen login */
+.login.lgx::before,.login.lgx::after{content:'';position:absolute;pointer-events:none;z-index:0}
+.login.lgx::before{inset:0;background:
+ radial-gradient(420px 420px at 78% 52%,#10b98124,transparent 70%),
+ radial-gradient(260px 260px at 92% 12%,#C6A15B1f,transparent 70%);animation:emGlow 9s ease-in-out infinite alternate}
+.login.lgx::after{right:-8%;top:50%;width:min(78vmin,760px);height:min(78vmin,760px);transform:translateY(-50%);opacity:.9;
+ background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400' fill='none' stroke='%23C6A15B' stroke-width='.6'%3E%3Ccircle cx='200' cy='200' r='190' stroke-opacity='.22'/%3E%3Ccircle cx='200' cy='200' r='150' stroke-opacity='.16'/%3E%3Ccircle cx='200' cy='200' r='110' stroke-opacity='.12'/%3E%3Crect x='60' y='60' width='280' height='280' stroke-opacity='.14'/%3E%3Crect x='60' y='60' width='280' height='280' stroke-opacity='.14' transform='rotate(45 200 200)'/%3E%3Cpath d='M200 10v380M10 200h380' stroke-opacity='.08'/%3E%3C/svg%3E") center/contain no-repeat}
+@keyframes emGlow{to{opacity:.65;transform:scale(1.04)}}
+.lgx .lgw{position:relative;z-index:1}
+.lgx .lg-art{display:none}
+/* kotak login = kaca zamrud yang menyatu dengan latar */
+.lgx .lgc{position:relative;
+ background:linear-gradient(155deg,#0b7a5a59 0%,#06402f6b 46%,#02221b94 100%);
+ border:1px solid #ffffff1a;
+ -webkit-backdrop-filter:blur(22px) saturate(140%);backdrop-filter:blur(22px) saturate(140%);
+ box-shadow:0 34px 80px -34px #000d,0 0 70px -14px #04785766,inset 0 1px 0 #ffffff2e,inset 0 0 40px #10b9810d}
+/* sorot cahaya emas tipis di tepian kaca */
+.lgx .lgc::before{content:'';position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;
+ background:linear-gradient(140deg,#f1dca38c 0%,#C6A15B00 28%,#C6A15B00 68%,#C6A15B66 100%);
+ -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
+.lgx .lgc input{background:#022C2275;border-color:#ffffff24}
+.lgx .lgc input:focus{background:#022C2299;border-color:#C6A15B;box-shadow:0 0 0 4px #C6A15B26}
+.login.lgx .lgc .btn{background:linear-gradient(135deg,#047857,#0f9b72);box-shadow:0 14px 26px -12px #10b981,inset 0 1px 0 #ffffff3d}
+.login.lgx .lgc .btn:hover{background:linear-gradient(135deg,#059669,#14b88a)}
+.login.lgx .lgc .btn.gray{background:#ffffff0d;border-color:#C6A15B59;color:#f4ecd6;box-shadow:none}
+.login.lgx .lgc .btn.gray:hover{background:#C6A15B1f}
+}
+/* desktop: ilustrasi kiri tetap (ukuran/posisi bawaan), pudar halus ke emerald di sisi kartu */
+@media screen and (min-width:1100px){
+.login.lgx{background-image:linear-gradient(90deg,transparent 46%,#022C22b3 58%,#022C22f2 68%,#022C22 76%),url("login-bg.webp")}
+}
+/* HP: ornamen lebih kecil agar tidak ramai */
+@media screen and (max-width:699px){.login.lgx::after{right:-30%;opacity:.6}}
+@media (prefers-reduced-motion:reduce){.login.lgx::before{animation:none}}
 </style>
 </head>
 <body>
@@ -603,19 +614,7 @@ const TXK=y=>'bos4-tx-'+y, SAK=y=>'bos4-sa-'+y, CFGK='bos4-cfg', PRK=y=>'bos4-pr
 /* ─── LOGO BOSku (dipakai di login & sidebar; sama dengan icon.svg) ─── */
 const boskuIcon=s=>`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="${s}" height="${s}" role="img" aria-label="Logo BOSku"><defs><linearGradient id="bkg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#10b981"/><stop offset="1" stop-color="#064e3b"/></linearGradient></defs><rect x="24" y="24" width="464" height="464" rx="126" fill="url(#bkg)"/><path d="M137 370V240a17 17 0 0 1 17-17h31a17 17 0 0 1 17 17v130zm82 0V187a17 17 0 0 1 17-17h31a17 17 0 0 1 17 17v183zm82 0V137a17 17 0 0 1 17-17h31a17 17 0 0 1 17 17v233z" fill="#fff" opacity=".96"/><path d="m146 208 86-52 67 28 78-69" fill="none" stroke="#fbbf24" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/><circle cx="377" cy="115" r="13" fill="#fbbf24" stroke="#fff" stroke-width="7"/><path d="M128 389h256" stroke="#a7f3d0" stroke-width="12" stroke-linecap="round" opacity=".9"/></svg>`;
 /* ─── LOGIN ─── */
-let lgMode=null,lgMsg='';
-const loginWide=()=>innerWidth>=900&&innerWidth/innerHeight>=1.5&&CSS.supports('width','1cqw');
-/* ganti layout saat layar diputar atau diubah ukurannya; isian yang sudah diketik tetap */
-addEventListener('resize',()=>{if(!document.querySelector('.login')||loginWide()===lgMode)return;const e=$('lg-e'),p=$('lg-p'),pv=p&&p.value;showLogin(lgMsg,e&&e.value);if(pv&&$('lg-p'))$('lg-p').value=pv});
 function showLogin(msg,email){
- const W=loginWide();lgMode=W;lgMsg=msg||'';
- if(W){$('app').innerHTML=`<div class="login lgs"><div class="lgst">
-  <h2>Masuk</h2>${msg?`<div class="lgerr">${esc(msg)}</div>`:'<p class="lg-s">Gunakan email dan password akun Anda.</p>'}
-  <div class="lgb lgf1"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="9" width="38" height="30" rx="6"/><path d="M7 13l17 13 17-13M7 36l12-11M41 36L29 25"/></svg><input id="lg-e" type="email" placeholder="Email" aria-label="Email" autocomplete="username" value="${esc(email||'')}"></div>
-  <div class="lgb lgf2"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="21" width="30" height="22" rx="6"/><path d="M15 21v-6a9 9 0 0 1 18 0v6"/><circle cx="24" cy="31" r="2.2" fill="currentColor"/><path d="M24 33v4"/></svg><input id="lg-p" type="password" placeholder="Password" aria-label="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"><button type="button" class="lgeye" aria-label="Tampilkan password" onclick="const i=document.getElementById('lg-p'),s=i.type==='password';i.type=s?'text':'password';this.classList.toggle('on',s);this.setAttribute('aria-label',s?'Sembunyikan password':'Tampilkan password')"><svg class="e1" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 24s7-13 21-13 21 13 21 13-7 13-21 13S3 24 3 24z"/><circle cx="24" cy="24" r="6"/><path d="M8 41L40 7" stroke="#ef4444" stroke-width="4.4"/></svg><svg class="e2" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 24s7-13 21-13 21 13 21 13-7 13-21 13S3 24 3 24z"/><circle cx="24" cy="24" r="6"/></svg></button></div>
-  <button class="btn lgb lgbt" onclick="doLogin()"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M28 8h9a4 4 0 0 1 4 4v24a4 4 0 0 1-4 4h-9M20 33l9-9-9-9M29 24H6"/></svg><span>Masuk</span></button>
-  <button class="btn lgb lgq" onclick="lupaPass()"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="24" cy="24" r="18"/><path d="M18.5 19a5.5 5.5 0 1 1 7.7 5c-1.4.8-2.2 1.8-2.2 3.5M24 34h.01"/></svg><span>Lupa Password?</span></button>
- </div></div>`;return}
  $('app').innerHTML=`<div class="login lgx"><div class="lgw">
   <div class="lg-head"><div class="lg-brand">${boskuIcon(42)}<span>BOSku</span></div>
    <h1>Bendahara BOS:<em>Senyum di Depan,</em><u>Rekonsiliasi di Belakang.</u></h1>
@@ -640,9 +639,9 @@ function showLogin(msg,email){
   <div class="lgc"><h2>Masuk</h2><p class="lg-s">Gunakan email dan password akun Anda.</p>
   ${msg?`<div class="info" style="background:#fef2f2;border-color:#fecaca;color:#991b1b">${esc(msg)}</div>`:''}
   <label for="lg-e">Email</label><div class="lgf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6M4 18l6-6M20 18l-6-6"/></svg><input id="lg-e" type="email" placeholder="Email" autocomplete="username" value="${esc(email||'')}"></div>
-  <label for="lg-p">Password</label><div class="lgf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="3"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/><circle cx="12" cy="16" r="1.2" fill="currentColor"/></svg><input id="lg-p" type="password" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">${EYE}</div>
-  <button class="btn" onclick="doLogin()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M10 16l4-4-4-4M14 12H3"/></svg>Masuk</button>
-  <button class="btn gray" onclick="lupaPass()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17h.01"/></svg>Lupa password?</button></div></div></div>`;
+  <label for="lg-p">Password</label><div class="lgf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="3"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/><circle cx="12" cy="16" r="1.2" fill="currentColor"/></svg><input id="lg-p" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">${EYE}</div>
+  <button class="btn" onclick="doLogin()">Masuk</button>
+  <button class="btn gray" onclick="lupaPass()">Lupa password?</button></div></div></div>`;
 }
 const EYE=`<button type="button" class="ib" aria-label="Tampilkan password" title="Tampilkan password" style="position:absolute;right:2px;top:0;height:100%;min-width:44px;font-size:18px" onclick="lihatPass(this)">👁️</button>`;
 const pwBox=(attr)=>`<div style="position:relative"><input type="password" style="padding-right:52px" ${attr}>${EYE}</div>`;
