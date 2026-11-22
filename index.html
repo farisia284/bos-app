@@ -650,6 +650,9 @@ const TXK=y=>'bos4-tx-'+y, SAK=y=>'bos4-sa-'+y, CFGK='bos4-cfg', PRK=y=>'bos4-pr
 
 /* ─── LOGO BOSku (dipakai di login & sidebar; sama dengan icon.svg) ─── */
 const boskuIcon=s=>`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="${s}" height="${s}" role="img" aria-label="Logo BOSku"><defs><linearGradient id="bkg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#10b981"/><stop offset="1" stop-color="#064e3b"/></linearGradient></defs><rect x="24" y="24" width="464" height="464" rx="126" fill="url(#bkg)"/><path d="M137 370V240a17 17 0 0 1 17-17h31a17 17 0 0 1 17 17v130zm82 0V187a17 17 0 0 1 17-17h31a17 17 0 0 1 17 17v183zm82 0V137a17 17 0 0 1 17-17h31a17 17 0 0 1 17 17v233z" fill="#fff" opacity=".96"/><path d="m146 208 86-52 67 28 78-69" fill="none" stroke="#fbbf24" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/><circle cx="377" cy="115" r="13" fill="#fbbf24" stroke="#fff" stroke-width="7"/><path d="M128 389h256" stroke="#a7f3d0" stroke-width="12" stroke-linecap="round" opacity=".9"/></svg>`;
+/* kontak pembuat: satu tempat untuk ganti nomor; tampil di login & sidebar (bukan di cetakan) */
+const KONTAK={nama:'Salman Alfarisi, S.Pd.',wa:'6285225398375',tampil:'0852-2539-8375'};
+const kontakLink=c=>`<a href="https://wa.me/${KONTAK.wa}" target="_blank" rel="noopener" style="color:${c};font-weight:700;text-decoration:none">💬 ${KONTAK.tampil}</a>`;
 /* ─── LOGIN ─── */
 function showLogin(msg,email){
  $('app').innerHTML=`<div class="login lgx"><div class="lgw">
@@ -678,7 +681,8 @@ function showLogin(msg,email){
   <label for="lg-e">Email</label><div class="lgf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6M4 18l6-6M20 18l-6-6"/></svg><input id="lg-e" type="email" placeholder="Email" autocomplete="username" value="${esc(email||'')}"></div>
   <label for="lg-p">Password</label><div class="lgf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="3"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/><circle cx="12" cy="16" r="1.2" fill="currentColor"/></svg><input id="lg-p" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">${EYE}</div>
   <button class="btn" onclick="doLogin()">Masuk</button>
-  <button class="btn gray" onclick="lupaPass()">Lupa password?</button></div></div></div>`;
+  <button class="btn gray" onclick="lupaPass()">Lupa password?</button>
+  <div style="margin-top:16px;padding-top:14px;border-top:1px solid #ffffff1f;text-align:center;font-size:12.5px;line-height:1.6;color:#d5eee3">Butuh bantuan atau belum punya akun?<br>Hubungi pembuat aplikasi: <b>${KONTAK.nama}</b><br>${kontakLink('#fbbf24')}</div></div></div></div>`;
 }
 const EYE=`<button type="button" class="ib" aria-label="Tampilkan password" title="Tampilkan password" style="position:absolute;right:2px;top:0;height:100%;min-width:44px;font-size:18px" onclick="lihatPass(this)">👁️</button>`;
 const pwBox=(attr)=>`<div style="position:relative"><input type="password" style="padding-right:52px" ${attr}>${EYE}</div>`;
@@ -1988,7 +1992,10 @@ function vSet(){
   <button class="btn" style="margin-top:8px" onclick="gantiPass()">Ganti Password</button>
   <div style="margin-top:12px"><label>Email baru (sekarang: ${esc(user&&user.email)})</label><input id="em-n" type="email" autocomplete="off" placeholder="email@baru.com"></div>
   <button class="btn blue" style="margin-top:8px" onclick="gantiEmail()">Ganti Email</button>
-  <div style="font-size:11px;color:#6b7280;margin-top:6px">Ganti email mengirim link konfirmasi; email lama tetap dipakai login sampai link diklik.</div></div>`:''}
+  <div style="font-size:11px;color:#6b7280;margin-top:6px">Ganti email mengirim link konfirmasi; email lama tetap dipakai login sampai link diklik.</div></div>
+ <div class="card" style="border-left:4px solid #CA8A04"><div class="ct">ℹ️ Tentang BOSku</div>
+  <div style="font-size:13px;line-height:1.6">Aplikasi keuangan BOS sekolah, dibuat oleh <b>${esc(KONTAK.nama)}</b>.<br>Ada pertanyaan, kendala, atau ingin aplikasi untuk sekolah lain? Hubungi pembuat.</div>
+  <a class="btn" href="https://wa.me/${KONTAK.wa}" target="_blank" rel="noopener" style="display:inline-block;margin-top:10px;text-decoration:none">💬 WhatsApp ${KONTAK.tampil}</a></div>`:''}
  ${setT==='profil'?` <div class="card"><div class="ct">🏫 Informasi Sekolah</div>
   ${inp('Nama Sekolah','namaSekolah')}${inp('NPSN','npsn')}${inp('Alamat','alamat')}${inp('Kecamatan','kecamatan')}${inp('Kota / Kabupaten (mis. Batang)','kota')}${inp('Tempat Tanda Tangan BKU & Rekap Pajak (mis. nama desa)','tempat','Kalisari')}
  </div>
@@ -2114,7 +2121,7 @@ function sidebar(){
  return `<aside class="sb"><div class="sbh"><div class="logo">${boskuIcon(44)}</div><div><b>BOSku</b><small>${esc(cfg.namaSekolah)}</small><small class="sbs" id="sync">${SYN[sync]}</small></div></div>
   <nav class="sbn">${nav}</nav>
   <div class="sbf"><button class="sbi" title="Ciutkan / lebarkan menu" aria-label="Ciutkan atau lebarkan menu" onclick="sbTgl()">${ico('fold')}<span>Ciutkan menu</span></button></div>
-  <div class="sbo"><button class="sbi tm" title="Ganti mode terang/gelap" aria-label="Ganti mode terang atau gelap" onclick="temaTgl()">${ico('moon')}${ico('sun')}<span><b class="tl">Mode gelap</b><b class="td">Mode terang</b></span></button><div class="sbu" title="${esc(user&&user.email)}">${esc(user&&user.email)}</div><button class="sbi out" title="Keluar" onclick="logout()">${ico('out')}<span>Keluar</span></button></div></aside>`;
+  <div class="sbo"><button class="sbi tm" title="Ganti mode terang/gelap" aria-label="Ganti mode terang atau gelap" onclick="temaTgl()">${ico('moon')}${ico('sun')}<span><b class="tl">Mode gelap</b><b class="td">Mode terang</b></span></button><div class="sbu" title="${esc(user&&user.email)}">${esc(user&&user.email)}</div><div class="sbu" style="white-space:normal;line-height:1.5">Dibuat oleh ${esc(KONTAK.nama)}<br>${kontakLink('#6ee7b7')}</div><button class="sbi out" title="Keluar" onclick="logout()">${ico('out')}<span>Keluar</span></button></div></aside>`;
 }
 /* Judul halaman di atas isi: Dashboard = sapaan menurut jam, menu lain = nama menu + grup */
 function pgHead(){
@@ -2240,13 +2247,13 @@ const kopSp=()=>`<div style="display:flex;align-items:center;justify-content:cen
    ${cfg.email?`<div style="font-size:12px;color:#0563c1;text-decoration:underline">Pos-el : ${esc(cfg.email)}</div>`:''}
   </div>
   ${logoImg(cfg.logoKanan)}
- </div>`;
+ </div><div style="border-top:3px double #000;margin:6px 0 0"></div>`;
 function spHtml(t){
  const g=fGuru(t.guruId),d=tglN(t.tanggal),m=getMonth(t.tanggal);
  const kv=(l,v,w)=>`<div style="display:grid;grid-template-columns:${w||95}px 14px 1fr;padding:2px 0"><div>${l}</div><div>:</div><div>${v}</div></div>`;
  const dots='………………………………';
  return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#000;line-height:1.4">
- ${kopSp()}<div style="border-top:3px double #000;margin:6px 0 0"></div>
+ ${kopSp()}
  <div style="text-align:center;margin-top:24px">
   <div style="font-weight:700;text-decoration:underline">SURAT PERINTAH</div>
   <div style="margin-top:6px">Nomor : 400.3.5.5/&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/${ROM[m]}/ ${yr}</div>
