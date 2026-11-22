@@ -2095,7 +2095,9 @@ const empty=(k,t,d,acts,sm)=>`<div class="em${sm?' sm':''}"><div class="emi"><sv
 /* Sidebar: >=820px menetap (bisa diciutkan, pilihan diingat per perangkat); <820px jadi laci geser.
    Buka/tutup hanya ganti class (tanpa render ulang) supaya transisinya halus. */
 let sbMini=false;try{sbMini=localStorage.getItem('bos-sb')==='1'}catch(e){}
+addEventListener('error',e=>toast('⚠️ Error: '+e.message,9000)); /* DIAGNOSA sementara */
 function sbTgl(){
+ toast('☰ diketuk, lebar layar '+innerWidth,2500); /* DIAGNOSA sementara */
  const s=document.querySelector('.shell');if(!s)return;
  if(innerWidth<820)s.classList.toggle('open');
  else{sbMini=s.classList.toggle('mini');try{localStorage.setItem('bos-sb',sbMini?'1':'0')}catch(e){}}
