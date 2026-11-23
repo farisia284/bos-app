@@ -972,6 +972,7 @@ function upd(){
  if($('f-sum'))$('f-sum').innerHTML=sumHtml();
 }
 function doSubmit(again){
+ spSync();
  const f=F;
  if(!f.tanggal||!f.uraian.trim()||!f.jumlah){toast('⚠️ Tanggal, uraian, jumlah wajib!');return}
  const j=cleanNum(f.jumlah);if(j<=0){toast('⚠️ Jumlah harus > 0');return}
@@ -1254,6 +1255,7 @@ function sumHtml(){
  return `Dibayar bersih${pj?' setelah pajak':''}: <b>${rp(j-pj)}</b> · Saldo tunai setelah belanja ini: <b style="color:${after<0?'#dc2626':'#166534'}">${rp(after)}</b>${e&&e.t===tmp?`<div style="color:#dc2626;font-weight:700;margin-top:4px">⚠️ ${esc(errMsg(e))}</div>`:''}`;
 }
 function vInput(){
+ spSync();
  const f=F,T=tot(),k=f.jenis==='kredit',cur=editId?tx.find(x=>x.id===editId):null;
  const j=cleanNum(f.jumlah),pi=fP(f.pajakKode),pj=k&&f.pajakOn&&pi?Math.round(j*pi.persen/100):0;
  const jt=[['debet','💰 Dana Masuk','#16a34a'],['tarik','🏧 Tarik Dana','#0369a1'],['kredit','💸 Belanja (BKU)','#dc2626']];
@@ -1263,8 +1265,8 @@ function vInput(){
  const noInp=k?`<input id="f-no" value="${esc(f.noBukti)}" readonly title="Otomatis menurut tanggal lunas bayar" style="background:#f3f4f6;color:#6b7280">`:`<input id="f-no" value="${esc(f.noBukti)}" oninput="fset('noBukti',this.value)">`;
  const uraian=`<label>📝 Uraian *</label><input value="${esc(f.uraian)}" oninput="fset('uraian',this.value)" placeholder="${f.jenis==='debet'?'Contoh: Penerimaan Dana BOS Tahap 1':f.jenis==='tarik'?'Contoh: Pengambilan dana BOS':'Contoh: Belanja Cetak Soal PAT Kelas 6'}">`;
  const jumlah=`<label>💵 Jumlah (Rp) *</label>
-  <input id="f-jml" inputmode="numeric" placeholder="0" style="font-size:18px;font-weight:700;color:${k?'#dc2626':f.jenis==='tarik'?'#0369a1':'#16a34a'}" value="${f.jumlah?(+f.jumlah).toLocaleString('id-ID'):''}" oninput="onJml(this)">
-  <div class="tbx" id="f-terb" style="display:${j>0?'block':'none'}">✍️ ${terbilang(j)}</div>${k?`<div class="info" id="f-sum" style="margin:8px 0 0">${sumHtml()}</div>`:''}`;
+  <input id="f-jml" inputmode="numeric" placeholder="0"${spLock(f)?' readonly title="Otomatis = total biaya SPPD"':''} style="${spLock(f)?'background:#f3f4f6;':''}font-size:18px;font-weight:700;color:${k?'#dc2626':f.jenis==='tarik'?'#0369a1':'#16a34a'}" value="${f.jumlah?(+f.jumlah).toLocaleString('id-ID'):''}" oninput="onJml(this)">
+  ${spLock(f)?'<div style="font-size:11px;color:#7C3AED;margin-top:4px">✈️ Otomatis = total biaya transport semua SPPD (ubah lewat tombol SPPD di bawah)</div>':''}<div class="tbx" id="f-terb" style="display:${j>0?'block':'none'}">✍️ ${terbilang(j)}</div>${k?`<div class="info" id="f-sum" style="margin:8px 0 0">${sumHtml()}</div>`:''}`;
  const ket=`<details style="margin-top:12px"${f.ket?' open':''}><summary style="cursor:pointer;font-size:12px;color:#6b7280">📌 Keterangan (opsional)</summary><input value="${esc(f.ket)}" oninput="fset('ket',this.value)" placeholder="Nama toko, bank, dsb."></details>`;
  const rk=cfg.rekening||[];
  const kartu=k?`
@@ -2289,16 +2291,49 @@ const sf=(n,k,v)=>{F.sp[n][k]=v};
 const addSp=()=>{F.sp.push(newSp());render()};
 const rmSp=n=>{F.sp.splice(n,1);if(!F.sp.length)F.sppdOn=false;render()};
 function spGuru(n,id){const g=fGuru(id)||{};Object.assign(F.sp[n],{gid:id,pangkat:g.pangkat||'',jab:g.jabatan||''});render()}
+/* ── SPPD: tombol di Input -> halaman SPPD (tab Input / Rekap / Cetak).
+   Biaya tiap SPPD = hanya transport (s.biaya). Jumlah BKU = total biaya semua SPPD belanja itu; dikunci di Input supaya selalu sama. ── */
+let spT='rekap',spM=0;
+const spNom=s=>cleanNum(s.biaya||'');
+const spTot=a=>(a||[]).reduce((n,s)=>n+spNom(s),0);
+const spLock=f=>f.jenis==='kredit'&&f.sppdOn&&f.sp.length>0&&spTot(f.sp)>0;
+function spSync(){if(spLock(F))F.jumlah=String(spTot(F.sp))}
+function spOpen(){F.sppdOn=true;if(!F.sp.length)F.sp.push(newSp());spT='input';tab='sppd';render();scrollTo(0,0)}
+function spEdit(id,add){
+ doEdit(id);F.sppdOn=true;if(add||!F.sp.length)F.sp.push(newSp());
+ const o=F.jumlah;spSync();
+ spT='input';tab='sppd';render();scrollTo(0,0);
+ if(F.jumlah!==o)toast('ℹ️ Jumlah belanja disamakan dengan total SPPD — tekan Perbarui untuk menerapkan',4500); /* setelah render, kalau tidak toast hilang */
+}
+const spAdd=id=>spEdit(id,true);
+const sfB=(n,v)=>{F.sp[n].biaya=v;spSync();const e=$('sp-tot');if(e)e.innerHTML=spTotHtml()};
+function spSave(){
+ if(!spTot(F.sp)){toast('⚠️ Isi biaya transport minimal satu SPPD');return}
+ const b=tx;doSubmit();if(tx!==b){spT='rekap';render();scrollTo(0,0)}
+}
+const spBatal=()=>{cancelEdit();spT='rekap';render()};
+/* tombol ringkas di kartu Dokumen Tambahan (Input) */
 function sppdBlk(f){
- const h=`<div style="display:flex;align-items:center;gap:8px;margin-top:10px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px"><input type="checkbox" id="sdcb"${f.sppdOn?' checked':''} onchange="F.sppdOn=this.checked;if(F.sppdOn&&!F.sp.length)F.sp.push(newSp());render()"><label for="sdcb" style="margin:0;cursor:pointer;font-size:12px">✈️ Ada <b>SPPD</b> (surat perintah perjalanan dinas) — dicetak di menu <b>SPPD</b></label></div>`;
- if(!f.sppdOn)return h;
- return h+f.sp.map((s,n)=>{
+ const n=f.sppdOn?f.sp.length:0,t=n?spTot(f.sp):0;
+ return `<div id="sp-blk" style="margin-top:10px;padding:10px 12px;background:#faf5ff;border:1px solid #e9d5ff;border-radius:12px">
+  <div style="font-size:12px;font-weight:700;margin-bottom:6px">✈️ SPPD (perjalanan dinas) untuk belanja ini</div>
+  <div style="font-size:11px;color:#6b7280;margin-bottom:8px">${n?`${n} SPPD · total transport <b>${rp(t)}</b>${t?' — jumlah belanja terisi otomatis':' — <span style="color:#dc2626">biaya transport belum diisi</span>'}`:'Belum ada. Tiap SPPD punya biaya transport; jumlah belanja = total semua SPPD.'}</div>
+  <button class="btn" style="background:#7C3AED;padding:8px 14px;font-size:12px" onclick="spOpen()">✈️ ${n?'Buka SPPD ('+n+')':'Isi SPPD'}</button></div>`;
+}
+function spTotHtml(){
+ const t=spTot(F.sp),j=cleanNum(F.jumlah);
+ return `${F.sp.length} SPPD · total transport <b>${rp(t)}</b> · jumlah BKU <b>${rp(j)}</b> ${t>0&&t===j?'<span style="color:#15803d">✅ sama</span>':'<span style="color:#dc2626">⚠️ isi biaya transport tiap SPPD</span>'}`;
+}
+function vSpIn(){
+ const f=F;
+ if(f.jenis!=='kredit'||(!f.sppdOn&&!f.uraian&&!f.jumlah))return `<div class="card">${empty('sppd','Belum ada belanja yang dipilih','Mulai dari menu <b>Input</b> (jenis Belanja), isi uraian lalu tekan <b>Isi SPPD</b>. Atau pilih ✏️ Edit di tab Rekap.',[['➕ Ke Input',"go('input')"]])}</div>`;
+ const cards=f.sp.map((s,n)=>{
   const i=(l,k,ph)=>`<div><label>${l}</label><input value="${esc(s[k])}" placeholder="${ph||''}" oninput="sf(${n},'${k}',this.value)"></div>`;
   const d=(l,k)=>`<div><label>${l}</label>${dIn(s[k],`sf(${n},'${k}',v)`)}</div>`;
   return `<div style="margin-top:8px;padding:11px;background:#faf5ff;border:1px solid #e9d5ff;border-radius:10px">
   <div class="row" style="margin-bottom:6px"><b style="font-size:13px">✈️ SPPD ke-${n+1}</b><button class="ib" style="color:#dc2626" title="Hapus SPPD ini" onclick="rmSp(${n})">🗑️</button></div>
   <label>👤 Pegawai (dari Daftar Guru)</label><select onchange="spGuru(${n},this.value)"><option value="">— Pilih Guru —</option>${(cfg.guruList||[]).map(g=>`<option value="${g.id}"${s.gid===g.id?' selected':''}>${esc(g.nama)}</option>`).join('')}</select>
-  <div class="g2">${i('Nomor SPPD','nomor','B/103.C/400.3.11.1/IX/2026')}${i('Tingkat biaya','biaya','20000')}</div>
+  <div class="g2"><div><label>💵 Biaya transport (Rp) *</label><input inputmode="numeric" value="${esc(s.biaya)}" placeholder="150000" style="font-weight:700" oninput="sfB(${n},this.value)"></div>${i('Nomor SPPD','nomor','B/103.C/400.3.11.1/IX/2026')}</div>
   <div class="g2">${i('Pangkat / Golongan','pangkat','Penata Muda Tk.I, III/B')}${i('Jabatan','jab','Guru Ahli Pertama')}</div>
   ${i('Maksud perjalanan dinas','maksud')}
   <div class="g2">${i('Alat angkut','alat','Kendaraan Pribadi')}${i('Pengikut','pengikut')}</div>
@@ -2312,8 +2347,57 @@ function sppdBlk(f){
    ${i('Instansi','instansi')}${i('Keterangan lain-lain','ket')}
    <label style="margin-top:6px">Pejabat di tempat tujuan (yang mengesahkan tiba / berangkat)</label>
    <div class="g2">${i('Jabatan','pjbJab','Ketua KKG PAI')}${i('Nama','pjbNama')}</div>${i('NIP','pjbNip')}
-  </details></div>`}).join('')
- +`<button class="btn gray" style="margin-top:8px;font-size:12px" onclick="addSp()">➕ Tambah SPPD</button>`;
+  </details></div>`}).join('');
+ return `<div class="card" style="border-left:4px solid #7C3AED"><div class="ct">✈️ SPPD — ${editId?'Edit Belanja':'Belanja Baru'}</div>
+  <div style="font-size:13px;font-weight:700;word-break:break-word">${f.uraian.trim()?esc(f.uraian):'<span style="color:#dc2626">(uraian belum diisi — isi di menu Input)</span>'}</div>
+  <div style="font-size:11px;color:#6b7280;margin-top:2px">Lunas bayar ${tgl(f.tanggal)}</div>
+  <div class="info" id="sp-tot" style="margin:8px 0 0">${spTotHtml()}</div>
+  ${cards}<button class="btn gray" style="margin-top:8px;font-size:12px" onclick="addSp()">➕ Tambah SPPD</button></div>
+ <div class="stk" style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px"><button class="btn" style="flex:1" onclick="spSave()">💾 ${editId?'Perbarui':'Simpan'} Belanja</button><button class="btn gray" onclick="go('input')">↩ Kembali ke Input</button>${editId?'<button class="btn gray" onclick="spBatal()">Batal</button>':''}</div>`;
+}
+/* belanja ber-SPPD per bulan (menurut tanggal lunas bayar) */
+function spTrx(){
+ const bm={};sortTx(tx).forEach(t=>{if(t.sppd&&t.sppd.length){const m=getMonth(t.tanggal);(bm[m]=bm[m]||[]).push(t)}});
+ const av=Object.keys(bm).map(Number).sort((a,b)=>a-b),m=av.includes(+spM)?+spM:av[av.length-1];
+ return{bm,av,m,list:m?bm[m]:[]};
+}
+const spTglS=s=>s.tglB?(s.tglK&&s.tglK!==s.tglB?tgl(s.tglB)+' s.d. '+tgl(s.tglK):tgl(s.tglB)):'';
+const spRows=t=>t.sppd.map(s=>{const g=fGuru(s.gid)||{};return{nama:g.nama||'',jab:s.jab||g.jabatan||'',keg:s.maksud||t.uraian,tgl:spTglS(s),tuj:s.tujuan||'',nom:spNom(s)}});
+function vSpRk(){
+ const {bm,av,m,list}=spTrx();
+ const head=`<div class="card row" style="flex-wrap:wrap"><div class="ct" style="margin:0">📋 Rekap Peserta Perjalanan Dinas</div>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label style="margin:0">📅 Bulan:</label>
+  <select class="auto" onchange="spM=this.value;render()">${av.length?av.map(x=>`<option value="${x}"${x===m?' selected':''}>${MO[x]} (${bm[x].length})</option>`).join(''):'<option>— Belum ada SPPD —</option>'}</select>
+  <button class="btn" onclick="spPrintRk(true)"${list.length?'':' disabled'}>🖨️ Cetak Semua Rekap (${list.length})</button></div></div>`;
+ if(!list.length)return head+`<div class="card">${empty('sppd','Belum ada SPPD','Di menu <b>Input</b>, pilih jenis Belanja lalu tekan <b>Isi SPPD</b>.',[['➕ Ke Input',"go('input')"]])}</div>`;
+ const th='style="text-align:left"';
+ return head+list.map(t=>{
+  const rows=spRows(t),sum=spTot(t.sppd),ok=sum===t.jumlah;
+  return `<div class="card" style="border-left:4px solid ${ok?'#7C3AED':'#dc2626'}">
+  <div class="row" style="align-items:flex-start;flex-wrap:wrap;gap:8px"><div style="min-width:0;flex:1">
+   <div style="font-weight:700;font-size:13px;word-break:break-word">${esc(t.uraian)}</div>
+   <div style="font-size:11px;color:#6b7280;margin-top:2px">No. ${esc(t.noBukti||'-')} · lunas bayar ${tgl(t.tanggal)} · BKU ${rp(t.jumlah)} · total SPPD ${rp(sum)}</div>
+   <div style="font-size:11px;margin-top:2px">${ok?'<span style="color:#15803d">✅ Jumlah BKU = rekap = total biaya SPPD</span>':`<span style="color:#dc2626">⚠️ Tidak sama: BKU ${rp(t.jumlah)}, SPPD ${rp(sum)} (selisih ${rp(Math.abs(t.jumlah-sum))}). Tekan ✏️ Edit lalu Perbarui untuk menyamakan.</span>`}</div></div>
+   <div style="display:flex;gap:6px;flex-wrap:wrap;flex-shrink:0"><button class="btn blue" style="padding:7px 12px;font-size:12px" onclick="spPrintRk('${t.id}')">🖨️ Cetak Rekap</button><button class="btn gray" style="padding:7px 12px;font-size:12px" onclick="spAdd('${t.id}')">➕ Tambah SPPD</button></div></div>
+  <div style="overflow-x:auto;margin-top:8px"><table class="t" style="min-width:720px;width:100%"><thead><tr><th>No</th><th ${th}>Nama</th><th ${th}>Jabatan</th><th ${th}>Nama Kegiatan</th><th ${th}>Tanggal</th><th ${th}>Tujuan</th><th style="text-align:right">Nominal</th><th></th></tr></thead><tbody>
+  ${rows.map((r,i)=>`<tr><td>${i+1}</td><td>${r.nama?esc(r.nama):'<i>(belum dipilih)</i>'}</td><td>${esc(r.jab)}</td><td>${esc(r.keg)}</td><td>${esc(r.tgl)}</td><td>${esc(r.tuj)}</td><td style="text-align:right;white-space:nowrap">${rp(r.nom)}</td><td><button class="btn gray" style="padding:5px 10px;font-size:12px" onclick="spEdit('${t.id}')">✏️ Edit</button></td></tr>`).join('')}
+  <tr><td colspan="6" style="text-align:right;font-weight:700">Jumlah</td><td style="text-align:right;font-weight:700;white-space:nowrap">${rp(sum)}</td><td></td></tr></tbody></table></div></div>`}).join('');
+}
+function rekapHtml(t){
+ const rows=spRows(t),sum=spTot(t.sppd),c='border:1px solid #000;padding:5px 6px;',h=c+'text-align:center;font-weight:700;';
+ return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#000;line-height:1.35">
+ ${kopSp()}
+ <div style="text-align:center;margin:18px 0 12px;font-weight:700;text-decoration:underline;font-size:15px">REKAP PESERTA PERJALANAN DINAS</div>
+ <table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr>${['No','Nama','Jabatan','Nama Kegiatan','Tanggal','Tujuan','Nominal','Tanda Tangan'].map(x=>`<th style="${h}">${x}</th>`).join('')}</tr></thead><tbody>
+ ${rows.map((r,i)=>`<tr style="break-inside:avoid"><td style="${c}text-align:center">${i+1}</td><td style="${c}">${esc(r.nama)}</td><td style="${c}">${esc(r.jab)}</td><td style="${c}">${esc(r.keg)}</td><td style="${c}">${esc(r.tgl)}</td><td style="${c}">${esc(r.tuj)}</td><td style="${c}text-align:right;white-space:nowrap">${rp(r.nom)}</td><td style="${c}height:38px;width:110px;vertical-align:${i%2?'bottom':'top'};text-align:${i%2?'right':'left'}">${i+1}.</td></tr>`).join('')}
+ <tr style="break-inside:avoid"><td colspan="6" style="${c}text-align:right;font-weight:700">Jumlah</td><td style="${c}text-align:right;font-weight:700;white-space:nowrap">${rp(sum)}</td><td style="${c}"></td></tr></tbody></table>
+ ${ttdHtml(t.tanggal)}</div>`;
+}
+/* arg: true = semua rekap bulan terpilih (tab Rekap); array = daftar id belanja; selain itu = satu id belanja */
+function spPrintRk(arg){
+ const l=arg===true?spTrx().list:(Array.isArray(arg)?arg:[arg]).map(id=>tx.find(x=>x.id===id)).filter(Boolean);
+ if(!l.length){toast('Tidak ada rekap');return}
+ doPrint(l.map(rekapHtml).join(SPB),'landscape');
 }
 /* daftar SPPD per bulan (menurut tanggal berangkat; kosong -> tanggal lunas bayar belanja) */
 function sppdList(){
@@ -2322,18 +2406,23 @@ function sppdList(){
  return{bm,av,m,list:m?bm[m]:[]};
 }
 function vSppd(){
- const {bm,av,m,list}=sppdList();
- return `<div class="card row" style="flex-wrap:wrap"><div class="ct" style="margin:0">✈️ SPPD — per Pegawai</div>
+ const tb=[['input','✏️ Input SPPD'],['rekap','📋 Rekap'],['cetak','🖨️ Cetak']];
+ return `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:11px">${tb.map(([id,l])=>`<button class="btn ${spT===id?'':'gray'}" onclick="spT='${id}';render();scrollTo(0,0)">${l}</button>`).join('')}</div>${spT==='input'?vSpIn():spT==='rekap'?vSpRk():vSpCt()}`;
+}
+function vSpCt(){
+ const {bm,av,m,list}=sppdList(),ids=[...new Set(list.map(x=>x.t.id))];
+ return `<div class="card row" style="flex-wrap:wrap"><div class="ct" style="margin:0">✈️ Cetak SPPD — per Pegawai</div>
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label style="margin:0">📅 Bulan:</label>
   <select class="auto" onchange="pMo=this.value;render()">${av.length?av.map(x=>`<option value="${x}"${x===m?' selected':''}>${MO[x]} (${bm[x].length})</option>`).join(''):'<option>— Belum ada SPPD —</option>'}</select>
-  <button class="btn" onclick="printAllSppd()"${list.length?'':' disabled'}>🖨️ Cetak Semua (${list.length})</button></div></div>
+  <button class="btn" onclick="printAllSppd()"${list.length?'':' disabled'}>🖨️ Cetak Semua (${list.length})</button>
+  <button class="btn blue" onclick="spPrintRk(${esc(JSON.stringify(ids))})"${ids.length?'':' disabled'}>🧾 Cetak Rekap (${ids.length})</button></div></div>
  ${list.length?list.map(({t,s,i},n)=>{const g=fGuru(s.gid);
   return `<div class="card" style="border-left:4px solid #7C3AED"><div class="row" style="align-items:flex-start">
    <div><div style="font-weight:700;font-size:13px">${n+1}. ${g?esc(g.nama):'(pegawai belum dipilih)'} — ${esc(s.maksud)||'(maksud kosong)'}</div>
-   <div style="font-size:11px;color:#6b7280;margin-top:2px">${s.tglB?tgl(s.tglB):'—'}${s.tglK&&s.tglK!==s.tglB?' s.d. '+tgl(s.tglK):''} · ${esc(s.asal)} → ${esc(s.tujuan)||'…'}${s.nomor?' · No. '+esc(s.nomor):''}</div>
+   <div style="font-size:11px;color:#6b7280;margin-top:2px">${s.tglB?tgl(s.tglB):'—'}${s.tglK&&s.tglK!==s.tglB?' s.d. '+tgl(s.tglK):''} · ${esc(s.asal)} → ${esc(s.tujuan)||'…'}${s.nomor?' · No. '+esc(s.nomor):''} · ${rp(spNom(s))}</div>
    <div style="font-size:11px;color:#6b7280;margin-top:2px">dari belanja: ${esc(t.uraian)}</div></div>
-   <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0"><button class="btn blue" style="padding:7px 14px;font-size:12px" onclick="printSppd('${t.id}',${i})">🖨️ Cetak SPPD</button><button class="btn gray" style="padding:7px 14px;font-size:12px" onclick="doEdit('${t.id}')">✏️ Edit</button></div></div></div>`}).join('')
- :`<div class="card">${empty('sppd','Belum ada SPPD','Centang <b>Ada SPPD</b> saat mencatat belanja di menu Input, isi (boleh dikosongi), lalu cetak dari sini.',[['➕ Catat belanja',"go('input')"]])}</div>`}`;
+   <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0"><button class="btn blue" style="padding:7px 14px;font-size:12px" onclick="printSppd('${t.id}',${i})">🖨️ Cetak SPPD</button><button class="btn gray" style="padding:7px 14px;font-size:12px" onclick="spPrintRk('${t.id}')">🧾 Cetak Rekap</button><button class="btn gray" style="padding:7px 14px;font-size:12px" onclick="spEdit('${t.id}')">✏️ Edit</button></div></div></div>`}).join('')
+ :`<div class="card">${empty('sppd','Belum ada SPPD','Di menu <b>Input</b>, pilih jenis Belanja lalu tekan <b>Isi SPPD</b>, isi datanya, lalu cetak dari sini.',[['➕ Ke Input',"go('input')"]])}</div>`}`;
 }
 const printSppd=(id,i)=>{const t=tx.find(x=>x.id===id);if(t&&t.sppd&&t.sppd[i])doPrint(sppdHtml(t.sppd[i]))};
 const printAllSppd=()=>{const {list}=sppdList();if(!list.length){toast('Tidak ada SPPD');return}doPrint(list.map(x=>sppdHtml(x.s)).join(SPB))};
