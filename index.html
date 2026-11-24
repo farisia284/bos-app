@@ -1521,18 +1521,27 @@ function vList(kind){
  :`<div class="card">${empty(tk?'a2t':sp?'sp':'a2',tk?'Belum ada pembayaran tukang':'Belum ada belanja untuk dicetak',tk?'Centang <b>Pembayaran tukang</b> saat mencatat belanja, lalu cetak formulirnya dari sini.':'Formulir dan surat dibuat otomatis dari belanja yang Anda catat.',[['➕ Catat belanja',"go('input')"]])}</div>`}`;
 }
 
+/* menu Rapat: tab Undangan / Daftar Hadir (data sama: belanja bertanda "Ada undangan rapat"); pilihan bulan dipakai bersama */
+let rpT='und';
+function vRapat(){
+ const tb=[['und','📣 Undangan'],['hdr','📝 Daftar Hadir']];
+ return `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:11px">${tb.map(([id,l])=>`<button class="btn ${rpT===id?'':'gray'}" onclick="rpT='${id}';render();scrollTo(0,0)">${l}</button>`).join('')}</div>${vRp(rpT)}`;
+}
+const printRp2=id=>{const t=tx.find(x=>x.id===id);if(t)doPrint(undHtml(t)+SPB+hdrHtml(t))};
+const printAllRp2=()=>{const l=monthList('und').list;if(!l.length){toast('Tidak ada rapat');return}doPrint(l.map(t=>undHtml(t)+SPB+hdrHtml(t)).join(SPB))};
 function vRp(kind){
  const {bm,av,m,list}=monthList(kind),u=kind==='und';
  return `<div class="card row" style="flex-wrap:wrap"><div class="ct" style="margin:0">${u?'📣 Undangan Rapat':'📝 Daftar Hadir'} — per Rapat</div>
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label style="margin:0">📅 Bulan:</label>
   <select class="auto" onchange="pMo=this.value;render()">${av.length?av.map(x=>`<option value="${x}"${x===m?' selected':''}>${MO[x]} (${bm[x].length})</option>`).join(''):'<option>— Belum ada rapat —</option>'}</select>
-  <button class="btn" onclick="printAll('${kind}')"${list.length?'':' disabled'}>🖨️ Cetak Semua (${list.length})</button></div></div>
+  <button class="btn" onclick="printAll('${kind}')"${list.length?'':' disabled'}>🖨️ Cetak Semua (${list.length})</button>
+  <button class="btn teal" onclick="printAllRp2()"${list.length?'':' disabled'}>🖨️ Undangan + Hadir (${list.length})</button></div></div>
  ${list.length?list.map((t,i)=>{const r=t.rapat;
   return `<div class="card" style="border-left:4px solid #7C3AED"><div class="row" style="align-items:flex-start">
    <div><div style="font-weight:700;font-size:13px">${i+1}. ${esc(r.perlu)}</div>
    <div style="font-size:11px;color:#6b7280;margin-top:2px">Rapat ${hariTgl(r.dR)} · ${esc(r.waktu)} · Undangan ${tgl(r.dU)}</div>
    <div style="font-size:11px;color:#6b7280;margin-top:2px">📍 ${esc(r.tempat)} · dari belanja: ${esc(t.uraian)}</div></div>
-   <button class="btn ${u?'gold':'blue'}" style="flex-shrink:0;padding:7px 14px;font-size:12px" onclick="printRp('${kind}','${t.id}')">🖨️ Cetak ${u?'Undangan':'Daftar Hadir'}</button></div></div>`}).join('')
+   <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0"><button class="btn ${u?'gold':'blue'}" style="padding:7px 14px;font-size:12px" onclick="printRp('${kind}','${t.id}')">🖨️ Cetak ${u?'Undangan':'Daftar Hadir'}</button><button class="btn gray" style="padding:7px 14px;font-size:12px" onclick="printRp2('${t.id}')">🖨️ Keduanya</button></div></div></div>`}).join('')
  :`<div class="card">${empty(kind,'Belum ada rapat','Centang <b>Ada undangan rapat</b> saat mencatat belanja, lalu cetak dari sini.',[['➕ Catat belanja',"go('input')"]])}</div>`}`;
 }
 
@@ -2064,7 +2073,7 @@ function vSet(){
 
 /* ═════════ RENDER ═════════ */
 /* [id, label, grup]. Ikon = IC[id]. Menambah menu baru: tambah di sini + IC + views di render() */
-const TABS=[['dashboard','Dashboard','Harian'],['input','Input','Harian'],['impor','Impor BKU (PDF)','Harian'],['rkn','Rekapan Belanja','Harian'],['riwayat','Riwayat','Harian'],['bku','BKU','Buku Kas'],['bkupj','BKU Pajak','Buku Kas'],['rekap','Rekap Pajak','Buku Kas'],['a2','Form A2','Pembayaran'],['a2t','A2 Tukang','Pembayaran'],['sp','Surat Pesanan (SP)','Pembayaran'],['sppd','SPPD','Pembayaran'],['und','Undangan','Rapat'],['hdr','Daftar Hadir','Rapat'],['dok','Dokumen Lain','Pembayaran'],['lamp','Lampiran Foto','Pembayaran'],['log','Riwayat Aktivitas','Sistem'],['set','Pengaturan','Sistem']];
+const TABS=[['dashboard','Dashboard','Harian'],['input','Input','Harian'],['impor','Impor BKU (PDF)','Harian'],['rkn','Rekapan Belanja','Harian'],['riwayat','Riwayat','Harian'],['bku','BKU','Buku Kas'],['bkupj','BKU Pajak','Buku Kas'],['rekap','Rekap Pajak','Buku Kas'],['a2','Form A2','Pembayaran'],['a2t','A2 Tukang','Pembayaran'],['sp','Surat Pesanan (SP)','Pembayaran'],['sppd','SPPD','Pembayaran'],['rapat','Rapat','Pembayaran'],['dok','Dokumen Lain','Pembayaran'],['lamp','Lampiran Foto','Pembayaran'],['log','Riwayat Aktivitas','Sistem'],['set','Pengaturan','Sistem']];
 const IC={
  dashboard:'<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>',
  input:'<circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/>',
@@ -2077,6 +2086,7 @@ const IC={
  sp:'<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
  sppd:'<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>',
  rkn:'<path d="M12 3v18"/><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/>',
+ rapat:'<path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>',
  und:'<path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>',
  hdr:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
  set:'<path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/>',
@@ -2153,7 +2163,7 @@ function render(){
  const sbS=document.querySelector('.sbn')?.scrollTop||0; /* innerHTML ganti sidebar: simpan posisi scroll menu */
  R=run(tx);const T=tot();
  try{sessionStorage.setItem(VK,JSON.stringify({tab,yr,setT}))}catch(e){}
- const views={dashboard:vDash,input:vInput,rkn:vRkn,riwayat:vRiw,bku:vBKU,bkupj:vPj,rekap:vRk,a2:()=>vList('a2'),a2t:()=>vList('a2t'),sp:()=>vList('sp'),sppd:vSppd,und:()=>vRp('und'),hdr:()=>vRp('hdr'),dok:vDok,lamp:vLamp,impor:vImpor,log:vLog,set:vSet};
+ const views={dashboard:vDash,input:vInput,rkn:vRkn,riwayat:vRiw,bku:vBKU,bkupj:vPj,rekap:vRk,a2:()=>vList('a2'),a2t:()=>vList('a2t'),sp:()=>vList('sp'),sppd:vSppd,rapat:vRapat,dok:vDok,lamp:vLamp,impor:vImpor,log:vLog,set:vSet};
  $('app').innerHTML=`<div class="shell${sbMini?' mini':''}">${sidebar()}<div class="scrim" onclick="document.querySelector('.shell').classList.remove('open')"></div><div class="mainc"><div class="top">
   <div class="hdr"><button class="mbtn" aria-label="Buka menu" onclick="sbTgl()">${ico('menu')}</button>
    <div style="flex:1;min-width:0">${clkBox()}</div>
