@@ -226,6 +226,7 @@ button.sbg{display:flex;align-items:center;justify-content:space-between;width:1
 .rg{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:9px}
 
 
+.stk.in{background:linear-gradient(transparent,#fff 35%)} /* bilah di dalam kartu: pudar ke warna kartu */
 .stk{position:sticky;bottom:0;z-index:50;padding:10px 0 4px;background:linear-gradient(transparent,#eef4f2 35%)}
 
 /* ===== LEMBAR (BKU, BKU Pajak, Rekap Pajak) — font cetak Arial ===== */
@@ -433,6 +434,7 @@ html[data-theme=dark] .btn.gray{background:#1b2f29;color:#cfe3da}
 html[data-theme=dark] .bar,html[data-theme=dark] .sk{background:#1b2f29}
 html[data-theme=dark] .lg:hover,html[data-theme=dark] .mc:hover{background:#ffffff0f}
 html[data-theme=dark] .stk{background:linear-gradient(transparent,#0a1411 35%)}
+html[data-theme=dark] .stk.in{background:linear-gradient(transparent,#12211c 35%)}
 html[data-theme=dark] .emi circle:first-child{fill:#0f3d34}
 html[data-theme=dark] input[type=file]::file-selector-button{background:#134e44;color:#99f6e4}
 html[data-theme=dark] hr{border-color:#24403a}
@@ -1869,7 +1871,7 @@ function vDokEd(){
   ${t==='hadir'?`<details style="margin-top:12px"><summary style="cursor:pointer;font-size:12px;color:#6b7280">📋 Tempel banyak nama sekaligus</summary>
    <textarea id="dk-ps" rows="5" style="width:100%;border:1.5px solid #e2e8f0;border-radius:12px;padding:10px 12px;font:inherit;font-size:14px" placeholder="Satu nama per baris"></textarea>
    <button class="btn teal" style="margin-top:6px" onclick="dokPaste()">Tambahkan ke daftar</button></details>`:''}
-  <div class="stk" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;background:linear-gradient(transparent,#fff 35%)"><button class="btn" style="flex:1" onclick="dokSave()">💾 Simpan</button><button class="btn gold" onclick="doPrint(dokHtml())">🖨️ Cetak</button><button class="btn gray" onclick="dokBaru()">📄 Dokumen baru</button></div></div>
+  <div class="stk in" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><button class="btn" style="flex:1" onclick="dokSave()">💾 Simpan</button><button class="btn gold" onclick="doPrint(dokHtml())">🖨️ Cetak</button><button class="btn gray" onclick="dokBaru()">📄 Dokumen baru</button></div></div>
  <div class="card wrap"><div id="dk-pv" style="min-width:680px">${dokHtml()}</div></div>`;
 }
 
