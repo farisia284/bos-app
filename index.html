@@ -236,6 +236,7 @@ button.sbg{display:flex;align-items:center;justify-content:space-between;width:1
 .bk table.t th,.bk table.t td{border:1px solid #000!important;padding:2px 5px!important;background:none!important;color:#000;font-size:11.5px;text-align:left;vertical-align:top}
 .bk table.t th{text-align:center;font-weight:700}
 .bk table.t td.r{text-align:right;white-space:nowrap}
+.bk table.t tr.hl td{background:#fef08a!important;transition:background 1s}
 .bk table.t tr.j td{border-top:2px solid #000!important;border-bottom:2px solid #000!important;font-weight:700}
 .bk .b{font-weight:700}
 .bk table.inf{width:auto!important}
@@ -947,7 +948,17 @@ function dtSet(id,v){const e=$(id);if(e){e.value=dtShow(v);if(e.nextElementSibli
 const dIn=(v,js,x,c)=>`<div class="dw"${c?' style="display:inline-block"':''}><input class="dt${c||''}" readonly size="10" placeholder="hh/bb/tttt" value="${dtShow(v)}"${x||''}>${/disabled/.test(x||'')?'':`<input type="date" class="dp" value="${v||''}" aria-label="Pilih tanggal" onclick="try{this.showPicker()}catch(e){}" onchange="{const v=this.value;this.previousElementSibling.value=dtShow(v);${js}}">`}</div>`;
 
 /* ─── FORM HANDLERS ─── */
-function fset(k,v){F[k]=v}
+/* pita "tersimpan" di Input (hanya Belanja): bertahan sampai belanja berikutnya mulai diisi atau ditutup; tombolnya membuka Rekapan Belanja di bulan itu dan menyorot barisnya */
+let lastSv=null,hlId=null;
+const bnTutup=()=>{lastSv=null;const e=$('sv-bn');if(e)e.remove()};
+const bnHtml=()=>lastSv?`<div id="sv-bn" class="info" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:11px;background:#ecfdf5;border-color:#6ee7b7"><div style="flex:1;min-width:180px;font-size:12px">✅ Tersimpan: <b>${esc(lastSv.uraian)}</b> · ${rp(lastSv.jumlah)}</div><button class="btn teal" style="padding:7px 12px;font-size:12px" onclick="spLihat()">📋 Lihat di Rekapan Belanja</button><button class="ib" title="Tutup" aria-label="Tutup" onclick="bnTutup()">✕</button></div>`:'';
+function spLihat(){
+ const s=lastSv;if(!s)return;
+ rkM=String(getMonth(s.tanggal));hlId=s.id;go('rkn');
+ setTimeout(()=>{const e=$('rw-'+s.id);if(e)e.scrollIntoView({block:'center',behavior:'smooth'})},80);
+ setTimeout(()=>{const e=$('rw-'+s.id);if(e)e.classList.remove('hl');hlId=null},4500);
+}
+function fset(k,v){F[k]=v;if(lastSv&&(k==='uraian'||k==='jumlah')&&v)bnTutup()}
 function fTgl(v){
  const old=F.tanggal;F.tanggal=v;
  if(F.tglTrx===old){F.tglTrx=v;dtSet('f-trx',v)}
@@ -963,7 +974,7 @@ function fmt(el,tid){
  if(t){t.style.display=n>0?'block':'none';t.textContent='✍️ '+terbilang(n)}
  return n;
 }
-function onJml(el){const n=fmt(el,'f-terb');F.jumlah=n?String(n):'';upd()}
+function onJml(el){const n=fmt(el,'f-terb');F.jumlah=n?String(n):'';if(n&&lastSv)bnTutup();upd()}
 function upd(){
  const j=cleanNum(F.jumlah),pi=fP(F.pajakKode),pj=F.jenis==='kredit'&&F.pajakOn&&pi?Math.round(j*pi.persen/100):0;
  if($('f-pj'))$('f-pj').textContent=rp(pj);
@@ -985,8 +996,10 @@ function doSubmit(again){
  const pajak=k&&f.pajakOn&&pi?{kode:pi.kode,persen:pi.persen,jumlah:Math.round(j*pi.persen/100),tglStor:sd,ntpn:f.ntpn.trim()}:null;
  const e={tanggal:f.tanggal,tglTrx:k?(f.tglTrx||f.tanggal):'',noBukti:f.noBukti,kode:k?f.kode.trim():'',uraian:f.uraian.trim(),komponen:k?f.komponen:'0',jenis:f.jenis,jumlah:j,ket:f.ket,guruId:k?f.guruId:'',tukang:k&&!!f.tukang,pajak,rapat:k&&f.rapatOn?{...f.rp}:null,sppd:k&&f.sppdOn&&f.sp.length?f.sp.map(x=>({...x})):null,rek:k?f.rek:''};
  /* dibuat = waktu pertama kali disimpan; otomatis, tidak bisa diubah, dipertahankan saat edit */
- const list=editId?tx.map(t=>t.id===editId?{...e,id:editId,dibuat:t.dibuat}:t):[...tx,{...e,id:f.tid||uid(),dibuat:new Date().toISOString()}];
+ const nid=f.tid||uid();
+ const list=editId?tx.map(t=>t.id===editId?{...e,id:editId,dibuat:t.dibuat}:t):[...tx,{...e,id:nid,dibuat:new Date().toISOString()}];
  if(!commit(list,editId?'✅ Transaksi diperbarui':'✅ Transaksi disimpan'))return;
+ lastSv=k?{id:editId||nid,uraian:e.uraian,jumlah:j,tanggal:e.tanggal}:null;
  if(k&&f.guruId)try{localStorage.setItem(GK,f.guruId)}catch(e){}
  const keep=again===true&&!editId?{jenis:f.jenis,tanggal:f.tanggal,tglTrx:f.tglTrx,tglStor:f.tglStor,komponen:f.komponen,guruId:f.guruId,kode:f.kode,rek:f.rek}:null;
  editId=null;newForm();if(keep){Object.assign(F,keep);autoNo()}render();
@@ -1298,7 +1311,7 @@ function vInput(){
  :`<div class="card"><div class="g2">
    <div><label>📅 Tanggal *</label>${dIn(f.tanggal,'fTgl(v)')}</div>
    <div><label>🔢 No. Bukti</label>${noInp}</div></div>${uraian}${jumlah}${ket}</div>`;
- return `<div class="card">
+ return `${bnHtml()}<div class="card">
   <div class="ct">${editId?'✏️ Edit Transaksi':'➕ Input Transaksi'}</div>
   <div style="font-size:11px;color:#6b7280;margin:-4px 0 8px">${cur?(cur.dibuat?`🕐 Pertama kali diinput: ${tglJam(cur.dibuat)}`:'🕐 Waktu input data lama tidak tercatat'):'🕐 Tanggal &amp; jam input dicatat otomatis saat disimpan.'}</div>
   <div class="g3" style="margin-bottom:0">${jt.map(([v,l,c])=>`<button class="jt" style="border:2px solid ${f.jenis===v?c:'#e5e7eb'};color:${f.jenis===v?c:'#6b7280'};background:${f.jenis===v?c+'11':'#fff'}" onclick="setJ('${v}')">${l}</button>`).join('')}</div>
@@ -1468,7 +1481,7 @@ function vRkn(){
  const pj=(t,k)=>t.pajak&&t.pajak.kode===k?t.pajak.jumlah:0,sum=f=>l.reduce((a,t)=>a+f(t),0);
  const c=v=>v?`<td class="r">${n2(v)}</td>`:'<td></td>';
  const rows=l.map(t=>{const r=rek(t),k=fK(t.komponen),g=fGuru(t.guruId);
-  return `<tr><td>${tglN(t.tanggal)}</td><td>${tglN(t.tglTrx||t.tanggal)}</td><td>${r?esc(r.nama):''}</td><td class="b">${esc(t.kode||'')}</td><td>${k?esc(k.nama):''}</td><td class="b">${esc(t.noBukti)}</td><td>${esc(t.uraian)}</td>${c(t.jumlah)}${c(pj(t,'pph21'))}${c(pj(t,'pph23'))}${c(pj(t,'ppn'))}<td>${g?`${esc(g.nama)}<br>NIP. ${esc(g.nip)||'-'}<br>${esc(g.jabatan||'Guru Kelas')}`:''}</td><td style="white-space:nowrap"><button class="ib" title="Edit" onclick="doEdit('${t.id}')">✏️</button><button class="ib" title="Hapus" onclick="delId='${t.id}';render()">🗑️</button></td></tr>`}).join('');
+  return `<tr id="rw-${t.id}"${t.id===hlId?' class="hl"':''}><td>${tglN(t.tanggal)}</td><td>${tglN(t.tglTrx||t.tanggal)}</td><td>${r?esc(r.nama):''}</td><td class="b">${esc(t.kode||'')}</td><td>${k?esc(k.nama):''}</td><td class="b">${esc(t.noBukti)}</td><td>${esc(t.uraian)}</td>${c(t.jumlah)}${c(pj(t,'pph21'))}${c(pj(t,'pph23'))}${c(pj(t,'ppn'))}<td>${g?`${esc(g.nama)}<br>NIP. ${esc(g.nip)||'-'}<br>${esc(g.jabatan||'Guru Kelas')}`:''}</td><td style="white-space:nowrap"><button class="ib" title="Edit" onclick="doEdit('${t.id}')">✏️</button><button class="ib" title="Hapus" onclick="delId='${t.id}';render()">🗑️</button></td></tr>`}).join('');
  return `<div class="card row" style="flex-wrap:wrap"><div style="display:flex;gap:8px;align-items:center"><label style="margin:0">📅 Bulan:</label>${mSel(rkM,'rkM')}</div><div style="font-size:12px;color:#6b7280">${l.length} belanja · menurut tanggal lunas bayar</div></div>
  <div class="card wrap"><div style="min-width:1280px"><div class="bk"><div class="tt">REKAPAN BELANJA<br>BANTUAN OPERASIONAL SEKOLAH<br>${MO[m].toUpperCase()} ${yr}</div>
  <table class="t"><thead><tr><th>Tgl Lunas Bayar</th><th>Tgl Transaksi</th><th>Nama Rekening</th><th>Kode Rekening</th><th>Komponen</th><th>No Bukti</th><th>Uraian</th><th>Belanja</th><th>PPh 21</th><th>PPh 23</th><th>PPN</th><th>Guru Pelaksana</th><th></th></tr></thead>
