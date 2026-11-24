@@ -951,7 +951,7 @@ const dIn=(v,js,x,c)=>`<div class="dw"${c?' style="display:inline-block"':''}><i
 /* pita "tersimpan" di Input (hanya Belanja): bertahan sampai belanja berikutnya mulai diisi atau ditutup; tombolnya membuka Rekapan Belanja di bulan itu dan menyorot barisnya */
 let lastSv=null,hlId=null;
 const bnTutup=()=>{lastSv=null;const e=$('sv-bn');if(e)e.remove()};
-const bnHtml=()=>lastSv?`<div id="sv-bn" class="info" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:11px;background:#ecfdf5;border-color:#6ee7b7"><div style="flex:1;min-width:180px;font-size:12px">✅ Tersimpan: <b>${esc(lastSv.uraian)}</b> · ${rp(lastSv.jumlah)}</div><button class="btn teal" style="padding:7px 12px;font-size:12px" onclick="spLihat()">📋 Lihat di Rekapan Belanja</button><button class="ib" title="Tutup" aria-label="Tutup" onclick="bnTutup()">✕</button></div>`:'';
+const bnHtml=()=>lastSv?`<div id="sv-bn" class="info" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0;flex:1 0 100%"><div style="flex:1;min-width:180px;font-size:12px">✅ Tersimpan: <b>${esc(lastSv.uraian)}</b> · ${rp(lastSv.jumlah)}</div><button class="btn teal" style="padding:7px 12px;font-size:12px" onclick="spLihat()">📋 Lihat di Rekapan Belanja</button><button class="ib" style="color:inherit;font-size:15px" title="Tutup" aria-label="Tutup" onclick="bnTutup()">✕</button></div>`:'';
 function spLihat(){
  const s=lastSv;if(!s)return;
  rkM=String(getMonth(s.tanggal));hlId=s.id;go('rkn');
@@ -1311,13 +1311,13 @@ function vInput(){
  :`<div class="card"><div class="g2">
    <div><label>📅 Tanggal *</label>${dIn(f.tanggal,'fTgl(v)')}</div>
    <div><label>🔢 No. Bukti</label>${noInp}</div></div>${uraian}${jumlah}${ket}</div>`;
- return `${bnHtml()}<div class="card">
+ return `<div class="card">
   <div class="ct">${editId?'✏️ Edit Transaksi':'➕ Input Transaksi'}</div>
   <div style="font-size:11px;color:#6b7280;margin:-4px 0 8px">${cur?(cur.dibuat?`🕐 Pertama kali diinput: ${tglJam(cur.dibuat)}`:'🕐 Waktu input data lama tidak tercatat'):'🕐 Tanggal &amp; jam input dicatat otomatis saat disimpan.'}</div>
   <div class="g3" style="margin-bottom:0">${jt.map(([v,l,c])=>`<button class="jt" style="border:2px solid ${f.jenis===v?c:'#e5e7eb'};color:${f.jenis===v?c:'#6b7280'};background:${f.jenis===v?c+'11':'#fff'}" onclick="setJ('${v}')">${l}</button>`).join('')}</div>
   <div class="info" style="margin-bottom:0">${note}</div></div>
  <div class="fg">${kartu}</div>
- <div class="stk" style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px"><button class="btn" style="flex:1" onclick="doSubmit()">${editId?'💾 Perbarui':'💾 Simpan'}</button>${editId?'<button class="btn gray" onclick="cancelEdit()">Batal</button>':'<button class="btn teal" style="flex:1" onclick="doSubmit(true)">💾➕ Simpan &amp; Tambah Lagi</button>'}</div>`;
+ <div class="stk" style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px"><button class="btn" style="flex:1" onclick="doSubmit()">${editId?'💾 Perbarui':'💾 Simpan'}</button>${editId?'<button class="btn gray" onclick="cancelEdit()">Batal</button>':'<button class="btn teal" style="flex:1" onclick="doSubmit(true)">💾➕ Simpan &amp; Tambah Lagi</button>'}${bnHtml()}</div>`;
 }
 
 /* ─── UNDANGAN RAPAT & DAFTAR HADIR ───
