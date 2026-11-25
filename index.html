@@ -1341,17 +1341,17 @@ const kopHtml=()=>`<div style="display:flex;align-items:center;justify-content:c
   <div style="text-align:center"><div style="font-size:20px;font-weight:700">${esc(cfg.kopPemda)}</div><div style="font-size:20px;font-weight:700">${esc(cfg.kopSekolah)}</div><div style="font-size:13px">${esc(cfg.alamat)}</div>${cfg.email?`<div style="font-size:13px;font-style:italic;color:#0563c1;text-decoration:underline">Pos-el : ${esc(cfg.email)}</div>`:''}</div>${logoImg(cfg.logoKanan)}</div>
   <div style="border-top:3px double #000;margin:6px 0 14px"></div>`;
 const ttdHtml=(tg)=>`<div style="margin:30px 0 0 58%;text-align:center;break-inside:avoid"><div>${esc(cfg.tempat||cfg.kota)}, ${tglN(tg)}</div><div>Kepala Sekolah</div><div style="height:64px"></div><div style="font-weight:700;text-decoration:underline">${esc(cfg.kepsek)||'(___________________)'}</div><div>NIP. ${esc(cfg.nipKepsek)||'………………………………'}</div></div>`;
-const rpKv=(l,v)=>`<tr><td style="width:120px;padding:1px 0">${l}</td><td style="width:14px">:</td><td>${esc(v)}</td></tr>`;
+const rpKv=(l,v,w=120)=>`<tr><td style="width:${w}px;padding:1px 0">${l}</td><td style="width:14px">:</td><td>${esc(v)}</td></tr>`;
 const lainList=r=>(r.lain||'').split('\n').map(x=>x.trim()).filter(Boolean);
-/* Margin isi surat mengikuti SP (kiri-kanan 45px); font tetap Times New Roman */
+/* Undangan: tanpa padding samping tambahan (margin kertas 1cm saja), font 13pt Times New Roman */
 function undHtml(t){
  const r=t.rapat,ln=lainList(r);
- return `<div class="rp" style="${rpFont}">${kopHtml()}<div style="padding:0 45px">
+ return `<div class="rp" style="${rpFont};font-size:13pt">${kopHtml()}<div>
  <div style="text-align:right">${esc(cfg.tempat||cfg.kota)}, ${tglN(r.dU)}</div>
- <table class="n" style="width:100%;margin-top:10px;border-collapse:collapse"><tr><td style="width:50%;vertical-align:top"><table class="n"><tr><td style="width:80px">Nomor</td><td>:</td></tr><tr><td>Lampiran</td><td>:</td></tr><tr><td>Hal</td><td>: <b style="text-decoration:underline">Undangan</b></td></tr></table></td>
+ <table class="n" style="width:100%;margin-top:10px;border-collapse:collapse"><tr><td style="width:50%;vertical-align:top"><table class="n"><tr><td style="width:100px">Nomor</td><td>:</td></tr><tr><td>Lampiran</td><td>:</td></tr><tr><td>Hal</td><td>: <b style="text-decoration:underline">Undangan</b></td></tr></table></td>
   <td style="vertical-align:top"><div>Kepada:</div><div>Yth</div><div>${esc(r.tujuan)}</div>${ln.map(x=>`<div>${esc(x)}</div>`).join('')}<div>Di Tempat</div></td></tr></table>
  <div style="margin-top:22px">Dengan Hormat,</div><div>Dimohon kehadiran ${ln.length?'Bapak/ Ibu':esc(r.tujuan)} pada:</div>
- <table class="n" style="margin:6px 0 0 36px;border-collapse:collapse">${rpKv('Hari / Tanggal',hariTgl(r.dR))}${rpKv('Waktu',r.waktu)}${rpKv('Tempat',r.tempat)}${rpKv('Keperluan',r.perlu)}${rpKv('Keterangan',r.ket)}</table>
+ <table class="n" style="margin:6px 0 0 36px;border-collapse:collapse">${[['Hari / Tanggal',hariTgl(r.dR)],['Waktu',r.waktu],['Tempat',r.tempat],['Keperluan',r.perlu],['Keterangan',r.ket]].map(x=>rpKv(x[0],x[1],150)).join('')}</table>
  <div style="margin-top:20px">Atas perhatian dan kehadirannya diucapkan terima kasih.</div>${ttdHtml(r.dU)}</div></div>`;
 }
 /* Urutan daftar hadir menurut teks jabatan: 0 guru kelas ber-NIP, 1 guru kelas tanpa NIP, 2 PJOK, 3 PAI, 4 staf administrasi, 5 penjaga */
