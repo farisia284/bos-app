@@ -1815,8 +1815,39 @@ function dokPeople(){
  return[{nama:cfg.kepsek,nip:cfg.nipKepsek,jab:'Kepala Sekolah'},{nama:cfg.bendahara,nip:cfg.nipBendahara,jab:'Bendahara BOS'},
   ...(cfg.guruList||[]).map(g=>({nama:g.nama,nip:g.nip,jab:g.jabatan||'Guru Kelas',pre:g.id===gid}))].filter(p=>(p.nama||'').trim());
 }
-function dokPick(){
- if(D.t==='upah')return '';
+const dokPick=()=>(D.t==='upah'?'':dokGuru())+dokPrevHtml();
+/* nama dari dokumen tersimpan (jenis & tahun sama), satu entri per nama; isian terbaru menang. Hadir: isi kolom dicocokkan lewat nama kolom. */
+function dokPrev(){
+ const m=new Map();
+ dokSaved().filter(x=>x.t===D.t).sort((a,b)=>(a.diubah||'').localeCompare(b.diubah||'')).forEach(x=>x.rows.forEach(r=>{
+  const n=(r[0]||'').trim();if(!n)return;
+  const c={};x.cols.forEach((h,i)=>{if(r[i+1]&&!DOKT.test(h))c[h.trim().toLowerCase()]=r[i+1]});
+  m.set(n.toLowerCase(),{nama:n,jab:r[1]||'',c});
+ }));
+ return[...m.values()].sort((a,b)=>a.nama.localeCompare(b.nama));
+}
+function dokPrevHtml(){
+ const P=dokPrev();
+ return `<details style="margin-bottom:12px"><summary style="cursor:pointer;font-size:13px;font-weight:700;min-height:32px">🗂️ Ambil dari dokumen tersimpan (${P.length} nama)</summary>
+ ${P.length?`<div id="dk-pv2" class="rg" style="margin-top:8px">${P.map((p,i)=>`<label style="display:flex;align-items:center;gap:8px;margin:0;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:12px;cursor:pointer;min-height:44px"><input type="checkbox" value="${i}"><span style="min-width:0"><b style="font-size:12px;display:block;word-break:break-word">${esc(p.nama)}</b><small style="font-size:11px;color:#6b7280">${esc(Object.values(p.c).join(' · ')||p.jab)}</small></span></label>`).join('')}</div>
+ <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn teal" onclick="dokAmbilLama()">+ Tambahkan yang dicentang</button><button class="btn gray" onclick="document.querySelectorAll('#dk-pv2 input').forEach(x=>x.checked=true)">Pilih semua</button></div>`
+ :`<div style="font-size:12px;color:#6b7280;margin-top:6px">Belum ada ${DOKN[D.t]} tersimpan di tahun ${yr}. Simpan satu dokumen dulu, namanya muncul di sini.</div>`}</details>`;
+}
+function dokAmbilLama(){
+ const P=dokPrev(),sel=[...document.querySelectorAll('#dk-pv2 input:checked')].map(x=>P[+x.value]);
+ if(!sel.length){toast('⚠️ Centang dulu nama yang mau ditambahkan');return}
+ const kept=D.rows.filter(dokFilled),ada=new Set(kept.map(r=>(r[0]||'').trim().toLowerCase())),baru=[];
+ sel.forEach(p=>{
+  if(ada.has(p.nama.toLowerCase()))return;
+  const r=D.t==='honor'?dokRow('honor',D.pph):[];r[0]=p.nama;
+  if(D.t==='honor')r[1]=p.jab;
+  else if(D.t==='hadir')D.cols.forEach((c,i)=>{const v=p.c[c.trim().toLowerCase()];if(v)r[i+1]=v});
+  baru.push(r);
+ });
+ if(!baru.length){toast('Semua yang dicentang sudah ada di daftar');return}
+ D.rows=[...kept,...baru];dokRowsUpd();dokUpd();toast(`✅ ${baru.length} nama ditambahkan`);
+}
+function dokGuru(){
  const P=dokPeople(),bagi=D.t==='honor'&&D.trx&&bkuOf(D.trx)?'<button class="btn blue" onclick="dokBagi()">➗ Bagi rata honor dari BKU</button>':'';
  return `<details style="margin-bottom:12px" open><summary style="cursor:pointer;font-size:13px;font-weight:700;min-height:32px">👥 Ambil dari Daftar Guru</summary>
  ${P.length?`<div id="dk-pk" class="rg" style="margin-top:8px">${P.map((p,i)=>`<label style="display:flex;align-items:center;gap:8px;margin:0;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:12px;cursor:pointer;min-height:44px"><input type="checkbox" value="${i}"${p.pre?' checked':''}><span style="min-width:0"><b style="font-size:12px;display:block;word-break:break-word">${esc(p.nama)}</b><small style="font-size:11px;color:#6b7280">${esc(p.jab)}</small></span></label>`).join('')}</div>
