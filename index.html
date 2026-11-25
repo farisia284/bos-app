@@ -1343,10 +1343,10 @@ const kopHtml=()=>`<div style="display:flex;align-items:center;justify-content:c
 const ttdHtml=(tg)=>`<div style="margin:30px 0 0 58%;text-align:center;break-inside:avoid"><div>${esc(cfg.tempat||cfg.kota)}, ${tglN(tg)}</div><div>Kepala Sekolah</div><div style="height:64px"></div><div style="font-weight:700;text-decoration:underline">${esc(cfg.kepsek)||'(___________________)'}</div><div>NIP. ${esc(cfg.nipKepsek)||'………………………………'}</div></div>`;
 const rpKv=(l,v,w=120)=>`<tr><td style="width:${w}px;padding:1px 0">${l}</td><td style="width:14px">:</td><td>${esc(v)}</td></tr>`;
 const lainList=r=>(r.lain||'').split('\n').map(x=>x.trim()).filter(Boolean);
-/* Undangan: tanpa padding samping tambahan (margin kertas 1cm saja), font 13pt Times New Roman */
+/* Undangan: margin samping total 3cm (1cm kertas + 2cm isi), font 13pt Times New Roman */
 function undHtml(t){
  const r=t.rapat,ln=lainList(r);
- return `<div class="rp" style="${rpFont};font-size:13pt">${kopHtml()}<div>
+ return `<div class="rp" style="${rpFont};font-size:13pt">${kopHtml()}<div style="padding:0 2cm">
  <div style="text-align:right">${esc(cfg.tempat||cfg.kota)}, ${tglN(r.dU)}</div>
  <table class="n" style="width:100%;margin-top:10px;border-collapse:collapse"><tr><td style="width:50%;vertical-align:top"><table class="n"><tr><td style="width:100px">Nomor</td><td>:</td></tr><tr><td>Lampiran</td><td>:</td></tr><tr><td>Hal</td><td>: <b style="text-decoration:underline">Undangan</b></td></tr></table></td>
   <td style="vertical-align:top"><div>Kepada:</div><div>Yth</div><div>${esc(r.tujuan)}</div>${ln.map(x=>`<div>${esc(x)}</div>`).join('')}<div>Di Tempat</div></td></tr></table>
