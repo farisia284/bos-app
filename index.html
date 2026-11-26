@@ -825,7 +825,7 @@ function importDb(el){
 
 /* ─── STATE ─── */
 let yr,cfg,tx=[],sa={bank:0,tunai:0},R={rows:[]};
-let tab='dashboard',editId=null,delId=null,cfgD=null,F;
+let tab='dashboard',editId=null,delId=null,delBln=null,cfgD=null,F;
 const nowM=String(new Date().getMonth()+1);
 let dashTab='bulan',rkM=nowM,bkuM=nowM,pjM=nowM,pMo=nowM,rkT=+nowM<=6?'1':'2',rkTgl='';
 
@@ -1010,6 +1010,13 @@ function doEdit(id){
  const t=tx.find(x=>x.id===id);if(!t)return;
  F={tanggal:t.tanggal,tglTrx:t.tglTrx||t.tanggal,tglStor:(t.pajak&&t.pajak.tglStor)||t.tanggal,ntpn:(t.pajak&&t.pajak.ntpn)||'',noBukti:t.noBukti,kode:t.kode||'',uraian:t.uraian,komponen:t.komponen,jenis:t.jenis,jumlah:String(t.jumlah),ket:t.ket||'',guruId:t.guruId||'',tukang:!!t.tukang,pajakOn:!!t.pajak,pajakKode:t.pajak?t.pajak.kode:'pph23',rapatOn:!!t.rapat,rp:{...newRp(),...(t.rapat||{})},sppdOn:!!(t.sppd&&t.sppd.length),sp:JSON.parse(JSON.stringify(t.sppd||[])),rek:t.rek||''};
  editId=id;clearDraft();tab='input';render();scrollTo(0,0);
+}
+/* hapus semua transaksi (dana masuk, tarik dana, belanja) di satu bulan. commit() menolak kalau saldo jadi minus. */
+const blnIds=m=>tx.filter(t=>getMonth(t.tanggal)===+m).map(t=>t.id);
+function doDelBln(){
+ const m=delBln,ids=new Set(blnIds(m));
+ if(commit(tx.filter(t=>!ids.has(t.id)),`🗑️ ${ids.size} transaksi bulan ${MO[m]} dihapus`))ids.forEach(id=>{if(fotoOf(id).length)sv(FTK(id),[])});
+ delBln=null;render();
 }
 function cancelEdit(){editId=null;newForm();render()}
 function doDel(id){if(commit(tx.filter(t=>t.id!==id),'🗑️ Dihapus')&&fotoOf(id).length)sv(FTK(id),[]);delId=null;render()}
@@ -1472,7 +1479,7 @@ function rkSheet(th,act){
 function vBKU(){
  return `<div class="card row" style="flex-wrap:wrap">
   <div style="display:flex;gap:8px;align-items:center"><label style="margin:0">📅 Bulan:</label>${mSel(bkuM,'bkuM')}</div>
-  <button class="btn" onclick="printBKU()">🖨️ Cetak BKU (Landscape)</button></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn red" onclick="blnIds(bkuM).length?(delBln=bkuM,render()):toast('Tidak ada transaksi di ${MO[bkuM]}')">🗑️ Hapus Semua Transaksi ${MO[bkuM]}</button><button class="btn" onclick="printBKU()">🖨️ Cetak BKU (Landscape)</button></div></div>
  <div class="card wrap"><div style="min-width:720px">${bkuSheet(+bkuM,true)}</div></div>
  ${R.rows.some(r=>getMonth(r.tanggal)===+bkuM)?'':`<div class="card">${empty('bku',`Belum ada transaksi di ${MO[bkuM]}`,'Bulan ini baru ada saldo awal. Catat dana masuk, tarik dana, atau belanja untuk mengisinya.',[['➕ Input transaksi',"go('input')"]],1)}</div>`}`;
 }
@@ -2222,7 +2229,8 @@ function render(){
  ${pwBox('id="wp-pw" autocomplete="current-password" placeholder="Password" onkeydown="if(event.key===\'Enter\')doWipe()"')}
  ${wipeErr?`<div style="color:#dc2626;font-size:12px;font-weight:600;margin-top:6px">${esc(wipeErr)}</div>`:''}
  <div style="display:flex;gap:8px;margin-top:14px"><button class="btn gray" style="flex:1" onclick="wipeNo()">Batal</button><button class="btn red" style="flex:1" id="wp-ok" onclick="doWipe()">Hapus</button></div></div></div>`:''}
- ${delId?`<div class="modal"><div><div style="font-size:22px;text-align:center">🗑️</div><div style="font-weight:700;text-align:center;margin:6px 0">Hapus Transaksi?</div><div style="font-size:12px;color:#6b7280;text-align:center;margin-bottom:17px">Tidak dapat dibatalkan.</div><div style="display:flex;gap:8px"><button class="btn gray" style="flex:1" onclick="delId=null;render()">Batal</button><button class="btn red" style="flex:1" onclick="doDel('${delId}')">Hapus</button></div></div></div>`:''}`;
+ ${delId?`<div class="modal"><div><div style="font-size:22px;text-align:center">🗑️</div><div style="font-weight:700;text-align:center;margin:6px 0">Hapus Transaksi?</div><div style="font-size:12px;color:#6b7280;text-align:center;margin-bottom:17px">Tidak dapat dibatalkan.</div><div style="display:flex;gap:8px"><button class="btn gray" style="flex:1" onclick="delId=null;render()">Batal</button><button class="btn red" style="flex:1" onclick="doDel('${delId}')">Hapus</button></div></div></div>`:''}
+ ${delBln?`<div class="modal"><div><div style="font-size:22px;text-align:center">🗑️</div><div style="font-weight:700;text-align:center;margin:6px 0">Hapus ${blnIds(delBln).length} transaksi bulan ${MO[delBln]}?</div><div style="font-size:12px;color:#6b7280;text-align:center;margin-bottom:17px">Termasuk dana masuk, tarik dana, dan belanja. Tidak dapat dibatalkan.</div><div style="display:flex;gap:8px"><button class="btn gray" style="flex:1" onclick="delBln=null;render()">Batal</button><button class="btn red" style="flex:1" onclick="doDelBln()">Hapus</button></div></div></div>`:''}`;
  const nv=document.querySelector('.sbn');if(nv)nv.scrollTop=sbS;
 }
 
